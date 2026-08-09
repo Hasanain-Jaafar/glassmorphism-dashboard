@@ -217,8 +217,12 @@
 }
 
 @layer utilities {
-  .glass-panel {
+  /* Zero-specificity so a positioning utility (sticky/absolute/fixed) on the
+     same element always wins the cascade, regardless of source order. */
+  :where(.glass-panel) {
     position: relative;
+  }
+  .glass-panel {
     background: var(--glass);
     backdrop-filter: blur(28px) saturate(165%);
     -webkit-backdrop-filter: blur(28px) saturate(165%);

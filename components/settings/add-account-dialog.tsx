@@ -1,11 +1,19 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState, type ChangeEvent } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
-import { Check, Copy, Dices, Eye, EyeOff, UserPlus } from "lucide-react";
+import {
+  Camera,
+  Check,
+  Copy,
+  Dices,
+  Eye,
+  EyeOff,
+  UserPlus,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -26,7 +34,24 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { AvatarCropDialog } from "@/components/settings/avatar-crop-dialog";
 import type { UserRole } from "@/components/providers/auth-provider";
+
+const roleLabels: Record<UserRole, string> = {
+  admin: "Administrator",
+  sales_rep: "Sales Representative",
+};
+
+const MAX_AVATAR_SIZE = 5 * 1024 * 1024;
+
+function blobToDataUrl(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(blob);
+  });
+}
 
 const formSchema = z.object({
   fullName: z.string().min(2, "Enter a full name"),
@@ -71,6 +96,16 @@ export function AddAccountDialog({
   );
   const [copied, setCopied] = useState(false);
 
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [pendingPreviewUrl, setPendingPreviewUrl] = useState<string | null>(
+    null
+  );
+  const [cropOpen, setCropOpen] = useState(false);
+  const [avatarPreviewUrl, setAvatarPreviewUrl] = useState<string | null>(
+    null
+  );
+  const [avatarDataUrl, setAvatarDataUrl] = useState<string | null>(null);
+
   const {
     register,
     control,
@@ -90,14 +125,61 @@ export function AddAccountDialog({
       setCreated(null);
       setShowPassword(false);
       setCopied(false);
+      if (avatarPreviewUrl) URL.revokeObjectURL(avatarPreviewUrl);
+      setAvatarPreviewUrl(null);
+      setAvatarDataUrl(null);
     }
+  }
+
+  function handleAvatarChange(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please choose an image file");
+      return;
+    }
+    if (file.size > MAX_AVATAR_SIZE) {
+      toast.error("Image must be smaller than 5MB");
+      return;
+    }
+
+    setPendingPreviewUrl(URL.createObjectURL(file));
+    setCropOpen(true);
+  }
+
+  function handleCropCancel() {
+    if (pendingPreviewUrl) URL.revokeObjectURL(pendingPreviewUrl);
+    setPendingPreviewUrl(null);
+    setCropOpen(false);
+  }
+
+  async function handleCropSaved(url: string) {
+    if (pendingPreviewUrl) URL.revokeObjectURL(pendingPreviewUrl);
+    setPendingPreviewUrl(null);
+    setCropOpen(false);
+
+    const blob = await fetch(url).then((response) => response.blob());
+    if (avatarPreviewUrl) URL.revokeObjectURL(avatarPreviewUrl);
+    setAvatarPreviewUrl(url);
+    setAvatarDataUrl(await blobToDataUrl(blob));
+  }
+
+  function handleRemoveAvatar() {
+    if (avatarPreviewUrl) URL.revokeObjectURL(avatarPreviewUrl);
+    setAvatarPreviewUrl(null);
+    setAvatarDataUrl(null);
   }
 
   async function onSubmit(values: FormOutput) {
     const res = await fetch("/api/admin/salespeople", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(values),
+      body: JSON.stringify({
+        ...values,
+        avatarDataUrl: avatarDataUrl ?? undefined,
+      }),
     });
 
     if (!res.ok) {
@@ -121,12 +203,13 @@ export function AddAccountDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={closeAndReset}>
-      <DialogTrigger render={<Button size="sm" className="gap-1.5" />}>
-        <UserPlus className="size-3.5" />
-        Add Salesperson
-      </DialogTrigger>
-      <DialogContent>
+    <>
+      <Dialog open={open} onOpenChange={closeAndReset}>
+        <DialogTrigger render={<Button size="sm" className="gap-1.5" />}>
+          <UserPlus className="size-3.5" />
+          Add Salesperson
+        </DialogTrigger>
+        <DialogContent>
         {created ? (
           <>
             <DialogHeader>
@@ -180,6 +263,48 @@ export function AddAccountDialog({
               onSubmit={handleSubmit(onSubmit)}
               className="grid grid-cols-1 gap-4 py-1 sm:grid-cols-2"
             >
+              <div className="flex items-center gap-4 sm:col-span-2">
+                <div className="flex size-14 shrink-0 items-center justify-center overflow-hidden rounded-full bg-accent text-lg font-semibold text-accent-foreground">
+                  {avatarPreviewUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={avatarPreviewUrl}
+                      alt=""
+                      className="size-full object-cover"
+                    />
+                  ) : (
+                    <Camera className="size-5 text-accent-foreground/60" />
+                  )}
+                </div>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleAvatarChange}
+                />
+                <div className="flex items-center gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    {avatarPreviewUrl ? "Change Photo" : "Add Photo"}
+                  </Button>
+                  {avatarPreviewUrl && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleRemoveAvatar}
+                    >
+                      Remove
+                    </Button>
+                  )}
+                </div>
+              </div>
+
               <div className="space-y-1.5 sm:col-span-2">
                 <Label htmlFor="acc-name">Full Name</Label>
                 <Input
@@ -270,7 +395,9 @@ export function AddAccountDialog({
                       }
                     >
                       <SelectTrigger id="acc-role">
-                        <SelectValue />
+                        <SelectValue>
+                          {(value: UserRole) => roleLabels[value]}
+                        </SelectValue>
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="sales_rep">
@@ -310,7 +437,15 @@ export function AddAccountDialog({
             </form>
           </>
         )}
-      </DialogContent>
-    </Dialog>
+        </DialogContent>
+      </Dialog>
+
+      <AvatarCropDialog
+        previewUrl={pendingPreviewUrl}
+        open={cropOpen}
+        onCancel={handleCropCancel}
+        onCropped={handleCropSaved}
+      />
+    </>
   );
 }

@@ -1,10 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
-import { Table2, Trophy, UserPlus, Users } from "lucide-react";
+import { Table2, Trophy, Users } from "lucide-react";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { MetricCard } from "@/components/dashboard/metric-card";
 import { ChartCard } from "@/components/dashboard/chart-card";
@@ -12,7 +11,6 @@ import { SalespersonCard } from "@/components/sales/salesperson-card";
 import { SalespersonRankChart } from "@/components/charts/salesperson-chart";
 import { SalespersonRankingTable } from "@/components/tables/salesperson-ranking-table";
 import { Reveal } from "@/components/motion/reveal";
-import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Tabs,
@@ -28,10 +26,8 @@ import {
   type TeamMember,
 } from "@/lib/supabase/team";
 import { formatUSD, formatPercent } from "@/lib/format";
-import { useAuth } from "@/components/providers/auth-provider";
 
 export default function TeamPage() {
-  const { isAdmin: admin } = useAuth();
   const [people, setPeople] = useState<TeamMember[] | null>(null);
 
   useEffect(() => {
@@ -81,22 +77,7 @@ export default function TeamPage() {
   return (
     <div className="space-y-6">
       <Reveal>
-        <PageHeader
-          title="Sales Team"
-          actions={
-            admin && (
-              <Button
-                render={<Link href="/settings?tab=team" />}
-                nativeButton={false}
-                size="sm"
-                className="gap-1.5"
-              >
-                <UserPlus className="size-3.5" />
-                Add Salesperson
-              </Button>
-            )
-          }
-        />
+        <PageHeader title="Sales Team" />
       </Reveal>
 
       <Reveal delay={0.05}>
@@ -157,19 +138,9 @@ export default function TeamPage() {
                   No sales representatives yet
                 </p>
                 <p className="mx-auto mt-1 max-w-sm text-sm text-text-tertiary">
-                  Add your first team member from Settings to see them here.
+                  Add your first team member from Settings → Team & Access to
+                  see them here.
                 </p>
-                {admin && (
-                  <Button
-                    render={<Link href="/settings?tab=team" />}
-                    nativeButton={false}
-                    size="sm"
-                    className="mt-4 gap-1.5"
-                  >
-                    <UserPlus className="size-3.5" />
-                    Add Salesperson
-                  </Button>
-                )}
               </div>
             ) : (
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:gap-6 xl:grid-cols-3">

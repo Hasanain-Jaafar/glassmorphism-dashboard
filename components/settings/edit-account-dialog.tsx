@@ -27,6 +27,11 @@ import {
 } from "@/components/ui/dialog";
 import type { Profile, UserRole } from "@/components/providers/auth-provider";
 
+const roleLabels: Record<UserRole, string> = {
+  admin: "Administrator",
+  sales_rep: "Sales Representative",
+};
+
 const formSchema = z.object({
   fullName: z.string().min(2, "Enter a full name"),
   email: z.string().email("Enter a valid email"),
@@ -190,7 +195,9 @@ export function EditAccountDialog({
                   disabled={isSelf}
                 >
                   <SelectTrigger id="edit-acc-role">
-                    <SelectValue />
+                    <SelectValue>
+                      {(value: UserRole) => roleLabels[value]}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="sales_rep">

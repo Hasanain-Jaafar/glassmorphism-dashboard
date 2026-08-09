@@ -10,7 +10,14 @@ const createSchema = z.object({
   role: z.enum(["admin", "sales_rep"]).default("sales_rep"),
   hasCar: z.boolean().default(false),
   startDate: z.string().optional(),
+  avatarDataUrl: z.string().optional(),
 });
+
+function decodeDataUrl(dataUrl: string) {
+  const match = /^data:([^;]+);base64,(.+)$/.exec(dataUrl);
+  if (!match) return null;
+  return { buffer: Buffer.from(match[2], "base64"), contentType: match[1] };
+}
 
 export async function POST(request: Request) {
   const admin = await requireAdmin();
@@ -25,8 +32,16 @@ export async function POST(request: Request) {
       { status: 400 }
     );
   }
-  const { fullName, email, password, phone, role, hasCar, startDate } =
-    parsed.data;
+  const {
+    fullName,
+    email,
+    password,
+    phone,
+    role,
+    hasCar,
+    startDate,
+    avatarDataUrl,
+  } = parsed.data;
 
   const supabaseAdmin = createAdminClient();
 
@@ -59,6 +74,31 @@ export async function POST(request: Request) {
 
   if (profileError) {
     return NextResponse.json({ error: profileError.message }, { status: 400 });
+  }
+
+  if (avatarDataUrl) {
+    const decoded = decodeDataUrl(avatarDataUrl);
+    if (decoded) {
+      const path = `${data.user.id}/avatar.jpg`;
+      const { error: uploadError } = await supabaseAdmin.storage
+        .from("avatars")
+        .upload(path, decoded.buffer, {
+          upsert: true,
+          contentType: "image/jpeg",
+        });
+
+      if (!uploadError) {
+        const {
+          data: { publicUrl },
+        } = supabaseAdmin.storage.from("avatars").getPublicUrl(path);
+        await supabaseAdmin
+          .from("profiles")
+          .update({ avatar_url: `${publicUrl}?v=${Date.now()}` })
+          .eq("id", data.user.id);
+      }
+      // A failed avatar upload shouldn't fail account creation — the admin
+      // can add a photo later by editing the account.
+    }
   }
 
   return NextResponse.json({ id: data.user.id }, { status: 201 });

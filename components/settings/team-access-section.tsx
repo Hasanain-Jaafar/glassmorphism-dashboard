@@ -2,7 +2,14 @@
 
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { MoreHorizontal, Pencil, ShieldCheck, Trash2 } from "lucide-react";
+import {
+  Ban,
+  MoreHorizontal,
+  Pencil,
+  RotateCcw,
+  ShieldCheck,
+  Trash2,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -192,7 +199,12 @@ export function TeamAccessSection() {
                           handleToggleActive(account.id, account.is_active)
                         }
                       >
-                        {account.is_active ? "Revoke Access" : "Restore Access"}
+                        {account.is_active ? (
+                          <Ban className="size-3.5" />
+                        ) : (
+                          <RotateCcw className="size-3.5" />
+                        )}
+                        {account.is_active ? "Revoke" : "Restore"}
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         variant="destructive"
@@ -200,7 +212,7 @@ export function TeamAccessSection() {
                         onClick={() => setDeletingAccount(account)}
                       >
                         <Trash2 className="size-3.5" />
-                        Delete Account
+                        Delete
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
