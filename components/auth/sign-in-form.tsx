@@ -279,19 +279,8 @@ export function SignInForm() {
             </>
           ) : (
             <>
-              Access is managed by your administrator, or{" "}
-              <button
-                type="button"
-                onClick={() => {
-                  setMode("sign-up");
-                  setError(null);
-                  setNotice(null);
-                }}
-                className="font-medium text-primary hover:text-primary-hover"
-              >
-                create an account
-              </button>
-              .
+              Access is managed by your administrator.
+              
             </>
           )}
         </p>
