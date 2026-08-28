@@ -27,7 +27,6 @@ export const navGroups: NavGroup[] = [
     label: "Overview",
     items: [
       { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard, enabled: true },
-      { label: "Planning", href: "/planning", icon: PenTool, enabled: true },
     ],
   },
   {
@@ -37,6 +36,7 @@ export const navGroups: NavGroup[] = [
       { label: "Customers", href: "/customers", icon: Contact, enabled: true },
       { label: "Coaching", href: "/coaching", icon: NotebookPen, enabled: true },
       { label: "Targets", href: "/targets", icon: Target, enabled: true },
+      { label: "Planning", href: "/planning", icon: PenTool, enabled: true },
     ],
   },
   {
