@@ -197,7 +197,7 @@ export function SignInForm() {
                   <Input
                     id="full-name"
                     autoComplete="name"
-                    placeholder="Anna Svensson"
+                    placeholder="Ahmed Ali"
                     required
                     value={fullName}
                     onChange={(event) => setFullName(event.target.value)}

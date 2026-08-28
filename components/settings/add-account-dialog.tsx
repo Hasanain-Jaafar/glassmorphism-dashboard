@@ -309,7 +309,7 @@ export function AddAccountDialog({
                 <Label htmlFor="acc-name">Full Name</Label>
                 <Input
                   id="acc-name"
-                  placeholder="Anna Svensson"
+                  placeholder="Ahmed Ali"
                   {...register("fullName")}
                 />
                 {errors.fullName && (
