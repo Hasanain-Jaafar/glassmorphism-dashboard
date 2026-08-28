@@ -57,7 +57,7 @@ export default function SalesPersonsPage() {
     <div className="space-y-6">
       <Reveal>
         <PageHeader
-          title="Salespersons KPI"
+          title="Sales Team KPI"
           description="Individual performance, targets, and pipeline health"
           actions={
             <AnalyticsFilterBar
