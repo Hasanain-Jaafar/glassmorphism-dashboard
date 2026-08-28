@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
 import { Search, Moon, Sun, UserPlus, UserCog, Building2 } from "lucide-react";
 import { navGroups } from "@/lib/nav";
+import { customers } from "@/lib/customers-data";
 import { fetchTeamMembers, type TeamMember } from "@/lib/supabase/team";
 import { useAuth } from "@/components/providers/auth-provider";
 import {
@@ -95,6 +96,22 @@ export function CommandPalette() {
                 ))}
               </CommandGroup>
             ))}
+            <CommandSeparator />
+            <CommandGroup heading="Customers">
+              {customers.map((customer) => (
+                <CommandItem
+                  key={customer.id}
+                  value={`${customer.company} ${customer.contactPerson}`}
+                  onSelect={() =>
+                    runCommand(() => router.push("/customers"))
+                  }
+                >
+                  <Building2 className="size-4" />
+                  {customer.company}
+                  <CommandShortcut>{customer.contactPerson}</CommandShortcut>
+                </CommandItem>
+              ))}
+            </CommandGroup>
             <CommandSeparator />
             {teamMembers.length > 0 && (
               <CommandGroup heading="Salespeople">
