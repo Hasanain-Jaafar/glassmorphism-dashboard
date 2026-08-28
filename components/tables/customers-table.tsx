@@ -61,10 +61,13 @@ function buildColumns(actions: {
           <button
             type="button"
             onClick={() => actions.onView(customer)}
-            className="min-w-0 text-left"
+            className="min-w-0 cursor-pointer text-left"
           >
             <p className="truncate text-sm font-medium text-foreground hover:text-primary">
               {customer.company}
+            </p>
+            <p className="truncate text-xs text-text-tertiary">
+              {customer.address}
             </p>
           </button>
         );
