@@ -30,9 +30,11 @@ export type CoachingNote = {
   type: CoachingNoteType;
   body: string;
   createdAt: string;
+  updatedAt: string;
 };
 
-const noteColumns = "id, salesperson_id, author_id, type, body, created_at";
+const noteColumns =
+  "id, salesperson_id, author_id, type, body, created_at, updated_at";
 
 function mapNote(n: {
   id: string;
@@ -41,6 +43,7 @@ function mapNote(n: {
   type: string;
   body: string;
   created_at: string;
+  updated_at: string;
 }): CoachingNote {
   return {
     id: n.id,
@@ -49,6 +52,7 @@ function mapNote(n: {
     type: n.type as CoachingNoteType,
     body: n.body,
     createdAt: n.created_at,
+    updatedAt: n.updated_at,
   };
 }
 
@@ -84,6 +88,25 @@ export async function addCoachingNote(
       type,
       body,
     })
+    .select(noteColumns)
+    .single();
+
+  if (error) throw error;
+
+  return mapNote(data);
+}
+
+/** Only the admin who wrote a note may edit it — enforced by RLS. */
+export async function updateCoachingNote(
+  id: string,
+  type: CoachingNoteType,
+  body: string
+): Promise<CoachingNote> {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("coaching_notes")
+    .update({ type, body })
+    .eq("id", id)
     .select(noteColumns)
     .single();
 

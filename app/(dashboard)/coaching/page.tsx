@@ -61,6 +61,10 @@ export default function CoachingPage() {
     setNotes((prev) => [note, ...(prev ?? [])]);
   }
 
+  function handleNoteUpdated(note: CoachingNote) {
+    setNotes((prev) => prev?.map((n) => (n.id === note.id ? note : n)) ?? null);
+  }
+
   function handleNoteDeleted(id: string) {
     setNotes((prev) => prev?.filter((n) => n.id !== id) ?? null);
   }
@@ -112,6 +116,7 @@ export default function CoachingPage() {
             notesLoading={notes === null}
             peopleById={peopleById}
             onNoteAdded={handleNoteAdded}
+            onNoteUpdated={handleNoteUpdated}
             onNoteDeleted={handleNoteDeleted}
           />
         </Reveal>

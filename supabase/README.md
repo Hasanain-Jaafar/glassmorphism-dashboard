@@ -21,6 +21,8 @@ In `supabase/migrations/`, run each file in filename order:
    dedicated Coaching page, admin-only via RLS
 8. `20260101000008_coaching_note_type.sql` — adds a `type` category
    (General/Praise/Concern/Action Item) to each coaching note
+9. `20260101000009_coaching_notes_editable.sql` — adds `updated_at` and an
+   author-only update policy so coaching notes can be edited
 
 ## 2. Seed baseline data (optional)
 

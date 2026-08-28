@@ -5,7 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
 import { format, isSameMonth } from "date-fns";
-import { NotebookPen, Trash2 } from "lucide-react";
+import { NotebookPen } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   Select,
@@ -18,6 +18,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/components/providers/auth-provider";
+import { NoteTimelineItem } from "@/components/coaching/note-timeline-item";
 import type { TeamMember } from "@/lib/supabase/team";
 import {
   addCoachingNote,
@@ -59,6 +60,7 @@ export function CoachingPanel({
   notesLoading,
   peopleById,
   onNoteAdded,
+  onNoteUpdated,
   onNoteDeleted,
 }: {
   person: TeamMember | undefined;
@@ -66,6 +68,7 @@ export function CoachingPanel({
   notesLoading: boolean;
   peopleById: Map<string, TeamMember>;
   onNoteAdded: (note: CoachingNote) => void;
+  onNoteUpdated: (note: CoachingNote) => void;
   onNoteDeleted: (id: string) => void;
 }) {
   const { user } = useAuth();
@@ -206,50 +209,16 @@ export function CoachingPanel({
               No notes yet for {person.name}.
             </p>
           ) : (
-            notes.map((note) => {
-              const author = note.authorId
-                ? peopleById.get(note.authorId)
-                : undefined;
-              const isMine = note.authorId === user?.id;
-              const tone = noteTypeTone[note.type];
-
-              return (
-                <div
-                  key={note.id}
-                  className="rounded-xl border border-glass-border/60 bg-foreground/[0.02] p-4"
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span
-                        className={cn(
-                          "rounded-full px-2 py-0.5 text-[11px] font-medium",
-                          tone.badge
-                        )}
-                      >
-                        {coachingNoteTypes.find((t) => t.value === note.type)?.label}
-                      </span>
-                      <span className="text-xs text-text-tertiary">
-                        {author ? author.name : "Unknown"} ·{" "}
-                        {format(new Date(note.createdAt), "MMM d, yyyy 'at' h:mm a")}
-                      </span>
-                    </div>
-                    {isMine && (
-                      <button
-                        type="button"
-                        onClick={() => handleDelete(note.id)}
-                        aria-label="Delete note"
-                        className="shrink-0 text-text-tertiary transition-colors hover:text-danger"
-                      >
-                        <Trash2 className="size-4" />
-                      </button>
-                    )}
-                  </div>
-                  <p className="mt-2 whitespace-pre-wrap text-sm text-text-secondary">
-                    {note.body}
-                  </p>
-                </div>
-              );
-            })
+            notes.map((note) => (
+              <NoteTimelineItem
+                key={note.id}
+                note={note}
+                author={note.authorId ? peopleById.get(note.authorId) : undefined}
+                isMine={note.authorId === user?.id}
+                onUpdated={onNoteUpdated}
+                onDelete={handleDelete}
+              />
+            ))
           )}
         </div>
       </div>
