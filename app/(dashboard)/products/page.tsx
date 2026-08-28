@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   LayoutGrid,
   PackagePlus,
@@ -56,15 +57,58 @@ const statusOptions = [
   { value: "archived", label: "Archived" },
 ];
 
+const productTabs = ["catalog", "all", "add"] as const;
+type ProductTab = (typeof productTabs)[number];
+
+function isProductTab(value: string | null): value is ProductTab {
+  return (productTabs as readonly string[]).includes(value ?? "");
+}
+
 export default function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const { isAdmin: admin } = useAuth();
 
-  const [search, setSearch] = useState("");
-  const [categoryFilter, setCategoryFilter] = useState<string>(ALL_CATEGORIES);
+  const searchParams = useSearchParams();
+  const requestedTab = searchParams.get("tab");
+  const requestedQuery = searchParams.get("q");
+  const requestedCategory = searchParams.get("category");
+
+  const [activeTab, setActiveTab] = useState<ProductTab>(
+    isProductTab(requestedTab) && (requestedTab !== "add" || admin)
+      ? requestedTab
+      : "catalog"
+  );
+  const [search, setSearch] = useState(requestedQuery ?? "");
+  const [categoryFilter, setCategoryFilter] = useState<string>(
+    requestedCategory && productCategories.includes(requestedCategory as (typeof productCategories)[number])
+      ? requestedCategory
+      : ALL_CATEGORIES
+  );
   const [statusFilter, setStatusFilter] = useState<string>(ALL_STATUSES);
   const [brandFilter, setBrandFilter] = useState<string>(ALL_BRANDS);
+
+  // Sync activeTab/search/categoryFilter when a new command-palette deep
+  // link arrives (React's documented "adjust state during render" pattern —
+  // see app/(dashboard)/team/page.tsx for the same convention).
+  const deepLinkKey = `${requestedTab}:${requestedQuery}:${requestedCategory}:${admin}`;
+  const [prevDeepLinkKey, setPrevDeepLinkKey] = useState(deepLinkKey);
+  if (deepLinkKey !== prevDeepLinkKey) {
+    setPrevDeepLinkKey(deepLinkKey);
+    if (isProductTab(requestedTab) && (requestedTab !== "add" || admin)) {
+      setActiveTab(requestedTab);
+    }
+    if (requestedQuery) {
+      setSearch(requestedQuery);
+      setActiveTab("all");
+    }
+    if (
+      requestedCategory &&
+      productCategories.includes(requestedCategory as (typeof productCategories)[number])
+    ) {
+      setCategoryFilter(requestedCategory);
+    }
+  }
 
   useEffect(() => {
     fetchProducts()
@@ -259,7 +303,7 @@ export default function ProductsPage() {
       </Reveal>
 
       <Reveal delay={0.15}>
-        <Tabs defaultValue="catalog">
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList>
             <TabsTab value="catalog">
               <LayoutGrid className="size-[15px]" />

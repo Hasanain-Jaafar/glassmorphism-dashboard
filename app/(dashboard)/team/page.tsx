@@ -43,6 +43,13 @@ import {
 } from "@/lib/sales-analytics";
 import { formatUSD, formatPercent } from "@/lib/format";
 
+const teamTabs = ["kpi", "team", "rankings", "all"] as const;
+type TeamTab = (typeof teamTabs)[number];
+
+function isTeamTab(value: string | null): value is TeamTab {
+  return (teamTabs as readonly string[]).includes(value ?? "");
+}
+
 export default function TeamPage() {
   const [people, setPeople] = useState<TeamMember[] | null>(null);
 
@@ -54,11 +61,25 @@ export default function TeamPage() {
 
   const searchParams = useSearchParams();
   const highlightedId = searchParams.get("person");
+  const requestedTab = searchParams.get("tab");
   const [flashId, setFlashId] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState("kpi");
+  const [activeTab, setActiveTab] = useState(
+    isTeamTab(requestedTab) ? requestedTab : "kpi"
+  );
 
-  // Sync activeTab + flashId when a new ?person= deep link arrives (React's
-  // documented "adjust state during render" pattern).
+  // Sync activeTab when a new ?tab= deep link arrives (React's documented
+  // "adjust state during render" pattern).
+  const [prevRequestedTab, setPrevRequestedTab] = useState(requestedTab);
+  if (requestedTab !== prevRequestedTab) {
+    setPrevRequestedTab(requestedTab);
+    if (isTeamTab(requestedTab)) {
+      setActiveTab(requestedTab);
+    }
+  }
+
+  // Sync activeTab + flashId when a new ?person= deep link arrives — this
+  // takes priority over ?tab= since a person link always means "show me
+  // that rep's card."
   const [prevHighlightedId, setPrevHighlightedId] = useState(highlightedId);
   if (highlightedId !== prevHighlightedId) {
     setPrevHighlightedId(highlightedId);
@@ -126,10 +147,33 @@ export default function TeamPage() {
   return (
     <div className="space-y-6">
       <Reveal>
-        <PageHeader
-          title="Sales Team"
-          actions={
-            activeTab === "kpi" ? (
+        <PageHeader title="Sales Team" />
+      </Reveal>
+
+      <Reveal delay={0.05}>
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <TabsList>
+              <TabsTab value="kpi">
+                <Gauge className="size-[15px]" />
+                KPI
+              </TabsTab>
+              <TabsTab value="team">
+                <Users className="size-[15px]" />
+                Team
+              </TabsTab>
+              <TabsTab value="rankings">
+                <Trophy className="size-[15px]" />
+                Rankings
+              </TabsTab>
+              <TabsTab value="all">
+                <Table2 className="size-[15px]" />
+                All Salespeople
+              </TabsTab>
+              <TabsIndicator />
+            </TabsList>
+
+            {activeTab === "kpi" && (
               <AnalyticsFilterBar
                 people={salespeople}
                 personId={kpiPersonId}
@@ -137,32 +181,8 @@ export default function TeamPage() {
                 period={period}
                 onPeriodChange={setPeriod}
               />
-            ) : undefined
-          }
-        />
-      </Reveal>
-
-      <Reveal delay={0.05}>
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList>
-            <TabsTab value="kpi">
-              <Gauge className="size-[15px]" />
-              KPI
-            </TabsTab>
-            <TabsTab value="team">
-              <Users className="size-[15px]" />
-              Team
-            </TabsTab>
-            <TabsTab value="rankings">
-              <Trophy className="size-[15px]" />
-              Rankings
-            </TabsTab>
-            <TabsTab value="all">
-              <Table2 className="size-[15px]" />
-              All Salespeople
-            </TabsTab>
-            <TabsIndicator />
-          </TabsList>
+            )}
+          </div>
 
           <TabsPanel value="kpi" className="space-y-6">
             <p className="text-sm text-text-tertiary">

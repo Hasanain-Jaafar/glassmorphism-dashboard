@@ -3,9 +3,27 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
-import { Search, Moon, Sun, UserPlus, UserCog, Building2 } from "lucide-react";
+import {
+  Search,
+  Moon,
+  Sun,
+  UserPlus,
+  UserCog,
+  Building2,
+  Gauge,
+  Users,
+  Trophy,
+  Table2,
+  LayoutGrid,
+  PackagePlus,
+  User,
+  Bell,
+  Package,
+  Tag,
+} from "lucide-react";
 import { navGroups } from "@/lib/nav";
 import { customers } from "@/lib/customers-data";
+import { products, productCategories } from "@/lib/mock-data";
 import { fetchTeamMembers, type TeamMember } from "@/lib/supabase/team";
 import { useAuth } from "@/components/providers/auth-provider";
 import {
@@ -97,6 +115,119 @@ export function CommandPalette() {
               </CommandGroup>
             ))}
             <CommandSeparator />
+            <CommandGroup heading="Jump to Tab">
+              <CommandItem
+                value="Sales Team KPI individual performance targets"
+                onSelect={() => runCommand(() => router.push("/team?tab=kpi"))}
+              >
+                <Gauge className="size-4" />
+                Sales Team
+                <CommandShortcut>KPI</CommandShortcut>
+              </CommandItem>
+              <CommandItem
+                value="Sales Team roster cards"
+                onSelect={() => runCommand(() => router.push("/team?tab=team"))}
+              >
+                <Users className="size-4" />
+                Sales Team
+                <CommandShortcut>Team</CommandShortcut>
+              </CommandItem>
+              <CommandItem
+                value="Sales Team Rankings performance"
+                onSelect={() =>
+                  runCommand(() => router.push("/team?tab=rankings"))
+                }
+              >
+                <Trophy className="size-4" />
+                Sales Team
+                <CommandShortcut>Rankings</CommandShortcut>
+              </CommandItem>
+              <CommandItem
+                value="Sales Team All Salespeople table"
+                onSelect={() => runCommand(() => router.push("/team?tab=all"))}
+              >
+                <Table2 className="size-4" />
+                Sales Team
+                <CommandShortcut>All Salespeople</CommandShortcut>
+              </CommandItem>
+              <CommandItem
+                value="Products Catalog"
+                onSelect={() =>
+                  runCommand(() => router.push("/products?tab=catalog"))
+                }
+              >
+                <LayoutGrid className="size-4" />
+                Products
+                <CommandShortcut>Catalog</CommandShortcut>
+              </CommandItem>
+              <CommandItem
+                value="Products All Products table"
+                onSelect={() =>
+                  runCommand(() => router.push("/products?tab=all"))
+                }
+              >
+                <Table2 className="size-4" />
+                Products
+                <CommandShortcut>All Products</CommandShortcut>
+              </CommandItem>
+              {admin && (
+                <CommandItem
+                  value="Products Add Product"
+                  onSelect={() =>
+                    runCommand(() => router.push("/products?tab=add"))
+                  }
+                >
+                  <PackagePlus className="size-4" />
+                  Products
+                  <CommandShortcut>Add Product</CommandShortcut>
+                </CommandItem>
+              )}
+              <CommandItem
+                value="Settings Profile"
+                onSelect={() =>
+                  runCommand(() => router.push("/settings?tab=profile"))
+                }
+              >
+                <User className="size-4" />
+                Settings
+                <CommandShortcut>Profile</CommandShortcut>
+              </CommandItem>
+              <CommandItem
+                value="Settings Notifications"
+                onSelect={() =>
+                  runCommand(() => router.push("/settings?tab=notifications"))
+                }
+              >
+                <Bell className="size-4" />
+                Settings
+                <CommandShortcut>Notifications</CommandShortcut>
+              </CommandItem>
+              {admin && (
+                <CommandItem
+                  value="Settings Team and Access"
+                  onSelect={() =>
+                    runCommand(() => router.push("/settings?tab=team"))
+                  }
+                >
+                  <Users className="size-4" />
+                  Settings
+                  <CommandShortcut>Team &amp; Access</CommandShortcut>
+                </CommandItem>
+              )}
+              {admin && (
+                <CommandItem
+                  value="Settings Company Defaults"
+                  onSelect={() =>
+                    runCommand(() => router.push("/settings?tab=company"))
+                  }
+                >
+                  <Building2 className="size-4" />
+                  Settings
+                  <CommandShortcut>Company Defaults</CommandShortcut>
+                </CommandItem>
+              )}
+            </CommandGroup>
+            <CommandSeparator />
             <CommandGroup heading="Customers">
               {customers.map((customer) => (
                 <CommandItem
@@ -109,6 +240,41 @@ export function CommandPalette() {
                   <Building2 className="size-4" />
                   {customer.company}
                   <CommandShortcut>{customer.contactPerson}</CommandShortcut>
+                </CommandItem>
+              ))}
+            </CommandGroup>
+            <CommandSeparator />
+            <CommandGroup heading="Products">
+              {products.map((product) => (
+                <CommandItem
+                  key={product.id}
+                  value={`${product.name} ${product.sku} ${product.brand}`}
+                  onSelect={() =>
+                    runCommand(() =>
+                      router.push(`/products?q=${encodeURIComponent(product.name)}`)
+                    )
+                  }
+                >
+                  <Package className="size-4" />
+                  {product.name}
+                  <CommandShortcut>{product.brand}</CommandShortcut>
+                </CommandItem>
+              ))}
+            </CommandGroup>
+            <CommandSeparator />
+            <CommandGroup heading="Categories">
+              {productCategories.map((category) => (
+                <CommandItem
+                  key={category}
+                  value={`${category} category products`}
+                  onSelect={() =>
+                    runCommand(() =>
+                      router.push(`/products?category=${encodeURIComponent(category)}`)
+                    )
+                  }
+                >
+                  <Tag className="size-4" />
+                  {category}
                 </CommandItem>
               ))}
             </CommandGroup>

@@ -18,13 +18,23 @@ import { TeamAccessSection } from "@/components/settings/team-access-section";
 import { CompanyDefaultsSection } from "@/components/settings/company-defaults-section";
 import { useAuth } from "@/components/providers/auth-provider";
 
+const settingsTabs = ["profile", "notifications", "team", "company"] as const;
+type SettingsTab = (typeof settingsTabs)[number];
+
+function resolveSettingsTab(tab: string | null, admin: boolean): SettingsTab {
+  if (!(settingsTabs as readonly string[]).includes(tab ?? "")) return "profile";
+  if ((tab === "team" || tab === "company") && !admin) return "profile";
+  return tab as SettingsTab;
+}
+
 export default function SettingsPage() {
   const { isAdmin: admin } = useAuth();
 
   const searchParams = useSearchParams();
   const requestedTab = searchParams.get("tab");
+
   const [activeTab, setActiveTab] = useState(
-    requestedTab === "team" && admin ? "team" : "profile"
+    resolveSettingsTab(requestedTab, admin)
   );
 
   // Keyed on admin too since it resolves after mount — see the identical
@@ -33,8 +43,8 @@ export default function SettingsPage() {
   const [prevTabSyncKey, setPrevTabSyncKey] = useState(tabSyncKey);
   if (tabSyncKey !== prevTabSyncKey) {
     setPrevTabSyncKey(tabSyncKey);
-    if (requestedTab === "team" && admin) {
-      setActiveTab("team");
+    if (requestedTab) {
+      setActiveTab(resolveSettingsTab(requestedTab, admin));
     }
   }
 
