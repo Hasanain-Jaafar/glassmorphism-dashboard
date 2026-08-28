@@ -3,10 +3,16 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
-import { Table2, Trophy, Users } from "lucide-react";
+import { Gauge, Table2, Trophy, Users } from "lucide-react";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { MetricCard } from "@/components/dashboard/metric-card";
 import { ChartCard } from "@/components/dashboard/chart-card";
+import { MonthlyTargetCard } from "@/components/dashboard/target-card";
+import { TargetTrendChart } from "@/components/charts/target-trend-chart";
+import { PipelineChart } from "@/components/charts/pipeline-chart";
+import { AnalyticsFilterBar } from "@/components/sales/analytics-filter-bar";
+import { NeedsAttention } from "@/components/sales/needs-attention";
+import { SalespersonComparisonTable } from "@/components/tables/salesperson-comparison-table";
 import { SalespersonCard } from "@/components/sales/salesperson-card";
 import { SalespersonRankChart } from "@/components/charts/salesperson-chart";
 import { SalespersonRankingTable } from "@/components/tables/salesperson-ranking-table";
@@ -25,6 +31,16 @@ import {
   computeRanking,
   type TeamMember,
 } from "@/lib/supabase/team";
+import { salespeople } from "@/lib/mock-data";
+import {
+  periodOptions,
+  getOverview,
+  trendFor,
+  funnelFor,
+  needsAttention,
+  comparisonRows,
+  type Period,
+} from "@/lib/sales-analytics";
 import { formatUSD, formatPercent } from "@/lib/format";
 
 export default function TeamPage() {
@@ -39,7 +55,7 @@ export default function TeamPage() {
   const searchParams = useSearchParams();
   const highlightedId = searchParams.get("person");
   const [flashId, setFlashId] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState("team");
+  const [activeTab, setActiveTab] = useState("kpi");
 
   // Sync activeTab + flashId when a new ?person= deep link arrives (React's
   // documented "adjust state during render" pattern).
@@ -74,15 +90,65 @@ export default function TeamPage() {
     ? people.reduce((sum, person) => sum + person.avgDeal, 0) / people.length
     : 0;
 
+  // KPI tab state — mirrors the standalone Sales Team KPI page this tab replaces.
+  const [kpiPersonId, setKpiPersonId] = useState("all");
+  const [period, setPeriod] = useState<Period>("month");
+
+  const periodLabel =
+    periodOptions.find((option) => option.value === period)?.label ??
+    "This Month";
+
+  const selectedPerson = useMemo(
+    () => salespeople.find((p) => p.id === kpiPersonId),
+    [kpiPersonId]
+  );
+  const scopeLabel = selectedPerson ? selectedPerson.name : "Team-wide";
+
+  const overview = useMemo(
+    () => getOverview(kpiPersonId, period),
+    [kpiPersonId, period]
+  );
+  const trend = useMemo(() => trendFor(kpiPersonId), [kpiPersonId]);
+  const funnel = useMemo(
+    () => funnelFor(kpiPersonId, period),
+    [kpiPersonId, period]
+  );
+  const attentionEntries = useMemo(() => {
+    const entries = needsAttention(period);
+    return kpiPersonId === "all"
+      ? entries
+      : entries.filter((entry) => entry.person.id === kpiPersonId);
+  }, [kpiPersonId, period]);
+  const comparison = useMemo(() => comparisonRows(period), [period]);
+
+  const kpiRemaining = Math.max(overview.target - overview.totalSales, 0);
+
   return (
     <div className="space-y-6">
       <Reveal>
-        <PageHeader title="Sales Team" />
+        <PageHeader
+          title="Sales Team"
+          actions={
+            activeTab === "kpi" ? (
+              <AnalyticsFilterBar
+                people={salespeople}
+                personId={kpiPersonId}
+                onPersonChange={setKpiPersonId}
+                period={period}
+                onPeriodChange={setPeriod}
+              />
+            ) : undefined
+          }
+        />
       </Reveal>
 
       <Reveal delay={0.05}>
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList>
+            <TabsTab value="kpi">
+              <Gauge className="size-[15px]" />
+              KPI
+            </TabsTab>
             <TabsTab value="team">
               <Users className="size-[15px]" />
               Team
@@ -97,6 +163,95 @@ export default function TeamPage() {
             </TabsTab>
             <TabsIndicator />
           </TabsList>
+
+          <TabsPanel value="kpi" className="space-y-6">
+            <p className="text-sm text-text-tertiary">
+              Individual performance, targets, and pipeline health
+            </p>
+
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 xl:grid-cols-6 lg:gap-6">
+              <MetricCard
+                label="Total Sales"
+                value={formatUSD(overview.totalSales)}
+                footnote={`${periodLabel} · ${scopeLabel}`}
+              />
+              <MetricCard
+                label="Target"
+                value={formatUSD(overview.target)}
+                footnote={`${periodLabel} target`}
+              />
+              <MetricCard
+                label="Achievement"
+                value={formatPercent(overview.achievementPct, 0)}
+                footnote={
+                  overview.achievementPct >= 100
+                    ? "Target met"
+                    : `${formatUSD(kpiRemaining)} remaining`
+                }
+              />
+              <MetricCard
+                label="Deals Closed"
+                value={String(overview.dealsClosed)}
+                footnote={periodLabel}
+              />
+              <MetricCard
+                label="Conversion Rate"
+                value={formatPercent(overview.conversionRate, 0)}
+                footnote="Quote-to-close rate"
+              />
+              <MetricCard
+                label="Avg. Deal Value"
+                value={formatUSD(overview.avgDealValue)}
+                footnote={`${periodLabel}, per deal`}
+              />
+            </div>
+
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-3 lg:gap-6">
+              <MonthlyTargetCard
+                label="Performance vs Target"
+                monthLabel={periodLabel}
+                current={overview.totalSales}
+                target={overview.target}
+                remaining={kpiRemaining}
+                progressPct={overview.achievementPct}
+              />
+              <ChartCard
+                title="Sales Trend"
+                description={`Monthly sales vs. target · ${scopeLabel}`}
+                className="lg:col-span-2"
+              >
+                <TargetTrendChart data={trend} />
+              </ChartCard>
+            </div>
+
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-6">
+              <ChartCard
+                title="Sales Funnel"
+                description={`Appointments to paid invoices · ${periodLabel}`}
+              >
+                <PipelineChart
+                  stages={funnel.stages}
+                  conversions={funnel.conversions}
+                />
+              </ChartCard>
+              <NeedsAttention entries={attentionEntries} />
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <h2 className="text-base font-semibold text-foreground">
+                  Salesperson Comparison
+                </h2>
+                <p className="mt-0.5 text-xs text-text-tertiary">
+                  {periodLabel} · click a column to sort
+                </p>
+              </div>
+              <SalespersonComparisonTable
+                data={comparison}
+                highlightedId={kpiPersonId}
+              />
+            </div>
+          </TabsPanel>
 
           <TabsPanel value="team" className="space-y-6">
             <p className="text-sm text-text-tertiary">

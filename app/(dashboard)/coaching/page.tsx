@@ -17,7 +17,7 @@ import {
 
 export default function CoachingPage() {
   const { isAdmin } = useAuth();
-  const [people, setPeople] = useState<TeamMember[] | null>(null);
+  const [allPeople, setAllPeople] = useState<TeamMember[] | null>(null);
   const [notes, setNotes] = useState<CoachingNote[] | null>(null);
   const [personId, setPersonId] = useState<string | null>(null);
   const [autoSelected, setAutoSelected] = useState(false);
@@ -25,12 +25,20 @@ export default function CoachingPage() {
   useEffect(() => {
     if (!isAdmin) return;
     fetchTeamMembers()
-      .then((data) => setPeople(data.filter((p) => p.role === "sales_rep")))
+      .then(setAllPeople)
       .catch((err) => toast.error(err.message ?? "Couldn't load the team"));
     fetchAllCoachingNotes()
       .then(setNotes)
       .catch((err) => toast.error(err.message ?? "Couldn't load coaching notes"));
   }, [isAdmin]);
+
+  // The roster only lists reps (coaching notes aren't logged for admins),
+  // but note authors are always admins — so the author lookup map below
+  // needs every active account, not just the filtered roster.
+  const people = useMemo(
+    () => allPeople?.filter((p) => p.role === "sales_rep") ?? null,
+    [allPeople]
+  );
 
   // Default to the first rep once the roster loads (React's documented
   // "adjust state during render" pattern — see app/(dashboard)/team/page.tsx).
@@ -40,8 +48,8 @@ export default function CoachingPage() {
   }
 
   const peopleById = useMemo(
-    () => new Map((people ?? []).map((p) => [p.id, p])),
-    [people]
+    () => new Map((allPeople ?? []).map((p) => [p.id, p])),
+    [allPeople]
   );
   const selected = personId ? peopleById.get(personId) : undefined;
 

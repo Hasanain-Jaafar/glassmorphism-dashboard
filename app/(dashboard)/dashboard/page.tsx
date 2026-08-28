@@ -1,5 +1,4 @@
 import { PageHeader } from "@/components/dashboard/page-header";
-import { FilterBar } from "@/components/dashboard/filter-bar";
 import { MetricCard } from "@/components/dashboard/metric-card";
 import { ChartCard } from "@/components/dashboard/chart-card";
 import { RadialTarget, MonthlyTargetCard } from "@/components/dashboard/target-card";
@@ -28,7 +27,6 @@ export default function DashboardPage() {
         <PageHeader
           title="Sales Overview"
           description="Current year performance across the team"
-          actions={<FilterBar />}
         />
       </Reveal>
 

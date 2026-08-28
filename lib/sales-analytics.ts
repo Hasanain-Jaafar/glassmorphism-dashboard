@@ -11,7 +11,7 @@ import {
 } from "@/lib/mock-data";
 
 /**
- * Per-salesperson analytics for the /sales-persons page. Real appointment/
+ * Per-salesperson analytics for the KPI tab on /team. Real appointment/
  * quotation/deal/invoice counts don't exist yet (see lib/supabase/team.ts),
  * so period and funnel figures here are derived from the mock roster's
  * monthly/yearly totals using the company's seasonal curve — swap this file
