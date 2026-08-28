@@ -1,5 +1,6 @@
 "use client";
 
+import { useRef } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -19,6 +20,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/components/providers/auth-provider";
 import { NoteTimelineItem } from "@/components/coaching/note-timeline-item";
+import { NoteFormatToolbar } from "@/components/coaching/note-format-toolbar";
 import type { TeamMember } from "@/lib/supabase/team";
 import {
   addCoachingNote,
@@ -72,8 +74,8 @@ export function CoachingPanel({
   onNoteDeleted: (id: string) => void;
 }) {
   const { user } = useAuth();
+  const bodyRef = useRef<HTMLTextAreaElement>(null);
   const {
-    register,
     control,
     handleSubmit,
     reset,
@@ -180,10 +182,27 @@ export function CoachingPanel({
               )}
             />
           </div>
-          <Textarea
-            rows={3}
-            placeholder={`Log an observation about ${person.name.split(" ")[0]}…`}
-            {...register("body")}
+          <Controller
+            name="body"
+            control={control}
+            render={({ field: { ref, ...field } }) => (
+              <div className="space-y-2">
+                <NoteFormatToolbar
+                  textareaRef={bodyRef}
+                  value={field.value}
+                  onChange={field.onChange}
+                />
+                <Textarea
+                  {...field}
+                  ref={(el) => {
+                    ref(el);
+                    bodyRef.current = el;
+                  }}
+                  rows={3}
+                  placeholder={`Log an observation about ${person.name.split(" ")[0]}…`}
+                />
+              </div>
+            )}
           />
           {errors.body && (
             <p className="text-xs text-danger">{errors.body.message}</p>

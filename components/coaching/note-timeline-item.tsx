@@ -1,10 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { Pencil, Trash2, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { renderNoteBody } from "@/lib/coaching/note-format";
+import { NoteFormatToolbar } from "@/components/coaching/note-format-toolbar";
 import {
   Select,
   SelectContent,
@@ -45,6 +47,7 @@ export function NoteTimelineItem({
   onUpdated: (note: CoachingNote) => void;
   onDelete: (id: string) => void;
 }) {
+  const editTextareaRef = useRef<HTMLTextAreaElement>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [editType, setEditType] = useState<CoachingNoteType>(note.type);
   const [editBody, setEditBody] = useState(note.body);
@@ -115,12 +118,19 @@ export function NoteTimelineItem({
             <X className="size-4" />
           </button>
         </div>
-        <Textarea
-          rows={3}
-          value={editBody}
-          onChange={(e) => setEditBody(e.target.value)}
-          className="mt-3"
-        />
+        <div className="mt-3 space-y-2">
+          <NoteFormatToolbar
+            textareaRef={editTextareaRef}
+            value={editBody}
+            onChange={setEditBody}
+          />
+          <Textarea
+            ref={editTextareaRef}
+            rows={3}
+            value={editBody}
+            onChange={(e) => setEditBody(e.target.value)}
+          />
+        </div>
         {editError && <p className="mt-1.5 text-xs text-danger">{editError}</p>}
         <div className="mt-3 flex justify-end gap-2">
           <Button
@@ -178,9 +188,9 @@ export function NoteTimelineItem({
           </div>
         )}
       </div>
-      <p className="mt-2 whitespace-pre-wrap text-sm text-text-secondary">
-        {note.body}
-      </p>
+      <div className="mt-2 text-sm text-text-secondary">
+        {renderNoteBody(note.body)}
+      </div>
     </div>
   );
 }
