@@ -17,8 +17,10 @@ In `supabase/migrations/`, run each file in filename order:
    anti-escalation guard
 6. `20260101000006_profile_extra_fields.sql` — adds `has_car` and
    `start_date` columns, collected on the Add/Edit Salesperson forms
-7. `20260101000007_coaching_notes.sql` — `coaching_notes` table for the Sales
-   Team → Coaching Notes tab, admin-only via RLS
+7. `20260101000007_coaching_notes.sql` — `coaching_notes` table for the
+   dedicated Coaching page, admin-only via RLS
+8. `20260101000008_coaching_note_type.sql` — adds a `type` category
+   (General/Praise/Concern/Action Item) to each coaching note
 
 ## 2. Seed baseline data (optional)
 

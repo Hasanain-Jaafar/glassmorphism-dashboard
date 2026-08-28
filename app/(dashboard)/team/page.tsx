@@ -3,15 +3,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
-import { NotebookPen, Table2, Trophy, Users } from "lucide-react";
+import { Table2, Trophy, Users } from "lucide-react";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { MetricCard } from "@/components/dashboard/metric-card";
 import { ChartCard } from "@/components/dashboard/chart-card";
 import { SalespersonCard } from "@/components/sales/salesperson-card";
 import { SalespersonRankChart } from "@/components/charts/salesperson-chart";
 import { SalespersonRankingTable } from "@/components/tables/salesperson-ranking-table";
-import { CoachingNotesSection } from "@/components/sales/coaching-notes-section";
-import { useAuth } from "@/components/providers/auth-provider";
 import { Reveal } from "@/components/motion/reveal";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -30,7 +28,6 @@ import {
 import { formatUSD, formatPercent } from "@/lib/format";
 
 export default function TeamPage() {
-  const { isAdmin } = useAuth();
   const [people, setPeople] = useState<TeamMember[] | null>(null);
 
   useEffect(() => {
@@ -98,12 +95,6 @@ export default function TeamPage() {
               <Table2 className="size-[15px]" />
               All Salespeople
             </TabsTab>
-            {isAdmin && (
-              <TabsTab value="notes">
-                <NotebookPen className="size-[15px]" />
-                Coaching Notes
-              </TabsTab>
-            )}
             <TabsIndicator />
           </TabsList>
 
@@ -237,24 +228,6 @@ export default function TeamPage() {
               <SalespersonRankingTable data={ranking} />
             )}
           </TabsPanel>
-
-          {isAdmin && (
-            <TabsPanel value="notes" className="space-y-4">
-              <div>
-                <h2 className="text-base font-semibold text-foreground">
-                  Coaching Notes
-                </h2>
-                <p className="mt-0.5 text-xs text-text-tertiary">
-                  Timestamped observations and assessments, visible to admins only
-                </p>
-              </div>
-              {people === null ? (
-                <Skeleton className="h-64 rounded-2xl" />
-              ) : (
-                <CoachingNotesSection people={people} />
-              )}
-            </TabsPanel>
-          )}
         </Tabs>
       </Reveal>
     </div>

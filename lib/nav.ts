@@ -3,6 +3,7 @@ import {
   LayoutDashboard,
   Users,
   Gauge,
+  NotebookPen,
   Target,
   Package,
   Settings,
@@ -32,6 +33,7 @@ export const navGroups: NavGroup[] = [
     items: [
       { label: "Sales Team", href: "/team", icon: Users, enabled: true },
       { label: "Salespersons KPI", href: "/sales-persons", icon: Gauge, enabled: true },
+      { label: "Coaching", href: "/coaching", icon: NotebookPen, enabled: true },
       { label: "Targets", href: "/targets", icon: Target, enabled: true },
     ],
   },
