@@ -2,6 +2,7 @@ import type { LucideIcon } from "lucide-react";
 import {
   LayoutDashboard,
   Users,
+  Gauge,
   Target,
   Package,
   Settings,
@@ -30,6 +31,7 @@ export const navGroups: NavGroup[] = [
     label: "Sales",
     items: [
       { label: "Sales Team", href: "/team", icon: Users, enabled: true },
+      { label: "Salespersons KPI", href: "/sales-persons", icon: Gauge, enabled: true },
       { label: "Targets", href: "/targets", icon: Target, enabled: true },
     ],
   },
