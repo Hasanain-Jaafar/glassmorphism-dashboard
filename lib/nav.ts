@@ -6,6 +6,7 @@ import {
   NotebookPen,
   Target,
   Package,
+  PenTool,
   Settings,
 } from "lucide-react";
 
@@ -26,6 +27,7 @@ export const navGroups: NavGroup[] = [
     label: "Overview",
     items: [
       { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard, enabled: true },
+      { label: "Planning", href: "/planning", icon: PenTool, enabled: true },
     ],
   },
   {
