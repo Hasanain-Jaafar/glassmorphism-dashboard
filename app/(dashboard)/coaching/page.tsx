@@ -25,7 +25,7 @@ export default function CoachingPage() {
   useEffect(() => {
     if (!isAdmin) return;
     fetchTeamMembers()
-      .then(setPeople)
+      .then((data) => setPeople(data.filter((p) => p.role === "sales_rep")))
       .catch((err) => toast.error(err.message ?? "Couldn't load the team"));
     fetchAllCoachingNotes()
       .then(setNotes)
