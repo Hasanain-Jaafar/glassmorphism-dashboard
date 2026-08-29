@@ -32,7 +32,7 @@ export function TargetPeriodSelector({
           value && onChange(defaultSelectionFor(value as TargetPeriodType))
         }
       >
-        <SelectTrigger className="glass-panel h-8 gap-1.5 rounded-lg px-2.5 text-xs">
+        <SelectTrigger className="glass-panel filter-control h-8 gap-1.5 px-2.5 text-xs">
           <SelectValue>
             {(value: string) =>
               targetPeriodTypeOptions.find((o) => o.value === value)?.label ?? value
@@ -55,7 +55,7 @@ export function TargetPeriodSelector({
             value && onChange({ type: "quarter", quarter: value as QuarterValue })
           }
         >
-          <SelectTrigger className="glass-panel h-8 gap-1.5 rounded-lg px-2.5 text-xs">
+          <SelectTrigger className="glass-panel filter-control h-8 gap-1.5 px-2.5 text-xs">
             <SelectValue />
           </SelectTrigger>
           <SelectContent align="end">
@@ -73,7 +73,7 @@ export function TargetPeriodSelector({
           value={selection.month}
           onValueChange={(value) => value && onChange({ type: "month", month: value })}
         >
-          <SelectTrigger className="glass-panel h-8 gap-1.5 rounded-lg px-2.5 text-xs">
+          <SelectTrigger className="glass-panel filter-control h-8 gap-1.5 px-2.5 text-xs">
             <SelectValue />
           </SelectTrigger>
           <SelectContent align="end">
@@ -96,7 +96,7 @@ export function TargetPeriodSelector({
               onChange({ type: "custom", fromMonth: value, toMonth: selection.toMonth })
             }
           >
-            <SelectTrigger className="glass-panel h-8 gap-1.5 rounded-lg px-2.5 text-xs">
+            <SelectTrigger className="glass-panel filter-control h-8 gap-1.5 px-2.5 text-xs">
               <SelectValue />
             </SelectTrigger>
             <SelectContent align="end">
@@ -116,7 +116,7 @@ export function TargetPeriodSelector({
               onChange({ type: "custom", fromMonth: selection.fromMonth, toMonth: value })
             }
           >
-            <SelectTrigger className="glass-panel h-8 gap-1.5 rounded-lg px-2.5 text-xs">
+            <SelectTrigger className="glass-panel filter-control h-8 gap-1.5 px-2.5 text-xs">
               <SelectValue />
             </SelectTrigger>
             <SelectContent align="end">

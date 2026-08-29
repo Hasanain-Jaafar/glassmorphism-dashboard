@@ -221,7 +221,7 @@ export default function ProductsPage() {
 
       <Reveal delay={0.1}>
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <InputGroup className="glass-panel sm:max-w-xs">
+          <InputGroup className="glass-panel filter-control sm:max-w-xs">
             <InputGroupAddon>
               <Search className="size-4" />
             </InputGroupAddon>
@@ -237,7 +237,7 @@ export default function ProductsPage() {
               value={categoryFilter}
               onValueChange={(value) => value && setCategoryFilter(value)}
             >
-              <SelectTrigger className="glass-panel h-8 gap-1.5 rounded-lg px-2.5 text-xs">
+              <SelectTrigger className="glass-panel filter-control h-8 gap-1.5 px-2.5 text-xs">
                 <SelectValue>
                   {(value: string) =>
                     value === ALL_CATEGORIES ? "All Categories" : value
@@ -258,7 +258,7 @@ export default function ProductsPage() {
               value={brandFilter}
               onValueChange={(value) => value && setBrandFilter(value)}
             >
-              <SelectTrigger className="glass-panel h-8 gap-1.5 rounded-lg px-2.5 text-xs">
+              <SelectTrigger className="glass-panel filter-control h-8 gap-1.5 px-2.5 text-xs">
                 <SelectValue>
                   {(value: string) =>
                     value === ALL_BRANDS ? "All Brands" : value
@@ -279,7 +279,7 @@ export default function ProductsPage() {
               value={statusFilter}
               onValueChange={(value) => value && setStatusFilter(value)}
             >
-              <SelectTrigger className="glass-panel h-8 gap-1.5 rounded-lg px-2.5 text-xs">
+              <SelectTrigger className="glass-panel filter-control h-8 gap-1.5 px-2.5 text-xs">
                 <SelectValue>
                   {(value: string) =>
                     value === ALL_STATUSES

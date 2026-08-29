@@ -239,4 +239,22 @@
       inset 0 0 24px 0 rgba(255, 255, 255, 0.03);
     pointer-events: none;
   }
+
+  /* Filter dropdowns and search fields (not the topbar/command-palette
+     search, which stays on the regular glass border): a tighter,
+     control-level radius instead of card-level rounded-lg/xl, plus a thin
+     warning-toned border so they read as "filters" against plain glass
+     cards. Declared after .glass-panel so it wins the border/radius it
+     shares with it; --warning is already tuned per-theme so this stays
+     visible without a separate light/dark override. */
+  .filter-control {
+    border-radius: var(--radius-md);
+    border-color: color-mix(in srgb, var(--warning) 40%, transparent);
+  }
+  .filter-control:hover {
+    border-color: color-mix(in srgb, var(--warning) 60%, transparent);
+  }
+  .filter-control:has([data-slot="input-group-control"]:focus-visible) {
+    border-color: var(--warning);
+  }
 }

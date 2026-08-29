@@ -317,7 +317,7 @@ export default function CustomersPage() {
 
       <Reveal delay={0.1}>
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <InputGroup className="glass-panel sm:max-w-xs">
+          <InputGroup className="glass-panel filter-control sm:max-w-xs">
             <InputGroupAddon>
               <Search className="size-4" />
             </InputGroupAddon>
@@ -333,7 +333,7 @@ export default function CustomersPage() {
               value={statusFilter}
               onValueChange={(value) => value && setStatusFilter(value)}
             >
-              <SelectTrigger className="glass-panel h-8 gap-1.5 rounded-lg px-2.5 text-xs">
+              <SelectTrigger className="glass-panel filter-control h-8 gap-1.5 px-2.5 text-xs">
                 <SelectValue>
                   {(value: string) =>
                     value === ALL
@@ -354,7 +354,7 @@ export default function CustomersPage() {
               value={salespersonFilter}
               onValueChange={(value) => value && setSalespersonFilter(value)}
             >
-              <SelectTrigger className="glass-panel h-8 gap-1.5 rounded-lg px-2.5 text-xs">
+              <SelectTrigger className="glass-panel filter-control h-8 gap-1.5 px-2.5 text-xs">
                 <SelectValue>
                   {(value: string) =>
                     value === ALL
@@ -383,7 +383,7 @@ export default function CustomersPage() {
               value={dateRange}
               onValueChange={(value) => value && setDateRange(value as DateRangeFilter)}
             >
-              <SelectTrigger className="glass-panel h-8 gap-1.5 rounded-lg px-2.5 text-xs">
+              <SelectTrigger className="glass-panel filter-control h-8 gap-1.5 px-2.5 text-xs">
                 <SelectValue>
                   {(value: string) =>
                     dateRangeOptions.find((o) => o.value === value)?.label ?? value

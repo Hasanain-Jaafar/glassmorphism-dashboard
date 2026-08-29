@@ -35,7 +35,7 @@ export function AnalyticsFilterBar({
         value={personId}
         onValueChange={(next) => next && onPersonChange(next)}
       >
-        <SelectTrigger className="glass-panel h-9 gap-2 rounded-xl px-3">
+        <SelectTrigger className="glass-panel filter-control h-9 gap-2 px-3">
           <User className="size-[15px] text-text-tertiary" />
           <SelectValue>{() => personLabel}</SelectValue>
         </SelectTrigger>
@@ -53,7 +53,7 @@ export function AnalyticsFilterBar({
         value={period}
         onValueChange={(next) => next && onPeriodChange(next as Period)}
       >
-        <SelectTrigger className="glass-panel h-9 gap-2 rounded-xl px-3">
+        <SelectTrigger className="glass-panel filter-control h-9 gap-2 px-3">
           <CalendarRange className="size-[15px] text-text-tertiary" />
           <SelectValue>
             {(value: string) =>
