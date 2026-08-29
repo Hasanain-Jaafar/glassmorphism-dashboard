@@ -50,6 +50,11 @@ In `supabase/migrations/`, run each file in filename order:
     `deal_won` fire on insert too, so a deal created directly as "won" (not
     just one that transitions via an update) still notifies its rep.
     **Required if you use notifications** — safe to re-run.
+16. `20260101000016_notification_link_backfill.sql` — one-time repoint of
+    any *existing* notification rows still carrying the pre-15 `/team?person=`
+    link (that migration only fixes the trigger, so it has no effect on rows
+    already in the table). Run once after 15, if you had notifications
+    before applying it.
 
 ## 2. Seed baseline data (optional)
 
