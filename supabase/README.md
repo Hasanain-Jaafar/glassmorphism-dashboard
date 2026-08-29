@@ -80,7 +80,7 @@ alter table public.profiles enable trigger guard_profile_role_changes;
 ```
 
 Sign up normally on `/sign-in` first if you haven't, then run the above with
-your email. After that, use Settings → Team & Access in the app to create,
+your email. After that, use Sales Team → Settings in the app to create,
 edit, and promote further accounts — no more SQL needed.
 
 ## 4. Email confirmation
@@ -91,12 +91,12 @@ small internal team, either:
 - Turn it off: **Authentication → Providers → Email → Confirm email** (off), or
 - Leave it on and have each person confirm via the email Supabase sends.
 
-Accounts created from Settings → Team & Access are created with
+Accounts created from Sales Team → Settings are created with
 `email_confirm: true` already set, so they can sign in immediately either way.
 
 ## What's live vs. still mock data
 
-Live in Supabase: **profiles/accounts** (Settings → Team & Access), **products**
+Live in Supabase: **profiles/accounts** (Sales Team → Settings), **products**
 (Products page), **customers** (Customers page — name/company/email/phone/
 address/status/assigned salesperson; requires migration 11 above), **the
 sales pipeline** (`/appointments`, `/quotations`, `/deals`, `/invoices` — a

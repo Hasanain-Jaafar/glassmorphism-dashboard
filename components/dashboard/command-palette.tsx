@@ -12,7 +12,6 @@ import {
   Building2,
   Gauge,
   Users,
-  Trophy,
   Table2,
   LayoutGrid,
   PackagePlus,
@@ -137,24 +136,6 @@ export function CommandPalette() {
                 <CommandShortcut>KPI</CommandShortcut>
               </CommandItem>
               <CommandItem
-                value="Sales Team roster cards"
-                onSelect={() => runCommand(() => router.push("/team?tab=team"))}
-              >
-                <Users className="size-4" />
-                Sales Team
-                <CommandShortcut>Team</CommandShortcut>
-              </CommandItem>
-              <CommandItem
-                value="Sales Team Rankings performance"
-                onSelect={() =>
-                  runCommand(() => router.push("/team?tab=rankings"))
-                }
-              >
-                <Trophy className="size-4" />
-                Sales Team
-                <CommandShortcut>Rankings</CommandShortcut>
-              </CommandItem>
-              <CommandItem
                 value="Sales Team All Salespeople table"
                 onSelect={() => runCommand(() => router.push("/team?tab=all"))}
               >
@@ -162,6 +143,18 @@ export function CommandPalette() {
                 Sales Team
                 <CommandShortcut>All Salespeople</CommandShortcut>
               </CommandItem>
+              {admin && (
+                <CommandItem
+                  value="Sales Team Settings Team and Access"
+                  onSelect={() =>
+                    runCommand(() => router.push("/team?tab=settings"))
+                  }
+                >
+                  <Users className="size-4" />
+                  Sales Team
+                  <CommandShortcut>Settings</CommandShortcut>
+                </CommandItem>
+              )}
               <CommandItem
                 value="Products Catalog"
                 onSelect={() =>
@@ -214,18 +207,6 @@ export function CommandPalette() {
                 Settings
                 <CommandShortcut>Notifications</CommandShortcut>
               </CommandItem>
-              {admin && (
-                <CommandItem
-                  value="Settings Team and Access"
-                  onSelect={() =>
-                    runCommand(() => router.push("/settings?tab=team"))
-                  }
-                >
-                  <Users className="size-4" />
-                  Settings
-                  <CommandShortcut>Team &amp; Access</CommandShortcut>
-                </CommandItem>
-              )}
               {admin && (
                 <CommandItem
                   value="Settings Company Defaults"
@@ -320,7 +301,7 @@ export function CommandPalette() {
                 <CommandGroup heading="Quick Actions">
                   <CommandItem
                     onSelect={() =>
-                      runCommand(() => router.push("/settings?tab=team"))
+                      runCommand(() => router.push("/team?tab=settings"))
                     }
                   >
                     <UserPlus className="size-4" />

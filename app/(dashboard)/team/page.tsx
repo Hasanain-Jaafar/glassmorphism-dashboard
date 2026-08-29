@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
-import { Gauge, Table2 } from "lucide-react";
+import { Gauge, Table2, Settings as SettingsIcon } from "lucide-react";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { MetricCard } from "@/components/dashboard/metric-card";
 import { ChartCard } from "@/components/dashboard/chart-card";
@@ -37,15 +37,20 @@ import {
 import { currentYear } from "@/lib/mock-data";
 import { currentMonthNumber } from "@/lib/target-period";
 import { formatUSD } from "@/lib/format";
+import { TeamAccessSection } from "@/components/settings/team-access-section";
+import { useAuth } from "@/components/providers/auth-provider";
 
-const teamTabs = ["kpi", "all"] as const;
+const teamTabs = ["kpi", "all", "settings"] as const;
 type TeamTab = (typeof teamTabs)[number];
 
-function isTeamTab(value: string | null): value is TeamTab {
-  return (teamTabs as readonly string[]).includes(value ?? "");
+function resolveTeamTab(value: string | null, admin: boolean): TeamTab | null {
+  if (!(teamTabs as readonly string[]).includes(value ?? "")) return null;
+  if (value === "settings" && !admin) return null;
+  return value as TeamTab;
 }
 
 export default function TeamPage() {
+  const { isAdmin: admin } = useAuth();
   const [teamMembers, setTeamMembers] = useState<TeamMember[] | null>(null);
   const [individualTargets, setIndividualTargets] = useState<
     Record<string, CompanyTargets>
@@ -77,16 +82,20 @@ export default function TeamPage() {
   const requestedTab = searchParams.get("tab");
   const [flashId, setFlashId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState(
-    isTeamTab(requestedTab) ? requestedTab : "kpi"
+    resolveTeamTab(requestedTab, admin) ?? "kpi"
   );
 
   // Sync activeTab when a new ?tab= deep link arrives (React's documented
-  // "adjust state during render" pattern).
-  const [prevRequestedTab, setPrevRequestedTab] = useState(requestedTab);
-  if (requestedTab !== prevRequestedTab) {
-    setPrevRequestedTab(requestedTab);
-    if (isTeamTab(requestedTab)) {
-      setActiveTab(requestedTab);
+  // "adjust state during render" pattern). Keyed on admin too since it
+  // resolves after mount — see the identical pattern in
+  // app/(dashboard)/settings/page.tsx.
+  const tabSyncKey = `${requestedTab}:${admin}`;
+  const [prevTabSyncKey, setPrevTabSyncKey] = useState(tabSyncKey);
+  if (tabSyncKey !== prevTabSyncKey) {
+    setPrevTabSyncKey(tabSyncKey);
+    const resolved = resolveTeamTab(requestedTab, admin);
+    if (resolved) {
+      setActiveTab(resolved);
     }
   }
 
@@ -176,6 +185,12 @@ export default function TeamPage() {
               <Table2 className="size-[15px]" />
               All Salespeople
             </TabsTab>
+            {admin && (
+              <TabsTab value="settings">
+                <SettingsIcon className="size-[15px]" />
+                Settings
+              </TabsTab>
+            )}
             <TabsIndicator />
           </TabsList>
 
@@ -277,6 +292,12 @@ export default function TeamPage() {
               <SalespersonRankingTable data={ranking} highlightedId={flashId} />
             )}
           </TabsPanel>
+
+          {admin && (
+            <TabsPanel value="settings">
+              <TeamAccessSection />
+            </TabsPanel>
+          )}
         </Tabs>
       </Reveal>
     </div>

@@ -458,7 +458,7 @@ export default function TargetsPage() {
                   No sales representatives yet
                 </p>
                 <p className="mx-auto mt-1 max-w-sm text-sm text-text-tertiary">
-                  Add your first team member from Settings → Team & Access to
+                  Add your first team member from Sales Team → Settings to
                   assign them a target.
                 </p>
               </div>
