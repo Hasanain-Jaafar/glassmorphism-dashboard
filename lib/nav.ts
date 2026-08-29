@@ -38,11 +38,11 @@ export const navGroups: NavGroup[] = [
     label: "Sales",
     items: [
       { label: "Sales Team", href: "/team", icon: Users, enabled: true },
+      { label: "Customers", href: "/customers", icon: Contact, enabled: true, adminOnly: true },
       { label: "Appointments", href: "/appointments", icon: CalendarClock, enabled: true },
       { label: "Quotations", href: "/quotations", icon: FileText, enabled: true },
       { label: "Deals", href: "/deals", icon: Handshake, enabled: true },
       { label: "Invoices", href: "/invoices", icon: Receipt, enabled: true },
-      { label: "Customers", href: "/customers", icon: Contact, enabled: true, adminOnly: true },
       { label: "Coaching", href: "/coaching", icon: NotebookPen, enabled: true, adminOnly: true },
       { label: "Targets", href: "/targets", icon: Target, enabled: true },
       { label: "Planning", href: "/planning", icon: PenTool, enabled: true, adminOnly: true },
