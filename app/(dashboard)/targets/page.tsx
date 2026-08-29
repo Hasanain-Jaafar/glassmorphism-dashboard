@@ -2,18 +2,17 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { Building2, Copy, UserCog } from "lucide-react";
+import { Building2, UserCog } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/dashboard/page-header";
+import { MetricCard } from "@/components/dashboard/metric-card";
 import { ChartCard } from "@/components/dashboard/chart-card";
 import { RadialTarget, MonthlyTargetCard } from "@/components/dashboard/target-card";
 import { TargetTrendChart } from "@/components/charts/target-trend-chart";
 import { EditTargetDialog } from "@/components/sales/edit-target-dialog";
 import { TargetPeriodSelector } from "@/components/sales/target-period-selector";
-import { TargetAllocation } from "@/components/sales/target-allocation";
 import { SalespersonTargetTable } from "@/components/tables/salesperson-target-table";
 import { Reveal } from "@/components/motion/reveal";
-import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Tabs,
@@ -27,9 +26,13 @@ import {
   currentMonthLabel,
   currentMonthNumber,
   defaultSelectionFor,
+  monthsForSelection,
+  personTargetForSelection,
+  MONTH_NUMBERS,
   type TargetPeriodSelection,
   type TargetPerson,
 } from "@/lib/target-period";
+import { getTargetStatus } from "@/lib/target-status";
 import {
   fetchCompanyTargets,
   fetchIndividualTargets,
@@ -48,8 +51,10 @@ import { fetchInvoices, type Invoice } from "@/lib/supabase/invoices";
 import {
   computeCompanyRevenueSeries,
   computeMonthlyTotal,
+  computePersonActualForMonths,
   computeYearToDateTotals,
 } from "@/lib/company-performance";
+import { formatUSD, formatPercent } from "@/lib/format";
 import { useAuth } from "@/components/providers/auth-provider";
 
 const currentMonth = currentMonthLabel;
@@ -137,6 +142,46 @@ export default function TargetsPage() {
     [teamMembersWithAggregates, individualTargets]
   );
 
+  // Real per-rep "Actual" for whichever period is selected — replaces the
+  // old personActualForSelection() stub that always returned 0. Empty
+  // months array (the "year" selection) means the whole year, matching
+  // computePersonActualForMonths' convention.
+  const actualsByPerson = useMemo(() => {
+    const months = monthsForSelection(selection)
+      .map((label) => MONTH_NUMBERS[label])
+      .filter((n): n is number => Boolean(n));
+    const map: Record<string, number> = {};
+    for (const person of people) {
+      map[person.id] = computePersonActualForMonths(
+        invoices,
+        person.id,
+        currentYear,
+        months
+      );
+    }
+    return map;
+  }, [people, invoices, selection]);
+
+  const individualStats = useMemo(() => {
+    let totalTarget = 0;
+    let totalActual = 0;
+    let onTrack = 0;
+    for (const person of people) {
+      const target = personTargetForSelection(person, selection);
+      const actual = actualsByPerson[person.id] ?? 0;
+      totalTarget += target;
+      totalActual += actual;
+      const achievementPct = target ? (actual / target) * 100 : 0;
+      if (getTargetStatus(achievementPct) === "on_track") onTrack += 1;
+    }
+    return {
+      totalTarget,
+      totalActual,
+      achievementPct: totalTarget ? (totalActual / totalTarget) * 100 : 0,
+      onTrack,
+    };
+  }, [people, selection, actualsByPerson]);
+
   useEffect(() => {
     fetchCompanyTargets(currentYear)
       .then(setCompanyTargets)
@@ -201,34 +246,6 @@ export default function TargetsPage() {
         error instanceof Error ? error.message : "Couldn't save targets"
       );
       throw error;
-    }
-  }
-
-  async function handleCopyPreviousPeriod() {
-    try {
-      const prevMonthNumber = currentMonthNumber === 1 ? 12 : currentMonthNumber - 1;
-      const prevMonthYear = currentMonthNumber === 1 ? currentYear - 1 : currentYear;
-      const prevYearTargets = await fetchCompanyTargets(currentYear - 1);
-      const prevMonthSource =
-        prevMonthYear === currentYear ? companyTargets : prevYearTargets;
-
-      const nextValues = {
-        yearlyTarget: prevYearTargets.yearlyTarget,
-        monthlyTarget: prevMonthSource.monthlyTargets[prevMonthNumber] ?? 0,
-      };
-      await saveCompanyTargets(currentYear, currentMonthNumber, nextValues);
-      setCompanyTargets((prev) => ({
-        yearlyTarget: nextValues.yearlyTarget,
-        monthlyTargets: {
-          ...prev.monthlyTargets,
-          [currentMonthNumber]: nextValues.monthlyTarget,
-        },
-      }));
-      toast.success("Copied last period's targets");
-    } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "Couldn't copy previous targets"
-      );
     }
   }
 
@@ -358,7 +375,7 @@ export default function TargetsPage() {
           <TabsList>
             <TabsTab value="company">
               <Building2 className="size-[15px]" />
-              Company
+              Main Target
             </TabsTab>
             <TabsTab value="individual">
               <UserCog className="size-[15px]" />
@@ -372,24 +389,13 @@ export default function TargetsPage() {
               <p className="text-sm text-text-tertiary">
                 Total annual target and where we stand this month
               </p>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleCopyPreviousPeriod}
-                  disabled={targetsLoading}
-                >
-                  <Copy className="size-3.5" />
-                  Copy Previous Period
-                </Button>
-                <EditTargetDialog
-                  title="Edit Company Targets"
-                  description="Update the company's revenue goals for the current year and month."
-                  monthlyTarget={monthlyTarget}
-                  yearlyTarget={companyTargets.yearlyTarget}
-                  onSave={handleSaveCompanyTargets}
-                />
-              </div>
+              <EditTargetDialog
+                title="Edit Company Targets"
+                description="Update the company's revenue goals for the current year and month."
+                monthlyTarget={monthlyTarget}
+                yearlyTarget={companyTargets.yearlyTarget}
+                onSave={handleSaveCompanyTargets}
+              />
             </div>
 
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-6">
@@ -438,7 +444,11 @@ export default function TargetsPage() {
 
             {teamMembers === null ? (
               <>
-                <Skeleton className="h-64 w-full rounded-2xl" />
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 lg:gap-6">
+                  {[0, 1, 2, 3].map((i) => (
+                    <Skeleton key={i} className="h-[132px] w-full rounded-2xl" />
+                  ))}
+                </div>
                 <Skeleton className="h-72 w-full rounded-2xl" />
               </>
             ) : people.length === 0 ? (
@@ -453,11 +463,33 @@ export default function TargetsPage() {
               </div>
             ) : (
               <>
-                <TargetAllocation people={people} selection={selection} />
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 lg:gap-6">
+                  <MetricCard
+                    label="Total Target"
+                    value={formatUSD(individualStats.totalTarget)}
+                    footnote="Selected period, whole team"
+                  />
+                  <MetricCard
+                    label="Total Actual"
+                    value={formatUSD(individualStats.totalActual)}
+                    footnote="Selected period, paid"
+                  />
+                  <MetricCard
+                    label="Achievement"
+                    value={formatPercent(individualStats.achievementPct, 0)}
+                    footnote="Actual vs. target"
+                  />
+                  <MetricCard
+                    label="On Track"
+                    value={`${individualStats.onTrack} / ${people.length}`}
+                    footnote="Reps at 90%+ of target"
+                  />
+                </div>
 
                 <SalespersonTargetTable
                   people={people}
                   selection={selection}
+                  actuals={actualsByPerson}
                   onSave={updatePersonTarget}
                 />
               </>

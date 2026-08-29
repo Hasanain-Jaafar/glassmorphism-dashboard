@@ -14,7 +14,6 @@ import { ArrowDown, ArrowUp, ChevronsUpDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { EditTargetDialog } from "@/components/sales/edit-target-dialog";
 import {
-  personActualForSelection,
   personTargetForSelection,
   type TargetPeriodSelection,
   type TargetPerson,
@@ -153,10 +152,13 @@ function buildColumns(peopleById: Map<string, TargetPerson>, onSave: (id: string
 export function SalespersonTargetTable({
   people,
   selection,
+  actuals,
   onSave,
 }: {
   people: TargetPerson[];
   selection: TargetPeriodSelection;
+  /** Real paid total per rep for the selected period — see computePersonActualForMonths in lib/company-performance.ts. */
+  actuals: Record<string, number>;
   onSave: (id: string, values: { monthlyTarget: number; yearlyTarget: number }) => void;
 }) {
   const [sorting, setSorting] = useState<SortingState>([
@@ -172,7 +174,7 @@ export function SalespersonTargetTable({
     () =>
       people.map((person) => {
         const target = personTargetForSelection(person, selection);
-        const actual = personActualForSelection();
+        const actual = actuals[person.id] ?? 0;
         return {
           id: person.id,
           name: person.name,
@@ -184,7 +186,7 @@ export function SalespersonTargetTable({
           remaining: Math.max(target - actual, 0),
         };
       }),
-    [people, selection]
+    [people, selection, actuals]
   );
 
   const columns = useMemo(
@@ -201,7 +203,7 @@ export function SalespersonTargetTable({
   });
 
   return (
-    <div className="glass-panel overflow-hidden rounded-2xl shadow-sm">
+    <div className="glass-panel overflow-hidden rounded-sm shadow-sm">
       <div className="overflow-x-auto">
         <table className="w-full min-w-[860px] text-sm">
           <thead>

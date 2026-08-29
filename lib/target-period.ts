@@ -1,14 +1,10 @@
-import {
-  rankingMonths,
-  companyMonthlyTotal,
-  companyYearlyTotal,
-} from "@/lib/mock-data";
+import { rankingMonths } from "@/lib/mock-data";
 
 /**
- * "Target Period" logic for the /targets page's Individual tab. Company
- * actuals still come from the mock revenueSeries/seasonal curve — real
- * per-month history only exists for targets (company and, since
- * fetchIndividualTargets, individual) in Supabase, not actual sales yet.
+ * "Target Period" logic for the /targets page's Individual tab — the
+ * month/quarter/year/custom-range period picker and target-lookup helpers.
+ * Real per-rep actuals for a selection are computed separately, from real
+ * invoices, by computePersonActualForMonths in lib/company-performance.ts.
  */
 
 /** A real salesperson plus their fetched individual targets — see fetchIndividualTargets in lib/supabase/targets.ts. Sales figures are 0 until the appointments/quotations/deals/invoices workflow exists. */
@@ -133,17 +129,6 @@ export function periodLabel(selection: TargetPeriodSelection): string {
   }
 }
 
-export function companyActualForSelection(
-  selection: TargetPeriodSelection,
-  year: number
-): number {
-  if (selection.type === "year") return companyYearlyTotal(year);
-  return monthsForSelection(selection).reduce(
-    (sum, month) => sum + companyMonthlyTotal(month),
-    0
-  );
-}
-
 export function companyTargetForSelection(
   selection: TargetPeriodSelection,
   targets: { yearlyTarget: number; monthlyTargets: Record<number, number> }
@@ -164,9 +149,4 @@ export function personTargetForSelection(
     const num = MONTH_NUMBERS[month];
     return sum + (num ? (person.monthlyTargets[num] ?? 0) : 0);
   }, 0);
-}
-
-/** Always 0 — real per-rep sales require appointments/quotations/deals/invoices data, which doesn't exist yet (see lib/supabase/team.ts). */
-export function personActualForSelection(): number {
-  return 0;
 }

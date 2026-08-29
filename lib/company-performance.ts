@@ -18,6 +18,7 @@ import type { MonthlyRevenuePoint, PipelineStage } from "@/lib/mock-data";
  */
 
 type InvoiceLike = { status: string; amount: number; paidAt: string | null };
+type RepInvoiceLike = InvoiceLike & { salesRepId: string };
 
 const MONTH_LABELS = [
   "Jan", "Feb", "Mar", "Apr", "May", "Jun",
@@ -38,6 +39,29 @@ export function computeMonthlyTotal(
 ): number {
   return invoices
     .filter((inv) => paidInYearMonth(inv, year, month))
+    .reduce((sum, inv) => sum + inv.amount, 0);
+}
+
+/**
+ * One rep's real paid total for a set of months in `year` — the /targets
+ * page's Individual tab's "Actual" column, replacing the old
+ * personActualForSelection() stub that always returned 0. Empty `months`
+ * means the whole year (matches lib/target-period.ts's
+ * monthsForSelection()'s "empty = year" convention).
+ */
+export function computePersonActualForMonths(
+  invoices: RepInvoiceLike[],
+  repId: string,
+  year: number,
+  months: number[]
+): number {
+  return invoices
+    .filter((inv) => inv.salesRepId === repId && inv.status === "paid" && inv.paidAt)
+    .filter((inv) => {
+      const paid = new Date(inv.paidAt as string);
+      if (paid.getFullYear() !== year) return false;
+      return months.length === 0 || months.includes(paid.getMonth() + 1);
+    })
     .reduce((sum, inv) => sum + inv.amount, 0);
 }
 
