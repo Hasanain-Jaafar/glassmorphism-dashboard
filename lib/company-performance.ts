@@ -146,3 +146,30 @@ export function computePipelineCounts(
     ],
   };
 }
+
+export type TeamSnapshotAxis = { axis: string; value: number };
+
+/**
+ * The dashboard's Team Snapshot radar — five metrics that are already
+ * naturally 0–100 percentages, so no invented scale is needed: monthly
+ * target achievement, the three pipeline-stage conversions (see
+ * computePipelineCounts), and the company-wide deal win rate (won /
+ * (won + lost), all-time — same definition as the /deals page's Win Rate KPI).
+ */
+export function computeTeamSnapshot(
+  monthlyProgressPct: number,
+  pipelineConversions: number[],
+  deals: { status: string }[]
+): TeamSnapshotAxis[] {
+  const won = deals.filter((d) => d.status === "won").length;
+  const lost = deals.filter((d) => d.status === "lost").length;
+  const winRate = won + lost ? Math.round((won / (won + lost)) * 100) : 0;
+
+  return [
+    { axis: "Target", value: Math.min(Math.round(monthlyProgressPct), 100) },
+    { axis: "Appt → Quote", value: pipelineConversions[0] ?? 0 },
+    { axis: "Quote → Deal", value: pipelineConversions[1] ?? 0 },
+    { axis: "Deal → Paid", value: pipelineConversions[2] ?? 0 },
+    { axis: "Win Rate", value: winRate },
+  ];
+}

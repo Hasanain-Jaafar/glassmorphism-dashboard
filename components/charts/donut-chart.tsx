@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 import { formatNumber } from "@/lib/format";
 
 export type DonutSegment = {
@@ -10,6 +10,26 @@ export type DonutSegment = {
   colorVar: string;
 };
 
+function ChartTooltip({
+  active,
+  payload,
+}: {
+  active?: boolean;
+  payload?: { payload: DonutSegment }[];
+}) {
+  if (!active || !payload?.length) return null;
+  const segment = payload[0].payload;
+
+  return (
+    <div className="rounded-xl border border-glass-border bg-popover/95 px-3.5 py-2.5 text-xs shadow-lg backdrop-blur-2xl">
+      <p className="font-medium text-foreground">{segment.label}</p>
+      <p className="mt-1 text-text-secondary">{formatNumber(segment.value)}</p>
+    </div>
+  );
+}
+
+/** Real Recharts pie chart (donut via innerRadius) — same segment shape as
+ * before, now with real hover tooltips instead of a hand-drawn SVG ring. */
 export function DonutChart({
   segments,
   centerLabel,
@@ -19,69 +39,38 @@ export function DonutChart({
   centerLabel: string;
   centerValue: string;
 }) {
-  const size = 152;
-  const strokeWidth = 20;
-  const radius = (size - strokeWidth) / 2;
-  const circumference = 2 * Math.PI * radius;
-  const total = segments.reduce((sum, segment) => sum + segment.value, 0) || 1;
-
-  const { arcs } = segments
-    .filter((segment) => segment.value > 0)
-    .reduce<{
-      cumulative: number;
-      arcs: (DonutSegment & { dash: number; offset: number })[];
-    }>(
-      (acc, segment) => {
-        const fraction = segment.value / total;
-        const dash = fraction * circumference;
-        const offset = -acc.cumulative * circumference;
-        return {
-          cumulative: acc.cumulative + fraction,
-          arcs: [...acc.arcs, { ...segment, dash, offset }],
-        };
-      },
-      { cumulative: 0, arcs: [] }
-    );
+  const visible = segments.filter((segment) => segment.value > 0);
 
   return (
     <div className="flex items-center gap-6">
-      <motion.div
-        className="relative shrink-0"
-        style={{ width: size, height: size }}
-        initial={{ opacity: 0, scale: 0.85 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.6, ease: "easeOut" }}
-      >
-        <svg width={size} height={size} className="-rotate-90">
-          <circle
-            cx={size / 2}
-            cy={size / 2}
-            r={radius}
-            fill="none"
-            stroke="var(--border)"
-            strokeWidth={strokeWidth}
-          />
-          {arcs.map((arc) => (
-            <circle
-              key={arc.id}
-              cx={size / 2}
-              cy={size / 2}
-              r={radius}
-              fill="none"
-              stroke={arc.colorVar}
-              strokeWidth={strokeWidth}
-              strokeDasharray={`${arc.dash} ${circumference - arc.dash}`}
-              strokeDashoffset={arc.offset}
-            />
-          ))}
-        </svg>
-        <div className="absolute inset-0 flex flex-col items-center justify-center">
+      <div className="relative size-[152px] shrink-0">
+        <ResponsiveContainer width="100%" height="100%">
+          <PieChart>
+            <Pie
+              data={visible}
+              dataKey="value"
+              nameKey="label"
+              innerRadius={56}
+              outerRadius={76}
+              paddingAngle={visible.length > 1 ? 2 : 0}
+              stroke="none"
+              isAnimationActive
+              animationDuration={600}
+            >
+              {visible.map((segment) => (
+                <Cell key={segment.id} fill={segment.colorVar} />
+              ))}
+            </Pie>
+            <Tooltip content={<ChartTooltip />} />
+          </PieChart>
+        </ResponsiveContainer>
+        <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
           <span className="text-xl font-semibold text-foreground">
             {centerValue}
           </span>
           <span className="text-[11px] text-text-tertiary">{centerLabel}</span>
         </div>
-      </motion.div>
+      </div>
 
       <ul className="flex-1 space-y-2.5">
         {segments.map((segment) => (

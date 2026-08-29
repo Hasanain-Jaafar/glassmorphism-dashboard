@@ -9,6 +9,7 @@ import { RadialTarget, MonthlyTargetCard } from "@/components/dashboard/target-c
 import { RevenueChart } from "@/components/charts/revenue-chart";
 import { SalespersonRanking } from "@/components/sales/salesperson-ranking";
 import { PipelineSummary } from "@/components/sales/pipeline-summary";
+import { TeamSnapshot } from "@/components/sales/team-snapshot";
 import { PulseRow } from "@/components/dashboard/pulse-row";
 import { CatalogOverview } from "@/components/products/catalog-overview";
 import { ProductStatusOverview } from "@/components/products/product-status-overview";
@@ -34,7 +35,9 @@ import {
   computeCompanyRevenueSeries,
   computeMonthlyTotal,
   computePipelineCounts,
+  computeTeamSnapshot,
   computeYearToDateTotals,
+  type TeamSnapshotAxis,
 } from "@/lib/company-performance";
 import type { MonthlyRevenuePoint, PipelineStage } from "@/lib/mock-data";
 import { formatUSD } from "@/lib/format";
@@ -54,6 +57,7 @@ type DashboardData = {
   ranking: RankedTeamMember[];
   pipelineStages: PipelineStage[];
   pipelineConversions: number[];
+  teamSnapshot: TeamSnapshotAxis[];
   products: Product[];
 };
 
@@ -135,6 +139,11 @@ export default function DashboardPage() {
             ranking: computeRanking(repsWithAggregates),
             pipelineStages: pipeline.stages,
             pipelineConversions: pipeline.conversions,
+            teamSnapshot: computeTeamSnapshot(
+              monthlyTarget ? (monthlyActual / monthlyTarget) * 100 : 0,
+              pipeline.conversions,
+              deals
+            ),
             products,
           });
         }
@@ -223,7 +232,7 @@ export default function DashboardPage() {
         </Reveal>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-6">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3 lg:gap-6">
         <Reveal delay={0.3}>
           {data ? (
             <SalespersonRanking people={data.ranking} />
@@ -239,6 +248,13 @@ export default function DashboardPage() {
             />
           ) : (
             <Skeleton className="h-72 w-full rounded-3xl" />
+          )}
+        </Reveal>
+        <Reveal delay={0.38}>
+          {data ? (
+            <TeamSnapshot data={data.teamSnapshot} />
+          ) : (
+            <Skeleton className="h-72 w-full rounded-2xl" />
           )}
         </Reveal>
       </div>

@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import { motion } from "framer-motion";
+import { RadialBar, RadialBarChart, PolarAngleAxis } from "recharts";
 import { formatUSD, formatPercent } from "@/lib/format";
 import { KpiBars } from "@/components/dashboard/kpi-bars";
 import { KpiWave } from "@/components/dashboard/kpi-wave";
@@ -22,11 +23,7 @@ export function RadialTarget({
   bars?: number[];
 }) {
   const size = 108;
-  const strokeWidth = 10;
-  const radius = (size - strokeWidth) / 2;
-  const circumference = 2 * Math.PI * radius;
   const clamped = Math.min(progressPct, 100);
-  const offset = circumference * (1 - clamped / 100);
 
   return (
     <div className="glass-panel relative flex h-full flex-col overflow-hidden rounded-2xl p-5 shadow-sm sm:p-6">
@@ -39,29 +36,32 @@ export function RadialTarget({
 
         <div className="mt-3 flex flex-1 items-center gap-4">
           <div className="relative shrink-0" style={{ width: size, height: size }}>
-            <svg width={size} height={size} className="-rotate-90">
-              <circle
-                cx={size / 2}
-                cy={size / 2}
-                r={radius}
-                fill="none"
-                stroke="var(--border)"
-                strokeWidth={strokeWidth}
+            <RadialBarChart
+              width={size}
+              height={size}
+              innerRadius="72%"
+              outerRadius="100%"
+              barSize={10}
+              data={[{ value: clamped }]}
+              startAngle={90}
+              endAngle={-270}
+            >
+              <PolarAngleAxis
+                type="number"
+                domain={[0, 100]}
+                tick={false}
+                axisLine={false}
               />
-              <motion.circle
-                cx={size / 2}
-                cy={size / 2}
-                r={radius}
-                fill="none"
-                stroke="var(--primary)"
-                strokeWidth={strokeWidth}
-                strokeLinecap="round"
-                strokeDasharray={circumference}
-                initial={{ strokeDashoffset: circumference }}
-                animate={{ strokeDashoffset: offset }}
-                transition={{ duration: 0.8, ease: "easeOut" }}
+              <RadialBar
+                dataKey="value"
+                cornerRadius={5}
+                fill="var(--primary)"
+                background={{ fill: "var(--border)" }}
+                isAnimationActive
+                animationDuration={800}
+                animationEasing="ease-out"
               />
-            </svg>
+            </RadialBarChart>
             <div className="absolute inset-0 flex items-center justify-center">
               <span className="text-lg font-semibold text-foreground">
                 {formatPercent(progressPct, 1)}

@@ -1,5 +1,5 @@
 import { ChartCard } from "@/components/dashboard/chart-card";
-import { CategoryRankChart } from "@/components/charts/category-rank-chart";
+import { CategoryBarChart } from "@/components/charts/category-bar-chart";
 import type { Product } from "@/lib/mock-data";
 import {
   categoryColorVar,
@@ -29,7 +29,7 @@ export function CatalogOverview({ products }: { products: Product[] }) {
       title="Catalog at a Glance"
       description={`${brandCount} brands · ${products.length} products across ${categoryNames.length} categories`}
     >
-      <CategoryRankChart categories={categories} />
+      <CategoryBarChart categories={categories} />
     </ChartCard>
   );
 }
