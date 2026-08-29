@@ -54,8 +54,17 @@ const columns = columnHelper.columns([
       const person = info.row.original;
       return (
         <div className="flex items-center gap-3">
-          <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-accent text-xs font-semibold text-accent-foreground">
-            {person.initials}
+          <div className="flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-accent text-xs font-semibold text-accent-foreground">
+            {person.avatarUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={person.avatarUrl}
+                alt=""
+                className="size-full object-cover"
+              />
+            ) : (
+              person.initials
+            )}
           </div>
           <div className="min-w-0">
             <p className="truncate text-sm font-medium text-foreground">
