@@ -86,12 +86,40 @@ export function computeCustomerAggregates(
   return { totalSales, totalDeals, outstandingAmount, lastPurchaseDate };
 }
 
-/** Overlays real aggregates (see `computeCustomerAggregates`) onto a customer list. */
+/**
+ * Overlays real aggregates (see `computeCustomerAggregates`) onto a customer
+ * list. Groups deals/invoices by customerId once (O(deals+invoices)) instead
+ * of calling computeCustomerAggregates per customer, which would rescan the
+ * full deals/invoices arrays for every customer (O(customers × transactions)
+ * — noticeable once either list grows past a few hundred rows).
+ */
 export function withCustomerAggregates(
   customers: Customer[],
   data: Parameters<typeof computeCustomerAggregates>[1]
 ): Customer[] {
-  return customers.map((c) => ({ ...c, ...computeCustomerAggregates(c.id, data) }));
+  const dealsByCustomer = new Map<string, typeof data.deals>();
+  for (const d of data.deals) {
+    if (!d.customerId) continue;
+    const list = dealsByCustomer.get(d.customerId);
+    if (list) list.push(d);
+    else dealsByCustomer.set(d.customerId, [d]);
+  }
+
+  const invoicesByCustomer = new Map<string, typeof data.invoices>();
+  for (const inv of data.invoices) {
+    if (!inv.customerId) continue;
+    const list = invoicesByCustomer.get(inv.customerId);
+    if (list) list.push(inv);
+    else invoicesByCustomer.set(inv.customerId, [inv]);
+  }
+
+  return customers.map((c) => ({
+    ...c,
+    ...computeCustomerAggregates(c.id, {
+      deals: dealsByCustomer.get(c.id) ?? [],
+      invoices: invoicesByCustomer.get(c.id) ?? [],
+    }),
+  }));
 }
 
 export function computeCustomerStats(items: Customer[]) {

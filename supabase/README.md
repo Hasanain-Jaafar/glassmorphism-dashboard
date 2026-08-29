@@ -55,6 +55,10 @@ In `supabase/migrations/`, run each file in filename order:
     link (that migration only fixes the trigger, so it has no effect on rows
     already in the table). Run once after 15, if you had notifications
     before applying it.
+17. `20260101000017_pipeline_customer_id_indexes.sql` — indexes `customer_id`
+    (composite with `sales_rep_id`) on appointments/quotations/deals/invoices,
+    which migration 13's RLS policy filters on but the original schema never
+    indexed. Performance fix — safe to run any time.
 
 ## 2. Seed baseline data (optional)
 

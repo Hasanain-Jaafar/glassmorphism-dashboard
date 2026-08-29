@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useMemo, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { CalendarClock, CalendarPlus } from "lucide-react";
@@ -162,10 +162,10 @@ function AppointmentsPageContent() {
     setFormOpen(true);
   }
 
-  function openEditForm(appointment: Appointment) {
+  const openEditForm = useCallback((appointment: Appointment) => {
     setEditingAppointment(appointment);
     setFormOpen(true);
-  }
+  }, []);
 
   async function handleFormSubmit(values: AppointmentFormValues) {
     try {

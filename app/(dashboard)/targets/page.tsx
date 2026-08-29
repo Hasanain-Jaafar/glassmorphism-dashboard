@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Building2, Copy, UserCog } from "lucide-react";
 import { toast } from "sonner";
@@ -181,29 +181,29 @@ export default function TargetsPage() {
   const monthlyProgressPct = monthlyTarget ? (monthlyActual / monthlyTarget) * 100 : 0;
   const monthlyRemaining = Math.max(monthlyTarget - monthlyActual, 0);
 
-  async function updatePersonTarget(
-    id: string,
-    values: { monthlyTarget: number; yearlyTarget: number }
-  ) {
-    try {
-      await saveIndividualTarget(id, currentYear, currentMonthNumber, values);
-      setIndividualTargets((prev) => ({
-        ...prev,
-        [id]: {
-          yearlyTarget: values.yearlyTarget,
-          monthlyTargets: {
-            ...(prev[id]?.monthlyTargets ?? {}),
-            [currentMonthNumber]: values.monthlyTarget,
+  const updatePersonTarget = useCallback(
+    async (id: string, values: { monthlyTarget: number; yearlyTarget: number }) => {
+      try {
+        await saveIndividualTarget(id, currentYear, currentMonthNumber, values);
+        setIndividualTargets((prev) => ({
+          ...prev,
+          [id]: {
+            yearlyTarget: values.yearlyTarget,
+            monthlyTargets: {
+              ...(prev[id]?.monthlyTargets ?? {}),
+              [currentMonthNumber]: values.monthlyTarget,
+            },
           },
-        },
-      }));
-    } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "Couldn't save target"
-      );
-      throw error;
-    }
-  }
+        }));
+      } catch (error) {
+        toast.error(
+          error instanceof Error ? error.message : "Couldn't save target"
+        );
+        throw error;
+      }
+    },
+    []
+  );
 
   if (!admin) {
     const mine = teamMembers

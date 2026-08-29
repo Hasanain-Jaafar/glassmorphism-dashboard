@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   tableFeatures,
   useTable,
@@ -46,7 +46,7 @@ const features = tableFeatures({
 
 const columnHelper = createColumnHelper<typeof features, TargetRow>();
 
-function buildColumns(people: TargetPerson[], onSave: (id: string, values: { monthlyTarget: number; yearlyTarget: number }) => void) {
+function buildColumns(peopleById: Map<string, TargetPerson>, onSave: (id: string, values: { monthlyTarget: number; yearlyTarget: number }) => void) {
   return columnHelper.columns([
     columnHelper.accessor("name", {
       header: "Salesperson",
@@ -134,7 +134,7 @@ function buildColumns(people: TargetPerson[], onSave: (id: string, values: { mon
       id: "actions",
       header: "",
       cell: (info) => {
-        const person = people.find((p) => p.id === info.row.original.id);
+        const person = peopleById.get(info.row.original.id);
         if (!person) return null;
         return (
           <EditTargetDialog
@@ -163,22 +163,34 @@ export function SalespersonTargetTable({
     { id: "target", desc: true },
   ]);
 
-  const data: TargetRow[] = people.map((person) => {
-    const target = personTargetForSelection(person, selection);
-    const actual = personActualForSelection();
-    return {
-      id: person.id,
-      name: person.name,
-      initials: person.initials,
-      role: person.role,
-      target,
-      actual,
-      achievementPct: target ? (actual / target) * 100 : 0,
-      remaining: Math.max(target - actual, 0),
-    };
-  });
+  const peopleById = useMemo(
+    () => new Map(people.map((p) => [p.id, p])),
+    [people]
+  );
 
-  const columns = buildColumns(people, onSave);
+  const data: TargetRow[] = useMemo(
+    () =>
+      people.map((person) => {
+        const target = personTargetForSelection(person, selection);
+        const actual = personActualForSelection();
+        return {
+          id: person.id,
+          name: person.name,
+          initials: person.initials,
+          role: person.role,
+          target,
+          actual,
+          achievementPct: target ? (actual / target) * 100 : 0,
+          remaining: Math.max(target - actual, 0),
+        };
+      }),
+    [people, selection]
+  );
+
+  const columns = useMemo(
+    () => buildColumns(peopleById, onSave),
+    [peopleById, onSave]
+  );
 
   const table = useTable({
     features,

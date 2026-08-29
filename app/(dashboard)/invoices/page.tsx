@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Receipt } from "lucide-react";
 import { PageHeader } from "@/components/dashboard/page-header";
@@ -124,10 +124,10 @@ export default function InvoicesPage() {
     setFormOpen(true);
   }
 
-  function openEditForm(invoice: Invoice) {
+  const openEditForm = useCallback((invoice: Invoice) => {
     setEditingInvoice(invoice);
     setFormOpen(true);
-  }
+  }, []);
 
   async function handleFormSubmit(values: InvoiceFormValues) {
     try {
@@ -150,19 +150,22 @@ export default function InvoicesPage() {
     }
   }
 
-  async function handleStatusChange(invoice: Invoice, status: InvoiceStatus) {
-    try {
-      const updated = await updateInvoiceStatus(invoice.id, status);
-      setInvoices((prev) =>
-        (prev ?? []).map((i) => (i.id === invoice.id ? updated : i))
-      );
-      toast.success(`Marked ${invoiceStatusLabels[status].toLowerCase()}`);
-    } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "Couldn't update the invoice"
-      );
-    }
-  }
+  const handleStatusChange = useCallback(
+    async (invoice: Invoice, status: InvoiceStatus) => {
+      try {
+        const updated = await updateInvoiceStatus(invoice.id, status);
+        setInvoices((prev) =>
+          (prev ?? []).map((i) => (i.id === invoice.id ? updated : i))
+        );
+        toast.success(`Marked ${invoiceStatusLabels[status].toLowerCase()}`);
+      } catch (error) {
+        toast.error(
+          error instanceof Error ? error.message : "Couldn't update the invoice"
+        );
+      }
+    },
+    []
+  );
 
   return (
     <div className="space-y-6">

@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useMemo, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { FilePlus2, FileText } from "lucide-react";
@@ -151,10 +151,10 @@ function QuotationsPageContent() {
     setFormOpen(true);
   }
 
-  function openEditForm(quotation: Quotation) {
+  const openEditForm = useCallback((quotation: Quotation) => {
     setEditingQuotation(quotation);
     setFormOpen(true);
-  }
+  }, []);
 
   async function handleFormSubmit(values: QuotationFormValues) {
     try {
@@ -177,21 +177,24 @@ function QuotationsPageContent() {
     }
   }
 
-  async function handleStatusChange(quotation: Quotation, status: QuotationStatus) {
-    try {
-      const updated = await updateQuotationStatus(quotation.id, status);
-      setQuotations((prev) =>
-        (prev ?? []).map((q) => (q.id === quotation.id ? updated : q))
-      );
-      toast.success(`Marked ${quotationStatusLabels[status].toLowerCase()}`);
-    } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "Couldn't update the quotation"
-      );
-    }
-  }
+  const handleStatusChange = useCallback(
+    async (quotation: Quotation, status: QuotationStatus) => {
+      try {
+        const updated = await updateQuotationStatus(quotation.id, status);
+        setQuotations((prev) =>
+          (prev ?? []).map((q) => (q.id === quotation.id ? updated : q))
+        );
+        toast.success(`Marked ${quotationStatusLabels[status].toLowerCase()}`);
+      } catch (error) {
+        toast.error(
+          error instanceof Error ? error.message : "Couldn't update the quotation"
+        );
+      }
+    },
+    []
+  );
 
-  async function handleConvertToDeal(quotation: Quotation) {
+  const handleConvertToDeal = useCallback(async (quotation: Quotation) => {
     try {
       await createDeal({
         salesRepId: quotation.salesRepId,
@@ -209,7 +212,7 @@ function QuotationsPageContent() {
         error instanceof Error ? error.message : "Couldn't convert to a deal"
       );
     }
-  }
+  }, [router]);
 
   return (
     <div className="space-y-6">

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   tableFeatures,
   useTable,
@@ -49,8 +49,8 @@ const features = tableFeatures({
 const columnHelper = createColumnHelper<typeof features, Quotation>();
 
 function buildColumns(
-  customers: Customer[],
-  salespeople: TeamMember[],
+  customersById: Map<string, Customer>,
+  salespeopleById: Map<string, TeamMember>,
   actions: {
     onEdit: (quotation: Quotation) => void;
     onStatusChange: (quotation: Quotation, status: QuotationStatus) => void;
@@ -61,7 +61,7 @@ function buildColumns(
     columnHelper.accessor("customerId", {
       header: "Customer",
       cell: (info) => {
-        const customer = customers.find((c) => c.id === info.getValue());
+        const customer = customersById.get(info.getValue() ?? "");
         return (
           <button
             type="button"
@@ -95,7 +95,7 @@ function buildColumns(
     columnHelper.accessor("salesRepId", {
       header: "Sales Rep",
       cell: (info) => {
-        const person = salespeople.find((p) => p.id === info.getValue());
+        const person = salespeopleById.get(info.getValue());
         return (
           <span className="whitespace-nowrap text-text-secondary">
             {person?.name ?? "Unassigned"}
@@ -198,11 +198,24 @@ export function QuotationsTable({
     { id: "total", desc: true },
   ]);
 
-  const columns = buildColumns(customers, salespeople, {
-    onEdit,
-    onStatusChange,
-    onConvertToDeal,
-  });
+  const customersById = useMemo(
+    () => new Map(customers.map((c) => [c.id, c])),
+    [customers]
+  );
+  const salespeopleById = useMemo(
+    () => new Map(salespeople.map((p) => [p.id, p])),
+    [salespeople]
+  );
+
+  const columns = useMemo(
+    () =>
+      buildColumns(customersById, salespeopleById, {
+        onEdit,
+        onStatusChange,
+        onConvertToDeal,
+      }),
+    [customersById, salespeopleById, onEdit, onStatusChange, onConvertToDeal]
+  );
 
   const table = useTable({
     features,

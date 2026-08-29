@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useMemo, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { Handshake, HandshakeIcon } from "lucide-react";
@@ -155,10 +155,10 @@ function DealsPageContent() {
     setFormOpen(true);
   }
 
-  function openEditForm(deal: Deal) {
+  const openEditForm = useCallback((deal: Deal) => {
     setEditingDeal(deal);
     setFormOpen(true);
-  }
+  }, []);
 
   async function handleFormSubmit(values: DealFormValues) {
     try {
@@ -179,7 +179,7 @@ function DealsPageContent() {
     }
   }
 
-  async function handleStatusChange(deal: Deal, status: DealStatus) {
+  const handleStatusChange = useCallback(async (deal: Deal, status: DealStatus) => {
     try {
       const updated = await updateDealStatus(deal.id, status);
       setDeals((prev) => (prev ?? []).map((d) => (d.id === deal.id ? updated : d)));
@@ -187,9 +187,9 @@ function DealsPageContent() {
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Couldn't update the deal");
     }
-  }
+  }, []);
 
-  async function handleCreateInvoice(deal: Deal) {
+  const handleCreateInvoice = useCallback(async (deal: Deal) => {
     try {
       await createInvoice({
         salesRepId: deal.salesRepId,
@@ -206,7 +206,7 @@ function DealsPageContent() {
         error instanceof Error ? error.message : "Couldn't create the invoice"
       );
     }
-  }
+  }, [router]);
 
   return (
     <div className="space-y-6">

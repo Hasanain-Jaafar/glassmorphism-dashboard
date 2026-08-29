@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   tableFeatures,
   useTable,
@@ -45,7 +45,7 @@ const features = tableFeatures({
 const columnHelper = createColumnHelper<typeof features, Customer>();
 
 function buildColumns(
-  salespeople: TeamMember[],
+  salespeopleById: Map<string, TeamMember>,
   actions: {
     onView: (customer: Customer) => void;
     onEdit: (customer: Customer) => void;
@@ -95,7 +95,7 @@ function buildColumns(
     columnHelper.accessor("assignedSalespersonId", {
       header: "Assigned Salesperson",
       cell: (info) => {
-        const person = salespeople.find((p) => p.id === info.getValue());
+        const person = salespeopleById.get(info.getValue());
         return (
           <span className="whitespace-nowrap text-text-secondary">
             {person?.name ?? "Unassigned"}
@@ -226,7 +226,15 @@ export function CustomersTable({
     { id: "totalSales", desc: true },
   ]);
 
-  const columns = buildColumns(salespeople, { onView, onEdit, onQuickAction });
+  const salespeopleById = useMemo(
+    () => new Map(salespeople.map((p) => [p.id, p])),
+    [salespeople]
+  );
+
+  const columns = useMemo(
+    () => buildColumns(salespeopleById, { onView, onEdit, onQuickAction }),
+    [salespeopleById, onView, onEdit, onQuickAction]
+  );
 
   const table = useTable({
     features,

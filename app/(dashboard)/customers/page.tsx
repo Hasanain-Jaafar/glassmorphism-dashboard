@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
@@ -196,21 +196,21 @@ export default function CustomersPage() {
     setFormOpen(true);
   }
 
-  function openEditForm(customer: Customer) {
+  const openEditForm = useCallback((customer: Customer) => {
     setEditingCustomer(customer);
     setDetailOpen(false);
     setFormOpen(true);
-  }
+  }, []);
 
-  function openDetails(customer: Customer) {
+  const openDetails = useCallback((customer: Customer) => {
     setSelectedCustomer(customer);
     setDetailOpen(true);
-  }
+  }, []);
 
-  function handleQuickAction(
+  const handleQuickAction = useCallback((
     customer: Customer,
     action: "appointment" | "quotation" | "invoices"
-  ) {
+  ) => {
     if (action === "appointment") {
       router.push(`/appointments?customer=${customer.id}&new=1`);
     } else if (action === "quotation") {
@@ -218,7 +218,7 @@ export default function CustomersPage() {
     } else {
       router.push("/invoices");
     }
-  }
+  }, [router]);
 
   async function handleFormSubmit(values: CustomerFormValues) {
     try {

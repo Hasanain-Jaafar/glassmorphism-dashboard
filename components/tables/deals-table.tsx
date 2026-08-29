@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   tableFeatures,
   useTable,
@@ -45,8 +45,8 @@ const features = tableFeatures({
 const columnHelper = createColumnHelper<typeof features, Deal>();
 
 function buildColumns(
-  customers: Customer[],
-  salespeople: TeamMember[],
+  customersById: Map<string, Customer>,
+  salespeopleById: Map<string, TeamMember>,
   actions: {
     onEdit: (deal: Deal) => void;
     onStatusChange: (deal: Deal, status: DealStatus) => void;
@@ -57,7 +57,7 @@ function buildColumns(
     columnHelper.accessor("customerId", {
       header: "Customer",
       cell: (info) => {
-        const customer = customers.find((c) => c.id === info.getValue());
+        const customer = customersById.get(info.getValue() ?? "");
         return (
           <button
             type="button"
@@ -91,7 +91,7 @@ function buildColumns(
     columnHelper.accessor("salesRepId", {
       header: "Sales Rep",
       cell: (info) => {
-        const person = salespeople.find((p) => p.id === info.getValue());
+        const person = salespeopleById.get(info.getValue());
         return (
           <span className="whitespace-nowrap text-text-secondary">
             {person?.name ?? "Unassigned"}
@@ -189,11 +189,24 @@ export function DealsTable({
     { id: "amount", desc: true },
   ]);
 
-  const columns = buildColumns(customers, salespeople, {
-    onEdit,
-    onStatusChange,
-    onCreateInvoice,
-  });
+  const customersById = useMemo(
+    () => new Map(customers.map((c) => [c.id, c])),
+    [customers]
+  );
+  const salespeopleById = useMemo(
+    () => new Map(salespeople.map((p) => [p.id, p])),
+    [salespeople]
+  );
+
+  const columns = useMemo(
+    () =>
+      buildColumns(customersById, salespeopleById, {
+        onEdit,
+        onStatusChange,
+        onCreateInvoice,
+      }),
+    [customersById, salespeopleById, onEdit, onStatusChange, onCreateInvoice]
+  );
 
   const table = useTable({
     features,
