@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Lock, Search, UserPlus, UsersRound } from "lucide-react";
 import { PageHeader } from "@/components/dashboard/page-header";
@@ -53,14 +54,9 @@ import { formatUSD } from "@/lib/format";
 
 const ALL = "all";
 
-const quickActionMessages: Record<"appointment" | "quotation" | "invoices", string> = {
-  appointment: "Appointments aren't built yet — coming soon.",
-  quotation: "Quotations aren't built yet — coming soon.",
-  invoices: "Invoices aren't built yet — coming soon.",
-};
-
 export default function CustomersPage() {
   const { isAdmin } = useAuth();
+  const router = useRouter();
   const [customersList, setCustomersList] = useState<Customer[] | null>(null);
   const [salespeople, setSalespeople] = useState<TeamMember[]>([]);
 
@@ -170,10 +166,16 @@ export default function CustomersPage() {
   }
 
   function handleQuickAction(
-    _customer: Customer,
+    customer: Customer,
     action: "appointment" | "quotation" | "invoices"
   ) {
-    toast(quickActionMessages[action]);
+    if (action === "appointment") {
+      router.push(`/appointments?customer=${customer.id}&new=1`);
+    } else if (action === "quotation") {
+      router.push(`/quotations?customer=${customer.id}&new=1`);
+    } else {
+      router.push("/invoices");
+    }
   }
 
   async function handleFormSubmit(values: CustomerFormValues) {

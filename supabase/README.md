@@ -75,22 +75,26 @@ Accounts created from Settings → Team & Access are created with
 
 Live in Supabase: **profiles/accounts** (Settings → Team & Access), **products**
 (Products page), **customers** (Customers page — name/company/email/phone/
-address/status/assigned salesperson; requires migration 11 above),
-**company and individual targets** (Targets → Company and Individual tabs,
-and the Team page's Salesperson Comparison table), and **notifications**
-(bell + Settings → Notifications) — though only 3 of its 6 event types
-actually fire yet (coaching notes, appointments, deals won), since
-`appointments`/`quotations`/`deals`/`invoices` have no UI to create rows in
-them (see below), so those triggers are dormant until that workflow ships.
+address/status/assigned salesperson; requires migration 11 above), **the
+sales pipeline** (`/appointments`, `/quotations`, `/deals`, `/invoices` — a
+rep manages their own, an admin sees everyone's; a quotation's line items
+live in `quotation_items`), **company and individual targets** (Targets →
+Company and Individual tabs, and the Team page's Salesperson Comparison
+table), and **notifications** (bell + Settings → Notifications) — all 3 of
+its trigger-backed event types now fire for real (coaching notes,
+appointments, deals won), since `/appointments` and `/deals` write real rows.
+`target_reached`, `quotation_expiring`, and `weekly_summary` still have no
+trigger — they need threshold/dedup logic or a scheduler this project
+doesn't have yet.
 
-Still mock data in `lib/mock-data.ts`: all sales performance numbers
-(monthly/yearly sales, closed deals, conversion, avg deal) shown on the Team
-page — those require real `appointments` / `quotations` / `deals` /
-`invoices` rows, and there's no UI yet to create them. New sales reps you add
-show up with real identities and real targets everywhere, just with $0 / 0
-performance stats until that workflow is built. The Team page's KPI tab
-(person filter, Sales Trend/Funnel/Needs Attention) is the one place still
-fully on the mock 7-person roster — it's driven by `lib/sales-analytics.ts`,
-which hasn't been migrated yet. Same for customers' Total Sales/Deals/
-Outstanding/Last Purchase/activity timeline — real identity and status, but
-$0/empty until the deals/invoices workflow exists.
+Still mock data in `lib/mock-data.ts`: the Team page's KPI tab (person
+filter, Sales Trend/Funnel/Needs Attention, and the metric cards/monthly
+sales/closed-deals/conversion numbers across Team and Targets) — it's driven
+by `lib/sales-analytics.ts` and `lib/supabase/team.ts`'s zeroed-out
+performance fields, and hasn't been rewired to aggregate the now-real
+appointments/quotations/deals/invoices tables yet. Same for customers' Total
+Sales/Outstanding/Last Purchase/activity timeline on the Customers page
+(`lib/supabase/customers.ts`'s `fromRow`) and the main Dashboard's KPIs —
+real pipeline data now exists to aggregate from (e.g. `sum(invoices.amount)
+where status = 'paid'` per customer/rep/month), but nothing queries it yet.
+That rewiring is a separate follow-up.

@@ -1,0 +1,225 @@
+"use client";
+
+import { useState } from "react";
+import {
+  tableFeatures,
+  useTable,
+  createColumnHelper,
+  createSortedRowModel,
+  rowSortingFeature,
+  sortFns,
+} from "@tanstack/react-table";
+import type { SortingState } from "@tanstack/react-table";
+import { format } from "date-fns";
+import {
+  ArrowDown,
+  ArrowUp,
+  ChevronsUpDown,
+  FilePenLine,
+  MoreHorizontal,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import type { Appointment } from "@/lib/supabase/appointments";
+import type { Customer } from "@/lib/customers-data";
+import type { TeamMember } from "@/lib/supabase/team";
+import {
+  appointmentStatusLabels,
+  appointmentStatusStyles,
+} from "@/components/appointments/appointment-styles";
+
+const features = tableFeatures({
+  rowSortingFeature,
+  sortedRowModel: createSortedRowModel(),
+  sortFns,
+});
+
+const columnHelper = createColumnHelper<typeof features, Appointment>();
+
+function buildColumns(
+  customers: Customer[],
+  salespeople: TeamMember[],
+  actions: {
+    onEdit: (appointment: Appointment) => void;
+  }
+) {
+  return columnHelper.columns([
+    columnHelper.accessor("title", {
+      header: "Title",
+      cell: (info) => (
+        <button
+          type="button"
+          onClick={() => actions.onEdit(info.row.original)}
+          className="min-w-0 cursor-pointer text-left"
+        >
+          <p className="truncate text-sm font-medium text-foreground hover:text-primary">
+            {info.getValue()}
+          </p>
+        </button>
+      ),
+    }),
+    columnHelper.accessor("customerId", {
+      header: "Customer",
+      cell: (info) => {
+        const customer = customers.find((c) => c.id === info.getValue());
+        return (
+          <span className="whitespace-nowrap text-text-secondary">
+            {customer?.company ?? "Unassigned"}
+          </span>
+        );
+      },
+    }),
+    columnHelper.accessor("scheduledAt", {
+      header: "Scheduled",
+      cell: (info) => (
+        <span className="whitespace-nowrap text-text-secondary">
+          {format(new Date(info.getValue()), "MMM d, yyyy 'at' h:mm a")}
+        </span>
+      ),
+    }),
+    columnHelper.accessor("salesRepId", {
+      header: "Sales Rep",
+      cell: (info) => {
+        const person = salespeople.find((p) => p.id === info.getValue());
+        return (
+          <span className="whitespace-nowrap text-text-secondary">
+            {person?.name ?? "Unassigned"}
+          </span>
+        );
+      },
+    }),
+    columnHelper.accessor("status", {
+      header: "Status",
+      cell: (info) => {
+        const status = info.getValue();
+        return (
+          <span
+            className={cn(
+              "rounded-full px-2 py-0.5 text-xs font-medium whitespace-nowrap",
+              appointmentStatusStyles[status]
+            )}
+          >
+            {appointmentStatusLabels[status]}
+          </span>
+        );
+      },
+    }),
+    columnHelper.display({
+      id: "actions",
+      header: "",
+      cell: (info) => {
+        const appointment = info.row.original;
+        return (
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              render={
+                <Button variant="ghost" size="icon-sm" aria-label="Row actions" />
+              }
+            >
+              <MoreHorizontal className="size-4" />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => actions.onEdit(appointment)}>
+                <FilePenLine className="size-3.5" />
+                Edit Appointment
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        );
+      },
+    }),
+  ]);
+}
+
+export function AppointmentsTable({
+  data,
+  customers,
+  salespeople,
+  onEdit,
+}: {
+  data: Appointment[];
+  customers: Customer[];
+  salespeople: TeamMember[];
+  onEdit: (appointment: Appointment) => void;
+}) {
+  const [sorting, setSorting] = useState<SortingState>([
+    { id: "scheduledAt", desc: true },
+  ]);
+
+  const columns = buildColumns(customers, salespeople, { onEdit });
+
+  const table = useTable({
+    features,
+    columns,
+    data,
+    state: { sorting },
+    onSortingChange: setSorting,
+  });
+
+  return (
+    <div className="glass-panel overflow-hidden rounded-2xl shadow-sm">
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[900px] text-sm">
+          <thead>
+            {table.getHeaderGroups().map((headerGroup) => (
+              <tr key={headerGroup.id} className="border-b border-glass-border">
+                {headerGroup.headers.map((header) => {
+                  const sorted = header.column.getIsSorted();
+                  const sortable = header.column.getCanSort();
+                  return (
+                    <th
+                      key={header.id}
+                      className="px-4 py-3.5 text-left text-xs font-medium tracking-wide text-text-tertiary uppercase first:pl-5 last:pr-5"
+                    >
+                      {sortable ? (
+                        <button
+                          type="button"
+                          onClick={() => header.column.toggleSorting()}
+                          className={cn(
+                            "inline-flex items-center gap-1 transition-colors hover:text-foreground",
+                            sorted && "text-foreground"
+                          )}
+                        >
+                          <table.FlexRender header={header} />
+                          {sorted === "asc" ? (
+                            <ArrowUp className="size-3" />
+                          ) : sorted === "desc" ? (
+                            <ArrowDown className="size-3" />
+                          ) : (
+                            <ChevronsUpDown className="size-3 text-text-tertiary/60" />
+                          )}
+                        </button>
+                      ) : (
+                        <table.FlexRender header={header} />
+                      )}
+                    </th>
+                  );
+                })}
+              </tr>
+            ))}
+          </thead>
+          <tbody>
+            {table.getRowModel().rows.map((row) => (
+              <tr
+                key={row.id}
+                className="border-b border-glass-border/60 transition-colors last:border-0 hover:bg-foreground/[0.03]"
+              >
+                {row.getAllCells().map((cell) => (
+                  <td key={cell.id} className="px-4 py-3.5 first:pl-5 last:pr-5">
+                    <table.FlexRender cell={cell} />
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
