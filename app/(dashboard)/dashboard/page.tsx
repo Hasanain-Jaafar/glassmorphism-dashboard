@@ -247,7 +247,7 @@ export default function DashboardPage() {
               conversions={data.pipelineConversions}
             />
           ) : (
-            <Skeleton className="h-72 w-full rounded-3xl" />
+            <Skeleton className="h-72 w-full rounded-2xl" />
           )}
         </Reveal>
         <Reveal delay={0.38}>
