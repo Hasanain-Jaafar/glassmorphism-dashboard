@@ -7,9 +7,9 @@ import { Gauge, Table2 } from "lucide-react";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { MetricCard } from "@/components/dashboard/metric-card";
 import { ChartCard } from "@/components/dashboard/chart-card";
-import { RadialTarget } from "@/components/dashboard/target-card";
 import { DonutChart } from "@/components/charts/donut-chart";
-import { SalespersonRankChart } from "@/components/charts/salesperson-chart";
+import { TeamHealthRadar } from "@/components/charts/team-health-radar";
+import { RepComparisonRadar } from "@/components/charts/rep-comparison-radar";
 import { SalespersonRankingTable } from "@/components/tables/salesperson-ranking-table";
 import { Reveal } from "@/components/motion/reveal";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -36,7 +36,7 @@ import {
 } from "@/lib/supabase/targets";
 import { currentYear } from "@/lib/mock-data";
 import { currentMonthNumber } from "@/lib/target-period";
-import { formatUSD, formatPercent } from "@/lib/format";
+import { formatUSD } from "@/lib/format";
 
 const teamTabs = ["kpi", "all"] as const;
 type TeamTab = (typeof teamTabs)[number];
@@ -186,11 +186,12 @@ export default function TeamPage() {
 
             {teamMembers === null ? (
               <>
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5 lg:gap-6">
-                  {[0, 1, 2, 3, 4].map((i) => (
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 lg:gap-6">
+                  {[0, 1, 2].map((i) => (
                     <Skeleton key={i} className="h-[132px] w-full rounded-2xl" />
                   ))}
                 </div>
+                <Skeleton className="h-80 w-full rounded-2xl" />
                 <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-6">
                   <Skeleton className="h-72 w-full rounded-2xl" />
                   <Skeleton className="h-72 w-full rounded-2xl" />
@@ -198,7 +199,7 @@ export default function TeamPage() {
               </>
             ) : (
               <>
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5 lg:gap-6">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 lg:gap-6">
                   <MetricCard
                     label="Team Sales"
                     value={formatUSD(stats.monthlySalesTotal)}
@@ -214,40 +215,33 @@ export default function TeamPage() {
                     value={formatUSD(avgDealSize)}
                     footnote="This month, per deal"
                   />
-                  <MetricCard
-                    label="Win Rate"
-                    value={formatPercent(dealStats.winRate, 0)}
-                    footnote="Won vs. lost, all time"
-                  />
-                  <RadialTarget
-                    label="Target Progress"
-                    current={stats.monthlySalesTotal}
-                    target={stats.monthlyTargetTotal}
-                    progressPct={stats.monthlyProgressPct}
-                  />
                 </div>
+
+                <ChartCard
+                  title="Top Contributors"
+                  description="Top 3 reps compared across sales, deals, conversion, and avg. deal — each axis relative to the leader"
+                >
+                  {ranking.length === 0 ? (
+                    <p className="py-6 text-center text-sm text-text-tertiary">
+                      Rankings will appear once your team is added.
+                    </p>
+                  ) : (
+                    <RepComparisonRadar reps={ranking} />
+                  )}
+                </ChartCard>
 
                 <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-6">
                   <ChartCard
-                    title="Top Contributors"
-                    description="Contribution to year-to-date sales"
+                    title="Team Health"
+                    description="Target achievement, win rate, and average conversion"
                   >
-                    {ranking.length === 0 ? (
-                      <p className="py-6 text-center text-sm text-text-tertiary">
-                        Rankings will appear once your team is added.
-                      </p>
-                    ) : (
-                      <SalespersonRankChart
-                        people={ranking.map((p) => ({
-                          id: p.id,
-                          name: p.name,
-                          initials: p.initials,
-                          value: p.yearlySales,
-                          contributionPct: p.contributionPct,
-                          rank: p.rank,
-                        }))}
-                      />
-                    )}
+                    <TeamHealthRadar
+                      data={[
+                        { axis: "Target", value: Math.round(Math.min(stats.monthlyProgressPct, 100)) },
+                        { axis: "Win Rate", value: dealStats.winRate },
+                        { axis: "Conversion", value: Math.round(stats.avgConversionRate) },
+                      ]}
+                    />
                   </ChartCard>
                   <ChartCard
                     title="Deals by Status"
