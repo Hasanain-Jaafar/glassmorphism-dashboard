@@ -5,6 +5,7 @@ import { RadialTarget, MonthlyTargetCard } from "@/components/dashboard/target-c
 import { RevenueChart } from "@/components/charts/revenue-chart";
 import { SalespersonRanking } from "@/components/sales/salesperson-ranking";
 import { PipelineSummary } from "@/components/sales/pipeline-summary";
+import { PulseRow } from "@/components/dashboard/pulse-row";
 import { CatalogOverview } from "@/components/products/catalog-overview";
 import { ProductStatusOverview } from "@/components/products/product-status-overview";
 import { BrandOverview } from "@/components/products/brand-overview";
@@ -90,14 +91,18 @@ export default function DashboardPage() {
       </div>
 
       <Reveal delay={0.4}>
+        <PulseRow />
+      </Reveal>
+
+      <Reveal delay={0.45}>
         <CatalogOverview />
       </Reveal>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-6">
-        <Reveal delay={0.45}>
+        <Reveal delay={0.5}>
           <ProductStatusOverview />
         </Reveal>
-        <Reveal delay={0.5}>
+        <Reveal delay={0.55}>
           <BrandOverview />
         </Reveal>
       </div>
