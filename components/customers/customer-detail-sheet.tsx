@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import { format } from "date-fns";
 import {
   CalendarClock,
@@ -20,10 +21,16 @@ import {
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { TeamMember } from "@/lib/supabase/team";
+import type { Appointment } from "@/lib/supabase/appointments";
+import { type Quotation } from "@/lib/supabase/quotations";
+import { type Deal } from "@/lib/supabase/deals";
+import { type Invoice } from "@/lib/supabase/invoices";
+import { quotationStatusLabels } from "@/components/quotations/quotation-styles";
+import { dealStatusLabels } from "@/components/deals/deal-styles";
+import { invoiceStatusLabels } from "@/components/invoices/invoice-styles";
 import {
-  avgDealValue,
-  lastActivityDate,
   type Customer,
+  type CustomerActivity,
   type CustomerActivityType,
 } from "@/lib/customers-data";
 import {
@@ -43,9 +50,102 @@ const historyTypes: CustomerActivityType[] = [
   "payment",
 ];
 
+/**
+ * Blends this customer's real appointments/quotations/deals/invoices into
+ * the same CustomerActivity shape the (now-removed) mock data used, so the
+ * Sales History / Activity Timeline UI below is unchanged. Total Sales only
+ * counts paid invoices, and Outstanding only sent/overdue ones — matching
+ * CLAUDE.md §3's "revenue only counts once the invoice is paid" rule.
+ */
+function deriveCustomerActivity(
+  customerId: string,
+  data: {
+    appointments: Appointment[];
+    quotations: Quotation[];
+    deals: Deal[];
+    invoices: Invoice[];
+  }
+): {
+  activity: CustomerActivity[];
+  totalSales: number;
+  totalDeals: number;
+  outstandingAmount: number;
+  lastPurchaseDate: string | null;
+} {
+  const activity: CustomerActivity[] = [];
+
+  for (const a of data.appointments.filter((a) => a.customerId === customerId)) {
+    activity.push({
+      id: `appointment-${a.id}`,
+      type: "appointment",
+      label: a.title,
+      date: a.scheduledAt,
+    });
+  }
+
+  for (const q of data.quotations.filter((q) => q.customerId === customerId)) {
+    activity.push({
+      id: `quotation-${q.id}`,
+      type: "quotation",
+      label: `Quotation ${quotationStatusLabels[q.status].toLowerCase()}`,
+      date: q.createdAt,
+      amount: q.total,
+    });
+  }
+
+  for (const d of data.deals.filter((d) => d.customerId === customerId)) {
+    activity.push({
+      id: `deal-${d.id}`,
+      type: "deal",
+      label: `Deal ${dealStatusLabels[d.status].toLowerCase()}`,
+      date: d.closedAt ?? d.createdAt,
+      amount: d.amount,
+    });
+  }
+
+  let totalSales = 0;
+  let outstandingAmount = 0;
+  let lastPurchaseDate: string | null = null;
+
+  for (const inv of data.invoices.filter((i) => i.customerId === customerId)) {
+    activity.push({
+      id: `invoice-${inv.id}`,
+      type: "invoice",
+      label: `Invoice ${invoiceStatusLabels[inv.status].toLowerCase()}`,
+      date: inv.createdAt,
+      amount: inv.amount,
+    });
+    if (inv.status === "paid" && inv.paidAt) {
+      totalSales += inv.amount;
+      if (!lastPurchaseDate || inv.paidAt > lastPurchaseDate) {
+        lastPurchaseDate = inv.paidAt;
+      }
+      activity.push({
+        id: `payment-${inv.id}`,
+        type: "payment",
+        label: "Payment received",
+        date: inv.paidAt,
+        amount: inv.amount,
+      });
+    } else if (inv.status === "sent" || inv.status === "overdue") {
+      outstandingAmount += inv.amount;
+    }
+  }
+
+  const totalDeals = data.deals.filter(
+    (d) => d.customerId === customerId && d.status === "won"
+  ).length;
+
+  return { activity, totalSales, totalDeals, outstandingAmount, lastPurchaseDate };
+}
+
 export function CustomerDetailSheet({
   customer,
   salespeople,
+  appointments,
+  quotations,
+  deals,
+  invoices,
   open,
   onOpenChange,
   onEdit,
@@ -53,20 +153,35 @@ export function CustomerDetailSheet({
 }: {
   customer: Customer | undefined;
   salespeople: TeamMember[];
+  appointments: Appointment[];
+  quotations: Quotation[];
+  deals: Deal[];
+  invoices: Invoice[];
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onEdit: () => void;
   onQuickAction: (action: "appointment" | "quotation" | "invoices") => void;
 }) {
-  if (!customer) return null;
+  const derived = useMemo(() => {
+    if (!customer) return null;
+    return deriveCustomerActivity(customer.id, {
+      appointments,
+      quotations,
+      deals,
+      invoices,
+    });
+  }, [customer, appointments, quotations, deals, invoices]);
+
+  if (!customer || !derived) return null;
 
   const salesperson = salespeople.find(
     (p) => p.id === customer.assignedSalespersonId
   );
-  const lastActivity = lastActivityDate(customer);
-  const sortedActivity = [...customer.activity].sort((a, b) =>
+  const avgDeal = derived.totalDeals ? derived.totalSales / derived.totalDeals : 0;
+  const sortedActivity = [...derived.activity].sort((a, b) =>
     b.date.localeCompare(a.date)
   );
+  const lastActivity = sortedActivity[0]?.date ?? derived.lastPurchaseDate;
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -130,16 +245,13 @@ export function CustomerDetailSheet({
           )}
 
           <div className="grid grid-cols-2 gap-3">
-            <Stat label="Total Sales" value={formatUSD(customer.totalSales)} />
-            <Stat label="Total Deals" value={String(customer.totalDeals)} />
-            <Stat
-              label="Avg. Deal Value"
-              value={formatUSD(avgDealValue(customer))}
-            />
+            <Stat label="Total Sales" value={formatUSD(derived.totalSales)} />
+            <Stat label="Total Deals" value={String(derived.totalDeals)} />
+            <Stat label="Avg. Deal Value" value={formatUSD(avgDeal)} />
             <Stat
               label="Outstanding"
-              value={formatUSD(customer.outstandingAmount)}
-              tone={customer.outstandingAmount > 0 ? "warning" : undefined}
+              value={formatUSD(derived.outstandingAmount)}
+              tone={derived.outstandingAmount > 0 ? "warning" : undefined}
             />
             <Stat
               label="Last Activity"
@@ -154,7 +266,7 @@ export function CustomerDetailSheet({
             </p>
             <div className="divide-y divide-glass-border/60 overflow-hidden rounded-xl border border-glass-border/60">
               {historyTypes.map((type) => {
-                const entries = customer.activity.filter((a) => a.type === type);
+                const entries = derived.activity.filter((a) => a.type === type);
                 const Icon = activityTypeIcons[type];
                 const amount = entries.reduce((sum, e) => sum + (e.amount ?? 0), 0);
                 return (

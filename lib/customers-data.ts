@@ -34,21 +34,7 @@ export type Customer = {
   lastPurchaseDate: string | null;
   /** ISO date this customer was first added. */
   createdAt: string;
-  activity: CustomerActivity[];
 };
-
-export function avgDealValue(customer: Customer): number {
-  return customer.totalDeals ? customer.totalSales / customer.totalDeals : 0;
-}
-
-/** Most recent activity date, falling back to the last purchase date. */
-export function lastActivityDate(customer: Customer): string | null {
-  if (customer.activity.length === 0) return customer.lastPurchaseDate;
-  return customer.activity.reduce(
-    (latest, entry) => (entry.date > latest ? entry.date : latest),
-    customer.activity[0].date
-  );
-}
 
 export function computeCustomerStats(items: Customer[]) {
   const now = new Date();

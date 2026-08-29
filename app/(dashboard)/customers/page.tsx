@@ -43,6 +43,10 @@ import {
   updateCustomer,
   subscribeToCustomers,
 } from "@/lib/supabase/customers";
+import { fetchAppointments, type Appointment } from "@/lib/supabase/appointments";
+import { fetchQuotations, type Quotation } from "@/lib/supabase/quotations";
+import { fetchDeals, type Deal } from "@/lib/supabase/deals";
+import { fetchInvoices, type Invoice } from "@/lib/supabase/invoices";
 import {
   computeCustomerStats,
   dateRangeOptions,
@@ -59,6 +63,10 @@ export default function CustomersPage() {
   const router = useRouter();
   const [customersList, setCustomersList] = useState<Customer[] | null>(null);
   const [salespeople, setSalespeople] = useState<TeamMember[]>([]);
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [quotations, setQuotations] = useState<Quotation[]>([]);
+  const [deals, setDeals] = useState<Deal[]>([]);
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
 
   useEffect(() => {
     if (!isAdmin) return;
@@ -73,6 +81,12 @@ export default function CustomersPage() {
       .catch((err) =>
         toast.error(err.message ?? "Couldn't load salespeople")
       );
+    // For the detail sheet's Sales History / Activity Timeline — fetched
+    // once here rather than per-open, same pattern as salespeople above.
+    fetchAppointments().then(setAppointments).catch(() => {});
+    fetchQuotations().then(setQuotations).catch(() => {});
+    fetchDeals().then(setDeals).catch(() => {});
+    fetchInvoices().then(setInvoices).catch(() => {});
   }, [isAdmin]);
 
   const [search, setSearch] = useState("");
@@ -394,6 +408,10 @@ export default function CustomersPage() {
       <CustomerDetailSheet
         customer={selectedCustomer}
         salespeople={salespeople}
+        appointments={appointments}
+        quotations={quotations}
+        deals={deals}
+        invoices={invoices}
         open={detailOpen}
         onOpenChange={setDetailOpen}
         onEdit={() => selectedCustomer && openEditForm(selectedCustomer)}
