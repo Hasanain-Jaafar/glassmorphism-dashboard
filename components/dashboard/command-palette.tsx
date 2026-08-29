@@ -21,7 +21,7 @@ import {
   Package,
   Tag,
 } from "lucide-react";
-import { navGroups } from "@/lib/nav";
+import { getVisibleNavGroups } from "@/lib/nav";
 import { customers } from "@/lib/customers-data";
 import { products, productCategories } from "@/lib/mock-data";
 import { fetchTeamMembers, type TeamMember } from "@/lib/supabase/team";
@@ -49,6 +49,7 @@ export function CommandPalette() {
   const router = useRouter();
   const { setTheme } = useTheme();
   const { isAdmin: admin } = useAuth();
+  const navGroups = getVisibleNavGroups(admin);
 
   useEffect(() => {
     fetchTeamMembers()
@@ -227,22 +228,26 @@ export function CommandPalette() {
                 </CommandItem>
               )}
             </CommandGroup>
-            <CommandSeparator />
-            <CommandGroup heading="Customers">
-              {customers.map((customer) => (
-                <CommandItem
-                  key={customer.id}
-                  value={`${customer.company} ${customer.contactPerson}`}
-                  onSelect={() =>
-                    runCommand(() => router.push("/customers"))
-                  }
-                >
-                  <Building2 className="size-4" />
-                  {customer.company}
-                  <CommandShortcut>{customer.contactPerson}</CommandShortcut>
-                </CommandItem>
-              ))}
-            </CommandGroup>
+            {admin && (
+              <>
+                <CommandSeparator />
+                <CommandGroup heading="Customers">
+                  {customers.map((customer) => (
+                    <CommandItem
+                      key={customer.id}
+                      value={`${customer.company} ${customer.contactPerson}`}
+                      onSelect={() =>
+                        runCommand(() => router.push("/customers"))
+                      }
+                    >
+                      <Building2 className="size-4" />
+                      {customer.company}
+                      <CommandShortcut>{customer.contactPerson}</CommandShortcut>
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              </>
+            )}
             <CommandSeparator />
             <CommandGroup heading="Products">
               {products.map((product) => (

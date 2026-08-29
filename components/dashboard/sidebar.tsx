@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
 import { ChevronsLeft, ChevronsRight } from "lucide-react";
-import { navGroups, type NavItem } from "@/lib/nav";
+import { getVisibleNavGroups, type NavItem } from "@/lib/nav";
 import {
   Tooltip,
   TooltipContent,
@@ -12,17 +12,20 @@ import {
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { useLocalStorageBoolean } from "@/lib/use-local-storage-boolean";
+import { useAuth } from "@/components/providers/auth-provider";
 
 const STORAGE_KEY = "sidebar-collapsed";
-
-const mainGroups = navGroups.filter((group) => group.label !== "System");
-const settingsItem = navGroups
-  .find((group) => group.label === "System")
-  ?.items.find((item) => item.href === "/settings");
 
 export function Sidebar() {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useLocalStorageBoolean(STORAGE_KEY, false);
+  const { isAdmin } = useAuth();
+
+  const visibleGroups = getVisibleNavGroups(isAdmin);
+  const mainGroups = visibleGroups.filter((group) => group.label !== "System");
+  const settingsItem = visibleGroups
+    .find((group) => group.label === "System")
+    ?.items.find((item) => item.href === "/settings");
 
   function toggleCollapsed() {
     setCollapsed(!collapsed);

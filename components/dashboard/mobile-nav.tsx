@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LayoutDashboard, Menu, LogOut } from "lucide-react";
-import { navGroups } from "@/lib/nav";
+import { getVisibleNavGroups } from "@/lib/nav";
 import { ThemeToggle } from "@/components/theme-toggle";
 import {
   Sheet,
@@ -13,10 +13,13 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/components/providers/auth-provider";
 
 export function MobileNav() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const { isAdmin } = useAuth();
+  const navGroups = getVisibleNavGroups(isAdmin);
 
   return (
     <>

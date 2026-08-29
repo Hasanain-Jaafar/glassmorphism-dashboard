@@ -8,15 +8,12 @@ import { cn } from "@/lib/utils";
 export function PulseRow() {
   const { isAdmin } = useAuth();
 
+  if (!isAdmin) return null;
+
   return (
-    <div
-      className={cn(
-        "grid grid-cols-1 gap-4 lg:gap-6",
-        isAdmin && "lg:grid-cols-2"
-      )}
-    >
+    <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-6">
       <CustomerPulse />
-      {isAdmin && <CoachingPulse />}
+      <CoachingPulse />
     </div>
   );
 }

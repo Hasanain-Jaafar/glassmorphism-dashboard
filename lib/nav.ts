@@ -15,6 +15,7 @@ export type NavItem = {
   href: string;
   icon: LucideIcon;
   enabled: boolean;
+  adminOnly?: boolean;
 };
 
 export type NavGroup = {
@@ -33,10 +34,10 @@ export const navGroups: NavGroup[] = [
     label: "Sales",
     items: [
       { label: "Sales Team", href: "/team", icon: Users, enabled: true },
-      { label: "Customers", href: "/customers", icon: Contact, enabled: true },
-      { label: "Coaching", href: "/coaching", icon: NotebookPen, enabled: true },
+      { label: "Customers", href: "/customers", icon: Contact, enabled: true, adminOnly: true },
+      { label: "Coaching", href: "/coaching", icon: NotebookPen, enabled: true, adminOnly: true },
       { label: "Targets", href: "/targets", icon: Target, enabled: true },
-      { label: "Planning", href: "/planning", icon: PenTool, enabled: true },
+      { label: "Planning", href: "/planning", icon: PenTool, enabled: true, adminOnly: true },
     ],
   },
   {
@@ -54,3 +55,14 @@ export const navGroups: NavGroup[] = [
 ];
 
 export const primaryMobileNavItems: NavItem[] = navGroups[0].items;
+
+/** Filters out admin-only nav items (and any groups left empty) for non-admin users. */
+export function getVisibleNavGroups(isAdmin: boolean): NavGroup[] {
+  if (isAdmin) return navGroups;
+  return navGroups
+    .map((group) => ({
+      ...group,
+      items: group.items.filter((item) => !item.adminOnly),
+    }))
+    .filter((group) => group.items.length > 0);
+}

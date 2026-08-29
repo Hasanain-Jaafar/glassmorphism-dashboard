@@ -2,10 +2,11 @@
 
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Search, UserPlus, UsersRound } from "lucide-react";
+import { Lock, Search, UserPlus, UsersRound } from "lucide-react";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { MetricCard } from "@/components/dashboard/metric-card";
 import { Reveal } from "@/components/motion/reveal";
+import { useAuth } from "@/components/providers/auth-provider";
 import { Button } from "@/components/ui/button";
 import {
   InputGroup,
@@ -60,6 +61,7 @@ function slugify(value: string): string {
 }
 
 export default function CustomersPage() {
+  const { isAdmin } = useAuth();
   const [customersList, setCustomersList] = useState<Customer[]>(initialCustomers);
 
   const [search, setSearch] = useState("");
@@ -154,6 +156,28 @@ export default function CustomersPage() {
       toast.success(`${created.company} was added`);
     }
     setFormOpen(false);
+  }
+
+  if (!isAdmin) {
+    return (
+      <div className="space-y-6">
+        <Reveal>
+          <PageHeader title="Customers" />
+        </Reveal>
+        <Reveal delay={0.05}>
+          <div className="glass-panel flex flex-col items-center rounded-2xl p-10 text-center">
+            <Lock className="size-6 text-text-tertiary" />
+            <p className="mt-3 text-sm font-medium text-foreground">
+              Admins only
+            </p>
+            <p className="mx-auto mt-1 max-w-sm text-sm text-text-tertiary">
+              Customer accounts are managed by admins and aren&apos;t visible
+              to sales representatives.
+            </p>
+          </div>
+        </Reveal>
+      </div>
+    );
   }
 
   return (
