@@ -83,10 +83,18 @@ export default function CustomersPage() {
       );
     // For the detail sheet's Sales History / Activity Timeline — fetched
     // once here rather than per-open, same pattern as salespeople above.
-    fetchAppointments().then(setAppointments).catch(() => {});
-    fetchQuotations().then(setQuotations).catch(() => {});
-    fetchDeals().then(setDeals).catch(() => {});
-    fetchInvoices().then(setInvoices).catch(() => {});
+    fetchAppointments()
+      .then(setAppointments)
+      .catch((err) => toast.error(err.message ?? "Couldn't load appointments"));
+    fetchQuotations()
+      .then(setQuotations)
+      .catch((err) => toast.error(err.message ?? "Couldn't load quotations"));
+    fetchDeals()
+      .then(setDeals)
+      .catch((err) => toast.error(err.message ?? "Couldn't load deals"));
+    fetchInvoices()
+      .then(setInvoices)
+      .catch((err) => toast.error(err.message ?? "Couldn't load invoices"));
   }, [isAdmin]);
 
   const [search, setSearch] = useState("");

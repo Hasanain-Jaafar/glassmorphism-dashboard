@@ -82,9 +82,30 @@ export async function createDeal(values: DealInput): Promise<Deal> {
 
 export async function updateDeal(id: string, values: DealInput): Promise<Deal> {
   const supabase = createClient();
+
+  // The edit form lets status be set to "won"/"lost" directly (not just via
+  // the Mark Won/Lost quick actions) — stamp closed_at on that transition
+  // too, but preserve the original timestamp if it was already closed, and
+  // clear it if reopened. Otherwise a won deal with no closed_at is silently
+  // excluded from a customer's Total Deals timing (see deriveCustomerActivity
+  // in components/customers/customer-detail-sheet.tsx).
+  let closedAt: string | null = null;
+  if (values.status !== "open") {
+    const { data: existing, error: fetchError } = await supabase
+      .from("deals")
+      .select("status, closed_at")
+      .eq("id", id)
+      .single();
+    if (fetchError) throw fetchError;
+    closedAt =
+      existing.status !== "open" && existing.closed_at
+        ? existing.closed_at
+        : new Date().toISOString();
+  }
+
   const { data, error } = await supabase
     .from("deals")
-    .update(toRow(values))
+    .update({ ...toRow(values), closed_at: closedAt })
     .eq("id", id)
     .select(SELECT_COLUMNS)
     .single();

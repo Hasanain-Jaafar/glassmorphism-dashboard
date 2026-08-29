@@ -91,9 +91,30 @@ export async function updateInvoice(
   values: InvoiceInput
 ): Promise<Invoice> {
   const supabase = createClient();
+
+  // The edit form lets status be set to "paid" directly (not just via the
+  // "Mark Paid" quick action) — stamp paid_at on that transition too, but
+  // preserve the original timestamp if it was already paid, and clear it
+  // for any non-paid status. Otherwise a paid invoice with no paid_at never
+  // counts as real revenue (see deriveCustomerActivity in
+  // components/customers/customer-detail-sheet.tsx).
+  let paidAt: string | null = null;
+  if (values.status === "paid") {
+    const { data: existing, error: fetchError } = await supabase
+      .from("invoices")
+      .select("status, paid_at")
+      .eq("id", id)
+      .single();
+    if (fetchError) throw fetchError;
+    paidAt =
+      existing.status === "paid" && existing.paid_at
+        ? existing.paid_at
+        : new Date().toISOString();
+  }
+
   const { data, error } = await supabase
     .from("invoices")
-    .update(toRow(values))
+    .update({ ...toRow(values), paid_at: paidAt })
     .eq("id", id)
     .select(SELECT_COLUMNS)
     .single();
