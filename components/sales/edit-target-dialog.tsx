@@ -33,12 +33,14 @@ export function EditTargetDialog({
   monthlyTarget,
   yearlyTarget,
   onSave,
+  triggerLabel = "Edit",
 }: {
   title: string;
   description: string;
   monthlyTarget: number;
   yearlyTarget: number;
   onSave: (values: FormOutput) => void | Promise<void>;
+  triggerLabel?: string;
 }) {
   const [open, setOpen] = useState(false);
 
@@ -75,7 +77,7 @@ export function EditTargetDialog({
         render={<Button variant="outline" size="sm" className="gap-1.5" />}
       >
         <Pencil className="size-3.5" />
-        Edit
+        {triggerLabel}
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>

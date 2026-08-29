@@ -395,6 +395,7 @@ export default function TargetsPage() {
                 monthlyTarget={monthlyTarget}
                 yearlyTarget={companyTargets.yearlyTarget}
                 onSave={handleSaveCompanyTargets}
+                triggerLabel="Set Target"
               />
             </div>
 
