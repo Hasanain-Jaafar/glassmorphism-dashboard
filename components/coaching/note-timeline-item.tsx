@@ -150,7 +150,7 @@ export function NoteTimelineItem({
             {coachingNoteTypes.find((t) => t.value === note.type)?.label}
           </span>
           <span className="text-xs text-text-tertiary">
-            {author ? author.name : "Unknown"} ·{" "}
+            Logged by {author ? author.name : "Unknown"} ·{" "}
             {format(new Date(note.createdAt), "MMM d, yyyy 'at' h:mm a")}
             {wasEdited && " · edited"}
           </span>
