@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { Building2, UserCog } from "lucide-react";
+import { Building2, Target, TrendingUp, UserCheck, UserCog, Wallet } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { MetricCard } from "@/components/dashboard/metric-card";
@@ -468,21 +468,29 @@ export default function TargetsPage() {
                     label="Total Target"
                     value={formatUSD(individualStats.totalTarget)}
                     footnote="Selected period, whole team"
+                    icon={Target}
+                    tone="neutral"
                   />
                   <MetricCard
                     label="Total Actual"
                     value={formatUSD(individualStats.totalActual)}
                     footnote="Selected period, paid"
+                    icon={Wallet}
+                    tone="primary"
                   />
                   <MetricCard
                     label="Achievement"
                     value={formatPercent(individualStats.achievementPct, 0)}
                     footnote="Actual vs. target"
+                    icon={TrendingUp}
+                    tone="success"
                   />
                   <MetricCard
                     label="On Track"
                     value={`${individualStats.onTrack} / ${people.length}`}
                     footnote="Reps at 90%+ of target"
+                    icon={UserCheck}
+                    tone="cyan"
                   />
                 </div>
 
