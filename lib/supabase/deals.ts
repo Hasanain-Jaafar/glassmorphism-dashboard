@@ -71,9 +71,18 @@ function toRow(values: DealInput) {
 
 export async function createDeal(values: DealInput): Promise<Deal> {
   const supabase = createClient();
+
+  // The create form's status dropdown offers "Won"/"Lost" like any other
+  // status (not just via the edit form or the Mark Won/Lost quick actions)
+  // — stamp closed_at on creation too. Otherwise a deal created directly as
+  // won/lost has closed_at null forever, excluding it from a customer's
+  // Total Deals timing (see computeCustomerAggregates).
   const { data, error } = await supabase
     .from("deals")
-    .insert(toRow(values))
+    .insert({
+      ...toRow(values),
+      closed_at: values.status !== "open" ? new Date().toISOString() : null,
+    })
     .select(SELECT_COLUMNS)
     .single();
   if (error) throw error;
@@ -113,18 +122,35 @@ export async function updateDeal(id: string, values: DealInput): Promise<Deal> {
   return fromRow(data);
 }
 
-/** Won/Lost both close the deal — closed_at records exactly when. */
+/**
+ * Won/Lost both close the deal — closed_at records exactly when. Preserves
+ * the original timestamp if the deal was already closed (e.g. re-selecting
+ * "Won" on an already-won deal), matching updateDeal's guard above — a
+ * re-affirmed status should never shift when a sale actually happened.
+ */
 export async function updateDealStatus(
   id: string,
   status: DealStatus
 ): Promise<Deal> {
   const supabase = createClient();
+
+  let closedAt: string | null = null;
+  if (status !== "open") {
+    const { data: existing, error: fetchError } = await supabase
+      .from("deals")
+      .select("status, closed_at")
+      .eq("id", id)
+      .single();
+    if (fetchError) throw fetchError;
+    closedAt =
+      existing.status !== "open" && existing.closed_at
+        ? existing.closed_at
+        : new Date().toISOString();
+  }
+
   const { data, error } = await supabase
     .from("deals")
-    .update({
-      status,
-      closed_at: status === "open" ? null : new Date().toISOString(),
-    })
+    .update({ status, closed_at: closedAt })
     .eq("id", id)
     .select(SELECT_COLUMNS)
     .single();

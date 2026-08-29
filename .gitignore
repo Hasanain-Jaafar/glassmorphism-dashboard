@@ -44,6 +44,7 @@ next-env.d.ts
 # agent docs
 CLAUDE.md
 Doc.md
+todo.md
 
 # local tooling/editor config
 .claude/

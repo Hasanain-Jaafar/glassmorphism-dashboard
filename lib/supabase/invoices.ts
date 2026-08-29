@@ -77,9 +77,18 @@ function toRow(values: InvoiceInput) {
 
 export async function createInvoice(values: InvoiceInput): Promise<Invoice> {
   const supabase = createClient();
+
+  // The create form's status dropdown offers "Paid" like any other status
+  // (not just via the edit form or the "Mark Paid" quick action) — stamp
+  // paid_at on creation too. Otherwise an invoice created directly as paid
+  // has status "paid" but paid_at null forever, and is silently excluded
+  // from revenue (computeCustomerAggregates requires both).
   const { data, error } = await supabase
     .from("invoices")
-    .insert(toRow(values))
+    .insert({
+      ...toRow(values),
+      paid_at: values.status === "paid" ? new Date().toISOString() : null,
+    })
     .select(SELECT_COLUMNS)
     .single();
   if (error) throw error;
@@ -122,18 +131,36 @@ export async function updateInvoice(
   return fromRow(data);
 }
 
-/** Only "paid" stamps paid_at — this is the moment CLAUDE.md's "revenue only counts once paid" rule is satisfied. */
+/**
+ * Only "paid" stamps paid_at — this is the moment CLAUDE.md's "revenue only
+ * counts once paid" rule is satisfied. Preserves the original timestamp if
+ * the invoice was already paid (e.g. re-selecting "Paid" on an already-paid
+ * invoice), matching updateInvoice's guard above — a re-affirmed status
+ * should never shift when revenue was actually realized.
+ */
 export async function updateInvoiceStatus(
   id: string,
   status: InvoiceStatus
 ): Promise<Invoice> {
   const supabase = createClient();
+
+  let paidAt: string | null = null;
+  if (status === "paid") {
+    const { data: existing, error: fetchError } = await supabase
+      .from("invoices")
+      .select("status, paid_at")
+      .eq("id", id)
+      .single();
+    if (fetchError) throw fetchError;
+    paidAt =
+      existing.status === "paid" && existing.paid_at
+        ? existing.paid_at
+        : new Date().toISOString();
+  }
+
   const { data, error } = await supabase
     .from("invoices")
-    .update({
-      status,
-      paid_at: status === "paid" ? new Date().toISOString() : null,
-    })
+    .update({ status, paid_at: paidAt })
     .eq("id", id)
     .select(SELECT_COLUMNS)
     .single();

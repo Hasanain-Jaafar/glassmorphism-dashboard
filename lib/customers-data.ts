@@ -36,6 +36,64 @@ export type Customer = {
   createdAt: string;
 };
 
+/**
+ * Real per-customer totals derived from the pipeline tables — the source of
+ * truth for Customer.totalSales/totalDeals/outstandingAmount/lastPurchaseDate,
+ * which `fetchCustomers()` alone can't populate (those live on separate
+ * appointments/quotations/deals/invoices rows, not on the customers table).
+ * Total Sales only counts paid invoices, and Outstanding only sent/overdue
+ * ones — matching CLAUDE.md §3's "revenue only counts once the invoice is
+ * paid" rule. Used by both the Customers page/table and the dashboard's
+ * Customer Pulse widget so the numbers agree everywhere.
+ */
+export function computeCustomerAggregates(
+  customerId: string,
+  data: {
+    deals: { customerId: string | null; status: string }[];
+    invoices: {
+      customerId: string | null;
+      status: string;
+      amount: number;
+      paidAt: string | null;
+    }[];
+  }
+): {
+  totalSales: number;
+  totalDeals: number;
+  outstandingAmount: number;
+  lastPurchaseDate: string | null;
+} {
+  let totalSales = 0;
+  let outstandingAmount = 0;
+  let lastPurchaseDate: string | null = null;
+
+  for (const inv of data.invoices) {
+    if (inv.customerId !== customerId) continue;
+    if (inv.status === "paid" && inv.paidAt) {
+      totalSales += inv.amount;
+      if (!lastPurchaseDate || inv.paidAt > lastPurchaseDate) {
+        lastPurchaseDate = inv.paidAt;
+      }
+    } else if (inv.status === "sent" || inv.status === "overdue") {
+      outstandingAmount += inv.amount;
+    }
+  }
+
+  const totalDeals = data.deals.filter(
+    (d) => d.customerId === customerId && d.status === "won"
+  ).length;
+
+  return { totalSales, totalDeals, outstandingAmount, lastPurchaseDate };
+}
+
+/** Overlays real aggregates (see `computeCustomerAggregates`) onto a customer list. */
+export function withCustomerAggregates(
+  customers: Customer[],
+  data: Parameters<typeof computeCustomerAggregates>[1]
+): Customer[] {
+  return customers.map((c) => ({ ...c, ...computeCustomerAggregates(c.id, data) }));
+}
+
 export function computeCustomerStats(items: Customer[]) {
   const now = new Date();
   const total = items.length;

@@ -36,6 +36,14 @@ In `supabase/migrations/`, run each file in filename order:
 12. `20260101000012_customers_realtime.sql` — enables Supabase Realtime on
     `customers`, so one admin's add/edit/delete shows up for every other
     admin with /customers open, without a manual refresh.
+13. `20260101000013_customers_select_by_pipeline.sql` — widens
+    `customers_select` so a sales rep can also see a customer through their
+    own appointments/quotations/deals/invoices, not only when they're the
+    customer's `owner_id`. Fixes "Unassigned" showing up when a customer is
+    reassigned or a different rep is put on one of their pipeline records.
+14. `20260101000014_customer_auto_activate.sql` — a trigger that flips a
+    customer from Prospect to Active the moment their first deal closes won,
+    backing the copy already shown in the Add Customer dialog.
 
 ## 2. Seed baseline data (optional)
 

@@ -18,12 +18,12 @@ const SELECT_COLUMNS =
 
 /**
  * Real Supabase customers, mapped onto the richer mock-era `Customer` shape
- * (see lib/customers-data.ts). Revenue/deals/outstanding/last-purchase are
- * still 0 here — real appointments/quotations/deals/invoices rows exist now
- * (see lib/supabase/{appointments,quotations,deals,invoices}.ts), but this
- * list/table hasn't been rewired to aggregate them yet. The Customer detail
- * sheet already does this per-customer — see deriveCustomerActivity in
- * components/customers/customer-detail-sheet.tsx.
+ * (see lib/customers-data.ts). Revenue/deals/outstanding/last-purchase live
+ * on separate appointments/quotations/deals/invoices rows, not on this table,
+ * so they're left at 0 here — callers overlay real values via
+ * `withCustomerAggregates` (lib/customers-data.ts) once they've fetched the
+ * pipeline tables. See app/(dashboard)/customers/page.tsx and
+ * components/customers/customer-pulse.tsx for the two current call sites.
  */
 function fromRow(row: CustomerRow): Customer {
   return {

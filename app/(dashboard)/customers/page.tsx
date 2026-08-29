@@ -51,6 +51,7 @@ import {
   computeCustomerStats,
   dateRangeOptions,
   dateRangeStart,
+  withCustomerAggregates,
   type Customer,
   type DateRangeFilter,
 } from "@/lib/customers-data";
@@ -135,15 +136,25 @@ export default function CustomersPage() {
     });
   }, [isAdmin]);
 
+  // Real Total Sales / Deals / Outstanding / Last Purchase, derived from the
+  // pipeline tables fetched above — fetchCustomers() alone can't know these.
+  const customersWithAggregates = useMemo(
+    () =>
+      customersList
+        ? withCustomerAggregates(customersList, { deals, invoices })
+        : null,
+    [customersList, deals, invoices]
+  );
+
   const stats = useMemo(
-    () => computeCustomerStats(customersList ?? []),
-    [customersList]
+    () => computeCustomerStats(customersWithAggregates ?? []),
+    [customersWithAggregates]
   );
 
   const filtered = useMemo(() => {
     const query = search.trim().toLowerCase();
     const rangeStart = dateRangeStart(dateRange);
-    return (customersList ?? []).filter((c) => {
+    return (customersWithAggregates ?? []).filter((c) => {
       const matchesSearch =
         !query ||
         c.company.toLowerCase().includes(query) ||
@@ -156,7 +167,7 @@ export default function CustomersPage() {
       const matchesDate = !rangeStart || new Date(c.createdAt) >= rangeStart;
       return matchesSearch && matchesStatus && matchesSalesperson && matchesDate;
     });
-  }, [customersList, search, statusFilter, salespersonFilter, dateRange]);
+  }, [customersWithAggregates, search, statusFilter, salespersonFilter, dateRange]);
 
   const hasActiveFilters =
     search.trim() !== "" ||

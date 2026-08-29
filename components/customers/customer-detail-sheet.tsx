@@ -29,6 +29,7 @@ import { quotationStatusLabels } from "@/components/quotations/quotation-styles"
 import { dealStatusLabels } from "@/components/deals/deal-styles";
 import { invoiceStatusLabels } from "@/components/invoices/invoice-styles";
 import {
+  computeCustomerAggregates,
   type Customer,
   type CustomerActivity,
   type CustomerActivityType,
@@ -103,10 +104,6 @@ function deriveCustomerActivity(
     });
   }
 
-  let totalSales = 0;
-  let outstandingAmount = 0;
-  let lastPurchaseDate: string | null = null;
-
   for (const inv of data.invoices.filter((i) => i.customerId === customerId)) {
     activity.push({
       id: `invoice-${inv.id}`,
@@ -116,10 +113,6 @@ function deriveCustomerActivity(
       amount: inv.amount,
     });
     if (inv.status === "paid" && inv.paidAt) {
-      totalSales += inv.amount;
-      if (!lastPurchaseDate || inv.paidAt > lastPurchaseDate) {
-        lastPurchaseDate = inv.paidAt;
-      }
       activity.push({
         id: `payment-${inv.id}`,
         type: "payment",
@@ -127,14 +120,11 @@ function deriveCustomerActivity(
         date: inv.paidAt,
         amount: inv.amount,
       });
-    } else if (inv.status === "sent" || inv.status === "overdue") {
-      outstandingAmount += inv.amount;
     }
   }
 
-  const totalDeals = data.deals.filter(
-    (d) => d.customerId === customerId && d.status === "won"
-  ).length;
+  const { totalSales, totalDeals, outstandingAmount, lastPurchaseDate } =
+    computeCustomerAggregates(customerId, data);
 
   return { activity, totalSales, totalDeals, outstandingAmount, lastPurchaseDate };
 }

@@ -1,11 +1,17 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Trophy } from "lucide-react";
 import { ChartCard } from "@/components/dashboard/chart-card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { fetchCustomers } from "@/lib/supabase/customers";
-import { type Customer, type CustomerStatus } from "@/lib/customers-data";
+import { fetchDeals, type Deal } from "@/lib/supabase/deals";
+import { fetchInvoices, type Invoice } from "@/lib/supabase/invoices";
+import {
+  withCustomerAggregates,
+  type Customer,
+  type CustomerStatus,
+} from "@/lib/customers-data";
 import { formatUSD } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
@@ -16,13 +22,23 @@ const statusMeta: { key: CustomerStatus; label: string; bar: string; dot: string
 ];
 
 export function CustomerPulse() {
-  const [customers, setCustomers] = useState<Customer[] | null>(null);
+  const [rawCustomers, setRawCustomers] = useState<Customer[] | null>(null);
+  const [deals, setDeals] = useState<Deal[]>([]);
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
 
   useEffect(() => {
     fetchCustomers()
-      .then(setCustomers)
-      .catch(() => setCustomers([]));
+      .then(setRawCustomers)
+      .catch(() => setRawCustomers([]));
+    fetchDeals().then(setDeals).catch(() => setDeals([]));
+    fetchInvoices().then(setInvoices).catch(() => setInvoices([]));
   }, []);
+
+  const customers = useMemo(
+    () =>
+      rawCustomers ? withCustomerAggregates(rawCustomers, { deals, invoices }) : null,
+    [rawCustomers, deals, invoices]
+  );
 
   if (customers === null) {
     return (
