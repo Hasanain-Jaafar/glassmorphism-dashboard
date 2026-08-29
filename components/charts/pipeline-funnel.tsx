@@ -110,7 +110,7 @@ export function PipelineFunnel({
             className="absolute inset-x-0 flex justify-center"
             style={{ top: yGapCenter, height: 0, transform: "translateY(-50%)" }}
           >
-            <span className="rounded-full border border-glass-border bg-background/80 px-2 py-0.5 text-[10px] font-semibold text-text-secondary shadow-sm backdrop-blur-sm">
+            <span className="rounded-full border border-white/15 bg-[#0b0b18] px-2 py-0.5 text-[10px] font-semibold text-white shadow-md">
               {pct}%
             </span>
           </div>
