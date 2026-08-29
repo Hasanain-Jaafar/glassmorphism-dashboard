@@ -52,9 +52,12 @@ export function computeYearToDateTotals(
   year: number,
   month: number
 ): { currentYearTotal: number; previousYearToDateTotal: number } {
+  // End of day, not start — `new Date(y, m, d)` defaults to midnight, which
+  // would exclude anything paid later today (i.e. almost everything paid
+  // "today") since its timestamp falls after a start-of-day cutoff.
   const day = new Date().getDate();
-  const cutoffThisYear = new Date(year, month - 1, day);
-  const cutoffLastYear = new Date(year - 1, month - 1, day);
+  const cutoffThisYear = new Date(year, month - 1, day, 23, 59, 59, 999);
+  const cutoffLastYear = new Date(year - 1, month - 1, day, 23, 59, 59, 999);
 
   let currentYearTotal = 0;
   let previousYearToDateTotal = 0;
@@ -126,7 +129,13 @@ export function computePipelineCounts(
     { key: "invoices", label: "Paid Invoices", value: invoiceCount },
   ];
 
-  const pct = (num: number, den: number) => (den ? Math.round((num / den) * 100) : 0);
+  // Capped at 100% — these compare two independently-counted monthly
+  // snapshots (e.g. a deal closed this month may trace back to a quotation
+  // from an earlier month), not a true same-cohort funnel, so the raw ratio
+  // can mathematically exceed 100% on a small/uneven dataset. A "conversion
+  // rate" reading over 100% looks broken regardless of why.
+  const pct = (num: number, den: number) =>
+    den ? Math.min(Math.round((num / den) * 100), 100) : 0;
 
   return {
     stages,
