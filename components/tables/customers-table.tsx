@@ -31,8 +31,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { salespeople } from "@/lib/mock-data";
 import type { Customer } from "@/lib/customers-data";
+import type { TeamMember } from "@/lib/supabase/team";
 import { customerStatusLabels, customerStatusStyles } from "@/components/customers/customer-styles";
 import { formatUSD } from "@/lib/format";
 
@@ -44,14 +44,17 @@ const features = tableFeatures({
 
 const columnHelper = createColumnHelper<typeof features, Customer>();
 
-function buildColumns(actions: {
-  onView: (customer: Customer) => void;
-  onEdit: (customer: Customer) => void;
-  onQuickAction: (
-    customer: Customer,
-    action: "appointment" | "quotation" | "invoices"
-  ) => void;
-}) {
+function buildColumns(
+  salespeople: TeamMember[],
+  actions: {
+    onView: (customer: Customer) => void;
+    onEdit: (customer: Customer) => void;
+    onQuickAction: (
+      customer: Customer,
+      action: "appointment" | "quotation" | "invoices"
+    ) => void;
+  }
+) {
   return columnHelper.columns([
     columnHelper.accessor("company", {
       header: "Customer / Company",
@@ -205,11 +208,13 @@ function buildColumns(actions: {
 
 export function CustomersTable({
   data,
+  salespeople,
   onView,
   onEdit,
   onQuickAction,
 }: {
   data: Customer[];
+  salespeople: TeamMember[];
   onView: (customer: Customer) => void;
   onEdit: (customer: Customer) => void;
   onQuickAction: (
@@ -221,7 +226,7 @@ export function CustomersTable({
     { id: "totalSales", desc: true },
   ]);
 
-  const columns = buildColumns({ onView, onEdit, onQuickAction });
+  const columns = buildColumns(salespeople, { onView, onEdit, onQuickAction });
 
   const table = useTable({
     features,

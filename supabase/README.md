@@ -29,6 +29,10 @@ In `supabase/migrations/`, run each file in filename order:
     `quotation_expiring`, and `weekly_summary` exist as preference columns
     only — no trigger yet, since they need threshold/dedup logic or a
     scheduler that doesn't exist in this project yet
+11. `20260101000011_customer_status.sql` — adds the `status`
+    (active/prospect/inactive) column the Customers page has always shown,
+    which the original `customers` table never had. **Required** — the
+    Customers page will fail to load/save until this runs.
 
 ## 2. Seed baseline data (optional)
 
@@ -67,10 +71,12 @@ Accounts created from Settings → Team & Access are created with
 ## What's live vs. still mock data
 
 Live in Supabase: **profiles/accounts** (Settings → Team & Access), **products**
-(Products page), **company and individual targets** (Targets → Company and
-Individual tabs, and the Team page's Salesperson Comparison table), and
-**notifications** (bell + Settings → Notifications) — though only 3 of its 6
-event types actually fire yet (coaching notes, appointments, deals won), since
+(Products page), **customers** (Customers page — name/company/email/phone/
+address/status/assigned salesperson; requires migration 11 above),
+**company and individual targets** (Targets → Company and Individual tabs,
+and the Team page's Salesperson Comparison table), and **notifications**
+(bell + Settings → Notifications) — though only 3 of its 6 event types
+actually fire yet (coaching notes, appointments, deals won), since
 `appointments`/`quotations`/`deals`/`invoices` have no UI to create rows in
 them (see below), so those triggers are dormant until that workflow ships.
 
@@ -82,4 +88,6 @@ show up with real identities and real targets everywhere, just with $0 / 0
 performance stats until that workflow is built. The Team page's KPI tab
 (person filter, Sales Trend/Funnel/Needs Attention) is the one place still
 fully on the mock 7-person roster — it's driven by `lib/sales-analytics.ts`,
-which hasn't been migrated yet.
+which hasn't been migrated yet. Same for customers' Total Sales/Deals/
+Outstanding/Last Purchase/activity timeline — real identity and status, but
+$0/empty until the deals/invoices workflow exists.

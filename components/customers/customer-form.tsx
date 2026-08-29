@@ -14,8 +14,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { DialogClose, DialogFooter } from "@/components/ui/dialog";
-import { salespeople } from "@/lib/mock-data";
 import type { Customer, CustomerStatus } from "@/lib/customers-data";
+import type { TeamMember } from "@/lib/supabase/team";
 import { customerStatusLabels } from "@/components/customers/customer-styles";
 
 const customerSchema = z.object({
@@ -33,7 +33,7 @@ type FormOutput = z.output<typeof customerSchema>;
 
 export type CustomerFormValues = FormOutput;
 
-function defaultsFor(customer?: Customer): FormInput {
+function defaultsFor(customer: Customer | undefined, salespeople: TeamMember[]): FormInput {
   return {
     company: customer?.company ?? "",
     contactPerson: customer?.contactPerson ?? "",
@@ -41,16 +41,18 @@ function defaultsFor(customer?: Customer): FormInput {
     phone: customer?.phone ?? "",
     address: customer?.address ?? "",
     status: customer?.status ?? "prospect",
-    assignedSalespersonId: customer?.assignedSalespersonId ?? salespeople[0].id,
+    assignedSalespersonId: customer?.assignedSalespersonId ?? salespeople[0]?.id ?? "",
   };
 }
 
 export function CustomerForm({
   customer,
+  salespeople,
   onSubmit,
 }: {
   customer?: Customer;
-  onSubmit: (values: CustomerFormValues) => void;
+  salespeople: TeamMember[];
+  onSubmit: (values: CustomerFormValues) => void | Promise<void>;
 }) {
   const {
     register,
@@ -59,11 +61,11 @@ export function CustomerForm({
     formState: { errors, isSubmitting },
   } = useForm<FormInput, unknown, FormOutput>({
     resolver: zodResolver(customerSchema),
-    defaultValues: defaultsFor(customer),
+    values: defaultsFor(customer, salespeople),
   });
 
-  function submit(values: FormOutput) {
-    onSubmit(values);
+  async function submit(values: FormOutput) {
+    await onSubmit(values);
   }
 
   return (
@@ -141,16 +143,22 @@ export function CustomerForm({
               <SelectTrigger className="w-full">
                 <SelectValue>
                   {(value: string) =>
-                    salespeople.find((p) => p.id === value)?.name ?? value
+                    salespeople.find((p) => p.id === value)?.name ?? "Unassigned"
                   }
                 </SelectValue>
               </SelectTrigger>
               <SelectContent>
-                {salespeople.map((person) => (
-                  <SelectItem key={person.id} value={person.id}>
-                    {person.name}
-                  </SelectItem>
-                ))}
+                {salespeople.length === 0 ? (
+                  <p className="px-2 py-1.5 text-xs text-text-tertiary">
+                    No sales representatives yet
+                  </p>
+                ) : (
+                  salespeople.map((person) => (
+                    <SelectItem key={person.id} value={person.id}>
+                      {person.name}
+                    </SelectItem>
+                  ))
+                )}
               </SelectContent>
             </Select>
           </div>

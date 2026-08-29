@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Lock, Search, UserPlus, UsersRound } from "lucide-react";
 import { PageHeader } from "@/components/dashboard/page-header";
@@ -8,6 +8,7 @@ import { MetricCard } from "@/components/dashboard/metric-card";
 import { Reveal } from "@/components/motion/reveal";
 import { useAuth } from "@/components/providers/auth-provider";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   InputGroup,
   InputGroupAddon,
@@ -34,9 +35,13 @@ import {
   type CustomerFormValues,
 } from "@/components/customers/customer-form";
 import { customerStatusLabels } from "@/components/customers/customer-styles";
-import { salespeople } from "@/lib/mock-data";
+import { fetchTeamMembers, type TeamMember } from "@/lib/supabase/team";
 import {
-  customers as initialCustomers,
+  fetchCustomers,
+  createCustomer,
+  updateCustomer,
+} from "@/lib/supabase/customers";
+import {
   computeCustomerStats,
   dateRangeOptions,
   dateRangeStart,
@@ -53,16 +58,25 @@ const quickActionMessages: Record<"appointment" | "quotation" | "invoices", stri
   invoices: "Invoices aren't built yet — coming soon.",
 };
 
-function slugify(value: string): string {
-  return value
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/(^-|-$)/g, "");
-}
-
 export default function CustomersPage() {
   const { isAdmin } = useAuth();
-  const [customersList, setCustomersList] = useState<Customer[]>(initialCustomers);
+  const [customersList, setCustomersList] = useState<Customer[] | null>(null);
+  const [salespeople, setSalespeople] = useState<TeamMember[]>([]);
+
+  useEffect(() => {
+    if (!isAdmin) return;
+    fetchCustomers()
+      .then(setCustomersList)
+      .catch((err) => {
+        toast.error(err.message ?? "Couldn't load customers");
+        setCustomersList([]);
+      });
+    fetchTeamMembers()
+      .then((team) => setSalespeople(team.filter((m) => m.role === "sales_rep")))
+      .catch(() => {
+        // Assignment dropdown just degrades to empty.
+      });
+  }, [isAdmin]);
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>(ALL);
@@ -75,12 +89,15 @@ export default function CustomersPage() {
   const [formOpen, setFormOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | undefined>();
 
-  const stats = useMemo(() => computeCustomerStats(customersList), [customersList]);
+  const stats = useMemo(
+    () => computeCustomerStats(customersList ?? []),
+    [customersList]
+  );
 
   const filtered = useMemo(() => {
     const query = search.trim().toLowerCase();
     const rangeStart = dateRangeStart(dateRange);
-    return customersList.filter((c) => {
+    return (customersList ?? []).filter((c) => {
       const matchesSearch =
         !query ||
         c.company.toLowerCase().includes(query) ||
@@ -131,31 +148,28 @@ export default function CustomersPage() {
     toast(quickActionMessages[action]);
   }
 
-  function handleFormSubmit(values: CustomerFormValues) {
-    if (editingCustomer) {
-      const updated: Customer = { ...editingCustomer, ...values };
-      setCustomersList((prev) =>
-        prev.map((c) => (c.id === editingCustomer.id ? updated : c))
+  async function handleFormSubmit(values: CustomerFormValues) {
+    try {
+      if (editingCustomer) {
+        const updated = await updateCustomer(editingCustomer.id, values);
+        setCustomersList((prev) =>
+          (prev ?? []).map((c) => (c.id === editingCustomer.id ? updated : c))
+        );
+        setSelectedCustomer((prev) =>
+          prev && prev.id === editingCustomer.id ? updated : prev
+        );
+        toast.success(`${updated.company} was updated`);
+      } else {
+        const created = await createCustomer(values);
+        setCustomersList((prev) => [created, ...(prev ?? [])]);
+        toast.success(`${created.company} was added`);
+      }
+      setFormOpen(false);
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Couldn't save the customer"
       );
-      setSelectedCustomer((prev) =>
-        prev && prev.id === editingCustomer.id ? updated : prev
-      );
-      toast.success(`${updated.company} was updated`);
-    } else {
-      const created: Customer = {
-        id: `${slugify(values.company)}-${Date.now()}`,
-        ...values,
-        totalSales: 0,
-        totalDeals: 0,
-        outstandingAmount: 0,
-        lastPurchaseDate: null,
-        createdAt: new Date().toISOString().slice(0, 10),
-        activity: [],
-      };
-      setCustomersList((prev) => [created, ...prev]);
-      toast.success(`${created.company} was added`);
     }
-    setFormOpen(false);
   }
 
   if (!isAdmin) {
@@ -302,7 +316,9 @@ export default function CustomersPage() {
       </Reveal>
 
       <Reveal delay={0.15}>
-        {filtered.length === 0 ? (
+        {customersList === null ? (
+          <Skeleton className="h-64 w-full rounded-2xl" />
+        ) : filtered.length === 0 ? (
           <div className="glass-panel flex flex-col items-center gap-3 rounded-2xl p-10 text-center">
             <span className="flex size-11 items-center justify-center rounded-full bg-foreground/[0.06] text-text-tertiary">
               <UsersRound className="size-5" />
@@ -331,6 +347,7 @@ export default function CustomersPage() {
         ) : (
           <CustomersTable
             data={filtered}
+            salespeople={salespeople}
             onView={openDetails}
             onEdit={openEditForm}
             onQuickAction={handleQuickAction}
@@ -340,6 +357,7 @@ export default function CustomersPage() {
 
       <CustomerDetailSheet
         customer={selectedCustomer}
+        salespeople={salespeople}
         open={detailOpen}
         onOpenChange={setDetailOpen}
         onEdit={() => selectedCustomer && openEditForm(selectedCustomer)}
@@ -360,7 +378,11 @@ export default function CustomersPage() {
                 : "New customers start as a Prospect until their first deal closes."}
             </DialogDescription>
           </DialogHeader>
-          <CustomerForm customer={editingCustomer} onSubmit={handleFormSubmit} />
+          <CustomerForm
+            customer={editingCustomer}
+            salespeople={salespeople}
+            onSubmit={handleFormSubmit}
+          />
         </DialogContent>
       </Dialog>
     </div>

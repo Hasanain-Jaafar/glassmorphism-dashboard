@@ -1,6 +1,11 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import { Trophy } from "lucide-react";
 import { ChartCard } from "@/components/dashboard/chart-card";
-import { customers, type CustomerStatus } from "@/lib/customers-data";
+import { Skeleton } from "@/components/ui/skeleton";
+import { fetchCustomers } from "@/lib/supabase/customers";
+import { type Customer, type CustomerStatus } from "@/lib/customers-data";
 import { formatUSD } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
@@ -11,6 +16,28 @@ const statusMeta: { key: CustomerStatus; label: string; bar: string; dot: string
 ];
 
 export function CustomerPulse() {
+  const [customers, setCustomers] = useState<Customer[] | null>(null);
+
+  useEffect(() => {
+    fetchCustomers()
+      .then(setCustomers)
+      .catch(() => setCustomers([]));
+  }, []);
+
+  if (customers === null) {
+    return (
+      <ChartCard
+        title="Customer Pulse"
+        description="Status mix, revenue, and who still owes us"
+      >
+        <div className="space-y-3">
+          <Skeleton className="h-2 w-full rounded-full" />
+          <Skeleton className="h-16 w-full rounded-xl" />
+        </div>
+      </ChartCard>
+    );
+  }
+
   const total = customers.length;
   const counts = Object.fromEntries(
     statusMeta.map((s) => [s.key, customers.filter((c) => c.status === s.key).length])
@@ -61,21 +88,27 @@ export function CustomerPulse() {
         </div>
       </div>
 
-      {topCustomer && (
-        <div className="mt-5 flex items-center gap-2.5 rounded-xl border border-glass-border/60 bg-foreground/[0.02] p-3">
-          <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
-            <Trophy className="size-3.5" />
-          </span>
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-medium text-foreground">
-              {topCustomer.company}
-            </p>
-            <p className="text-xs text-text-tertiary">Top customer this year</p>
+      {total === 0 ? (
+        <p className="mt-5 py-2 text-center text-xs text-text-tertiary">
+          No customers yet.
+        </p>
+      ) : (
+        topCustomer && (
+          <div className="mt-5 flex items-center gap-2.5 rounded-xl border border-glass-border/60 bg-foreground/[0.02] p-3">
+            <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+              <Trophy className="size-3.5" />
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-medium text-foreground">
+                {topCustomer.company}
+              </p>
+              <p className="text-xs text-text-tertiary">Top customer this year</p>
+            </div>
+            <span className="shrink-0 text-sm font-semibold text-foreground">
+              {formatUSD(topCustomer.totalSales)}
+            </span>
           </div>
-          <span className="shrink-0 text-sm font-semibold text-foreground">
-            {formatUSD(topCustomer.totalSales)}
-          </span>
-        </div>
+        )
       )}
     </ChartCard>
   );

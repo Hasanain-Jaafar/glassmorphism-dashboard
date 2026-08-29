@@ -22,9 +22,10 @@ import {
   Tag,
 } from "lucide-react";
 import { getVisibleNavGroups } from "@/lib/nav";
-import { customers } from "@/lib/customers-data";
+import type { Customer } from "@/lib/customers-data";
 import { products, productCategories } from "@/lib/mock-data";
 import { fetchTeamMembers, type TeamMember } from "@/lib/supabase/team";
+import { fetchCustomers } from "@/lib/supabase/customers";
 import { useAuth } from "@/components/providers/auth-provider";
 import {
   Command,
@@ -46,6 +47,7 @@ const roleLabels: Record<TeamMember["role"], string> = {
 export function CommandPalette() {
   const [open, setOpen] = useState(false);
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
+  const [customers, setCustomers] = useState<Customer[]>([]);
   const router = useRouter();
   const { setTheme } = useTheme();
   const { isAdmin: admin } = useAuth();
@@ -58,6 +60,15 @@ export function CommandPalette() {
         // Search just degrades to nav/theme commands only.
       });
   }, []);
+
+  useEffect(() => {
+    if (!admin) return;
+    fetchCustomers()
+      .then(setCustomers)
+      .catch(() => {
+        // Search just degrades to fewer results.
+      });
+  }, [admin]);
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {

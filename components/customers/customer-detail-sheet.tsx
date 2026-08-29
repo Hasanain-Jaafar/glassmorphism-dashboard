@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { salespeople } from "@/lib/mock-data";
+import type { TeamMember } from "@/lib/supabase/team";
 import {
   avgDealValue,
   lastActivityDate,
@@ -45,12 +45,14 @@ const historyTypes: CustomerActivityType[] = [
 
 export function CustomerDetailSheet({
   customer,
+  salespeople,
   open,
   onOpenChange,
   onEdit,
   onQuickAction,
 }: {
   customer: Customer | undefined;
+  salespeople: TeamMember[];
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onEdit: () => void;
