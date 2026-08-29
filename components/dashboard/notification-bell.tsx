@@ -13,6 +13,7 @@ import { useAuth } from "@/components/providers/auth-provider";
 import {
   fetchNotifications,
   markAllNotificationsRead,
+  markNotificationRead,
   type AppNotification,
 } from "@/lib/supabase/notifications";
 import { cn } from "@/lib/utils";
@@ -49,28 +50,40 @@ export function NotificationBell() {
 
   const unreadCount = (notifications ?? []).filter((n) => !n.readAt).length;
 
-  async function handleOpenChange(next: boolean) {
-    setOpen(next);
-    if (next && unreadCount > 0) {
-      setNotifications(
-        (prev) =>
-          prev?.map((n) => ({ ...n, readAt: n.readAt ?? new Date().toISOString() })) ?? prev
-      );
-      try {
-        await markAllNotificationsRead();
-      } catch {
-        // Non-critical — the badge will just re-count correctly on the next poll.
-      }
-    }
-  }
-
+  // Unread stays unread until the user actually opens that notification —
+  // just opening the bell no longer clears the badge, so the dot underneath
+  // still means something once the panel is open.
   function handleSelect(notification: AppNotification) {
     setOpen(false);
+    if (!notification.readAt) {
+      setNotifications(
+        (prev) =>
+          prev?.map((n) =>
+            n.id === notification.id ? { ...n, readAt: new Date().toISOString() } : n
+          ) ?? prev
+      );
+      markNotificationRead(notification.id).catch(() => {
+        // Non-critical — the badge will just re-count correctly on the next poll.
+      });
+    }
     if (notification.link) router.push(notification.link);
   }
 
+  async function handleMarkAllRead() {
+    if (unreadCount === 0) return;
+    setNotifications(
+      (prev) =>
+        prev?.map((n) => ({ ...n, readAt: n.readAt ?? new Date().toISOString() })) ?? prev
+    );
+    try {
+      await markAllNotificationsRead();
+    } catch {
+      // Non-critical — the badge will just re-count correctly on the next poll.
+    }
+  }
+
   return (
-    <DropdownMenu open={open} onOpenChange={handleOpenChange}>
+    <DropdownMenu open={open} onOpenChange={setOpen}>
       <DropdownMenuTrigger
         render={
           <button
@@ -87,8 +100,17 @@ export function NotificationBell() {
         )}
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" sideOffset={10} className="w-80 p-0">
-        <div className="border-b border-glass-border px-3.5 py-2.5">
+        <div className="flex items-center justify-between gap-2 border-b border-glass-border px-3.5 py-2.5">
           <p className="text-sm font-semibold text-foreground">Notifications</p>
+          {unreadCount > 0 && (
+            <button
+              type="button"
+              onClick={handleMarkAllRead}
+              className="text-xs font-medium text-primary transition-colors hover:text-primary-hover"
+            >
+              Mark all read
+            </button>
+          )}
         </div>
         <div className="max-h-80 overflow-y-auto p-1.5">
           {notifications === null ? (
@@ -133,6 +155,16 @@ export function NotificationBell() {
             </ul>
           )}
         </div>
+        <button
+          type="button"
+          onClick={() => {
+            setOpen(false);
+            router.push("/notifications");
+          }}
+          className="block w-full border-t border-glass-border px-3.5 py-2.5 text-center text-xs font-medium text-text-secondary transition-colors hover:bg-foreground/[0.04] hover:text-foreground"
+        >
+          View all
+        </button>
       </DropdownMenuContent>
     </DropdownMenu>
   );

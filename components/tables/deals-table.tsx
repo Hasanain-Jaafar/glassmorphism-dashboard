@@ -174,6 +174,7 @@ export function DealsTable({
   onEdit,
   onStatusChange,
   onCreateInvoice,
+  highlightedId,
 }: {
   data: Deal[];
   customers: Customer[];
@@ -181,6 +182,8 @@ export function DealsTable({
   onEdit: (deal: Deal) => void;
   onStatusChange: (deal: Deal, status: DealStatus) => void;
   onCreateInvoice: (deal: Deal) => void;
+  /** Row to scroll to and briefly flash — see the `?id=` deep link handled in the page. */
+  highlightedId?: string | null;
 }) {
   const [sorting, setSorting] = useState<SortingState>([
     { id: "amount", desc: true },
@@ -246,7 +249,11 @@ export function DealsTable({
             {table.getRowModel().rows.map((row) => (
               <tr
                 key={row.id}
-                className="border-b border-glass-border/60 transition-colors last:border-0 hover:bg-foreground/[0.03]"
+                id={`deal-${row.original.id}`}
+                className={cn(
+                  "border-b border-glass-border/60 transition-colors duration-500 last:border-0 hover:bg-foreground/[0.03]",
+                  highlightedId === row.original.id && "bg-primary/[0.08]"
+                )}
               >
                 {row.getAllCells().map((cell) => (
                   <td key={cell.id} className="px-4 py-3.5 first:pl-5 last:pr-5">

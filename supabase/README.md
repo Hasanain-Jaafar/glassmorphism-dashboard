@@ -44,6 +44,12 @@ In `supabase/migrations/`, run each file in filename order:
 14. `20260101000014_customer_auto_activate.sql` — a trigger that flips a
     customer from Prospect to Active the moment their first deal closes won,
     backing the copy already shown in the Add Customer dialog.
+15. `20260101000015_notification_fixes.sql` — points the `new_appointment`
+    and `deal_won` notification links at the actual appointment/deal
+    (`/appointments?id=`, `/deals?id=`) instead of the Team page, and makes
+    `deal_won` fire on insert too, so a deal created directly as "won" (not
+    just one that transitions via an update) still notifies its rep.
+    **Required if you use notifications** — safe to re-run.
 
 ## 2. Seed baseline data (optional)
 

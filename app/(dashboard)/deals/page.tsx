@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useEffect, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { Handshake, HandshakeIcon } from "lucide-react";
 import { PageHeader } from "@/components/dashboard/page-header";
@@ -50,8 +50,17 @@ import { formatUSD } from "@/lib/format";
 const ALL = "all";
 
 export default function DealsPage() {
+  return (
+    <Suspense>
+      <DealsPageContent />
+    </Suspense>
+  );
+}
+
+function DealsPageContent() {
   const { isAdmin, profile } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   const [deals, setDeals] = useState<Deal[] | null>(null);
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -81,6 +90,29 @@ export default function DealsPage() {
 
   const [formOpen, setFormOpen] = useState(false);
   const [editingDeal, setEditingDeal] = useState<Deal | undefined>();
+
+  // Deep link from a "Deal won" notification: /deals?id=<id> scrolls to and
+  // briefly flashes that row. Any active status filter could otherwise hide
+  // it, so drop it the moment a new id link arrives.
+  const highlightedId = searchParams.get("id");
+  const [flashId, setFlashId] = useState<string | null>(null);
+  const [prevHighlightedId, setPrevHighlightedId] = useState(highlightedId);
+  if (highlightedId !== prevHighlightedId) {
+    setPrevHighlightedId(highlightedId);
+    if (highlightedId) {
+      setStatusFilter(ALL);
+      setSearch("");
+      setFlashId(highlightedId);
+    }
+  }
+
+  useEffect(() => {
+    if (!highlightedId) return;
+    const el = document.getElementById(`deal-${highlightedId}`);
+    el?.scrollIntoView({ behavior: "smooth", block: "center" });
+    const timeout = setTimeout(() => setFlashId(null), 2400);
+    return () => clearTimeout(timeout);
+  }, [highlightedId, deals]);
 
   const customersById = useMemo(
     () => new Map(customers.map((c) => [c.id, c])),
@@ -289,6 +321,7 @@ export default function DealsPage() {
             onEdit={openEditForm}
             onStatusChange={handleStatusChange}
             onCreateInvoice={handleCreateInvoice}
+            highlightedId={flashId}
           />
         )}
       </Reveal>

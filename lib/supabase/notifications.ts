@@ -76,6 +76,18 @@ export async function markAllNotificationsRead(): Promise<void> {
   if (error) throw error;
 }
 
+/** Marks a single notification read — used when the user actually opens it, not just the bell/history page. */
+export async function markNotificationRead(id: string): Promise<void> {
+  const supabase = createClient();
+  const { error } = await supabase
+    .from("notifications")
+    .update({ read_at: new Date().toISOString() })
+    .eq("id", id)
+    .is("read_at", null);
+
+  if (error) throw error;
+}
+
 /**
  * Notification preferences. Wired types (real triggers exist):
  * coachingNoteAdded, newAppointment, dealWon. The rest have a column to save

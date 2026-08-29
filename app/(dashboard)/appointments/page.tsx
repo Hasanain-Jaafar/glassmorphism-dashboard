@@ -103,6 +103,29 @@ function AppointmentsPageContent() {
     setFormOpen(true);
   }
 
+  // Deep link from a "New appointment" notification: /appointments?id=<id>
+  // scrolls to and briefly flashes that row. Any active status filter could
+  // otherwise hide it, so drop it the moment a new id link arrives.
+  const highlightedId = searchParams.get("id");
+  const [flashId, setFlashId] = useState<string | null>(null);
+  const [prevHighlightedId, setPrevHighlightedId] = useState(highlightedId);
+  if (highlightedId !== prevHighlightedId) {
+    setPrevHighlightedId(highlightedId);
+    if (highlightedId) {
+      setStatusFilter(ALL);
+      setSearch("");
+      setFlashId(highlightedId);
+    }
+  }
+
+  useEffect(() => {
+    if (!highlightedId) return;
+    const el = document.getElementById(`appointment-${highlightedId}`);
+    el?.scrollIntoView({ behavior: "smooth", block: "center" });
+    const timeout = setTimeout(() => setFlashId(null), 2400);
+    return () => clearTimeout(timeout);
+  }, [highlightedId, appointments]);
+
   const stats = useMemo(
     () => computeAppointmentStats(appointments ?? []),
     [appointments]
@@ -276,6 +299,7 @@ function AppointmentsPageContent() {
             customers={customers}
             salespeople={salespeople}
             onEdit={openEditForm}
+            highlightedId={flashId}
           />
         )}
       </Reveal>
