@@ -40,7 +40,8 @@ function periodMonths(period: Period): string[] {
   return monthOrder;
 }
 
-function seasonalTarget(monthlyTarget: number, month: string): number {
+/** Distributes a flat monthly target across a month using the company's seasonal curve — exported for reuse by lib/target-period.ts. */
+export function seasonalTarget(monthlyTarget: number, month: string): number {
   const point = revenueSeries.find((p) => p.month === month);
   if (!point) return monthlyTarget;
   return monthlyTarget * (point.current / company.monthlyActual);

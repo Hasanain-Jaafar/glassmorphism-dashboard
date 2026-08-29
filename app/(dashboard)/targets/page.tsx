@@ -2,13 +2,18 @@
 
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { Building2, UserCog } from "lucide-react";
+import { Building2, Copy, UserCog } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/dashboard/page-header";
+import { ChartCard } from "@/components/dashboard/chart-card";
 import { RadialTarget, MonthlyTargetCard } from "@/components/dashboard/target-card";
+import { TargetTrendChart } from "@/components/charts/target-trend-chart";
 import { EditTargetDialog } from "@/components/sales/edit-target-dialog";
-import { IndividualTargetCard } from "@/components/sales/individual-target-card";
+import { TargetPeriodSelector } from "@/components/sales/target-period-selector";
+import { TargetAllocation } from "@/components/sales/target-allocation";
+import { SalespersonTargetTable } from "@/components/tables/salesperson-target-table";
 import { Reveal } from "@/components/motion/reveal";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Tabs,
@@ -18,30 +23,29 @@ import {
   TabsTab,
 } from "@/components/ui/tabs";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   company,
   companyMonthlyTotal,
-  companyYearlyTotal,
   currentYear,
   rankingMonths,
-  rankingYears,
   revenueSeries,
   salespeople as initialSalespeople,
   type Salesperson,
 } from "@/lib/mock-data";
+import { trendFor } from "@/lib/sales-analytics";
+import {
+  defaultSelectionFor,
+  MONTH_NUMBERS,
+  type TargetPeriodSelection,
+} from "@/lib/target-period";
 import {
   fetchCompanyTargets,
   saveCompanyTargets,
-  MONTH_NUMBERS,
   type CompanyTargets,
 } from "@/lib/supabase/targets";
 import { useAuth } from "@/components/providers/auth-provider";
+
+const currentMonth = rankingMonths[rankingMonths.length - 1];
+const currentMonthNumber = MONTH_NUMBERS[currentMonth];
 
 export default function TargetsPage() {
   const { isAdmin: admin, profile } = useAuth();
@@ -64,32 +68,35 @@ export default function TargetsPage() {
   }
 
   const [companyTargets, setCompanyTargets] = useState<CompanyTargets>({
-    monthlyTarget: company.monthlyTarget,
-    yearlyTarget: company.yearTarget,
+    yearlyTarget: 0,
+    monthlyTargets: {},
   });
   const [targetsLoading, setTargetsLoading] = useState(true);
   const [people, setPeople] = useState<Salesperson[]>(initialSalespeople);
-
-  const [selectedYear, setSelectedYear] = useState<number>(currentYear);
-  const [selectedMonth, setSelectedMonth] = useState<string>(
-    rankingMonths[rankingMonths.length - 1]
+  const [selection, setSelection] = useState<TargetPeriodSelection>(
+    defaultSelectionFor("month")
   );
 
   useEffect(() => {
-    // Only shows the loading skeleton on first mount; a year/month change
-    // just quietly swaps the values in once the refetch resolves.
-    const monthNumber = MONTH_NUMBERS[selectedMonth] ?? 1;
-    fetchCompanyTargets(selectedYear, monthNumber)
+    fetchCompanyTargets(currentYear)
       .then(setCompanyTargets)
       .catch((error: Error) => toast.error(error.message))
       .finally(() => setTargetsLoading(false));
-  }, [selectedYear, selectedMonth]);
+  }, []);
 
-  async function handleSaveCompanyTargets(values: CompanyTargets) {
-    const monthNumber = MONTH_NUMBERS[selectedMonth] ?? 1;
+  async function handleSaveCompanyTargets(values: {
+    yearlyTarget: number;
+    monthlyTarget: number;
+  }) {
     try {
-      await saveCompanyTargets(selectedYear, monthNumber, values);
-      setCompanyTargets(values);
+      await saveCompanyTargets(currentYear, currentMonthNumber, values);
+      setCompanyTargets((prev) => ({
+        yearlyTarget: values.yearlyTarget,
+        monthlyTargets: {
+          ...prev.monthlyTargets,
+          [currentMonthNumber]: values.monthlyTarget,
+        },
+      }));
     } catch (error) {
       toast.error(
         error instanceof Error ? error.message : "Couldn't save targets"
@@ -98,16 +105,43 @@ export default function TargetsPage() {
     }
   }
 
-  const yearlyActual = companyYearlyTotal(selectedYear);
-  const monthlyActual = companyMonthlyTotal(selectedMonth);
+  async function handleCopyPreviousPeriod() {
+    try {
+      const prevMonthNumber = currentMonthNumber === 1 ? 12 : currentMonthNumber - 1;
+      const prevMonthYear = currentMonthNumber === 1 ? currentYear - 1 : currentYear;
+      const prevYearTargets = await fetchCompanyTargets(currentYear - 1);
+      const prevMonthSource =
+        prevMonthYear === currentYear ? companyTargets : prevYearTargets;
 
-  const yearProgressPct = (yearlyActual / companyTargets.yearlyTarget) * 100;
-  const monthlyProgressPct =
-    (monthlyActual / companyTargets.monthlyTarget) * 100;
-  const monthlyRemaining = Math.max(
-    companyTargets.monthlyTarget - monthlyActual,
-    0
-  );
+      const nextValues = {
+        yearlyTarget: prevYearTargets.yearlyTarget,
+        monthlyTarget: prevMonthSource.monthlyTargets[prevMonthNumber] ?? 0,
+      };
+      await saveCompanyTargets(currentYear, currentMonthNumber, nextValues);
+      setCompanyTargets((prev) => ({
+        yearlyTarget: nextValues.yearlyTarget,
+        monthlyTargets: {
+          ...prev.monthlyTargets,
+          [currentMonthNumber]: nextValues.monthlyTarget,
+        },
+      }));
+      toast.success("Copied last period's targets");
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Couldn't copy previous targets"
+      );
+    }
+  }
+
+  const yearlyActual = company.currentYearTotal;
+  const monthlyActual = companyMonthlyTotal(currentMonth);
+  const monthlyTarget = companyTargets.monthlyTargets[currentMonthNumber] ?? 0;
+
+  const yearProgressPct = companyTargets.yearlyTarget
+    ? (yearlyActual / companyTargets.yearlyTarget) * 100
+    : 0;
+  const monthlyProgressPct = monthlyTarget ? (monthlyActual / monthlyTarget) * 100 : 0;
+  const monthlyRemaining = Math.max(monthlyTarget - monthlyActual, 0);
 
   function updatePersonTarget(
     id: string,
@@ -172,7 +206,7 @@ export default function TargetsPage() {
       <Reveal>
         <PageHeader
           title="Targets"
-          description="Company and individual sales goals"
+          description="What we're expected to sell, who owns it, and whether we're on track"
         />
       </Reveal>
 
@@ -193,100 +227,80 @@ export default function TargetsPage() {
           <TabsPanel value="company" className="space-y-6">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <p className="text-sm text-text-tertiary">
-                Company-wide revenue goals, by year and by month
+                Total annual target and where we stand this month
               </p>
-              <EditTargetDialog
-                title="Edit Company Targets"
-                description="Update the company's revenue goals for the current year and month."
-                monthlyTarget={companyTargets.monthlyTarget}
-                yearlyTarget={companyTargets.yearlyTarget}
-                onSave={handleSaveCompanyTargets}
-              />
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleCopyPreviousPeriod}
+                  disabled={targetsLoading}
+                >
+                  <Copy className="size-3.5" />
+                  Copy Previous Period
+                </Button>
+                <EditTargetDialog
+                  title="Edit Company Targets"
+                  description="Update the company's revenue goals for the current year and month."
+                  monthlyTarget={monthlyTarget}
+                  yearlyTarget={companyTargets.yearlyTarget}
+                  onSave={handleSaveCompanyTargets}
+                />
+              </div>
             </div>
 
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-6">
-              {targetsLoading && (
+              {targetsLoading ? (
                 <>
                   <Skeleton className="h-48 w-full rounded-2xl" />
                   <Skeleton className="h-48 w-full rounded-2xl" />
                 </>
-              )}
-              {!targetsLoading && (
+              ) : (
                 <>
                   <RadialTarget
-                    label="Year Target"
+                    label="Total Annual Target"
                     current={yearlyActual}
                     target={companyTargets.yearlyTarget}
                     progressPct={yearProgressPct}
                     bars={revenueSeries.map((point) => point.current)}
-                    action={
-                      <Select
-                        value={String(selectedYear)}
-                        onValueChange={(value) =>
-                          value && setSelectedYear(Number(value))
-                        }
-                      >
-                        <SelectTrigger className="glass-panel h-8 gap-1.5 rounded-lg px-2.5 text-xs">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent align="end">
-                          {rankingYears.map((year) => (
-                            <SelectItem key={year} value={String(year)}>
-                              {year}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    }
                   />
                   <MonthlyTargetCard
-                    label="Monthly Target"
-                    monthLabel={selectedMonth}
+                    label="Current Month Target"
+                    monthLabel={currentMonth}
                     current={monthlyActual}
-                    target={companyTargets.monthlyTarget}
+                    target={monthlyTarget}
                     remaining={monthlyRemaining}
                     progressPct={monthlyProgressPct}
                     wave={revenueSeries.map((point) => point.current)}
-                    action={
-                      <Select
-                        value={selectedMonth}
-                        onValueChange={(value) =>
-                          value && setSelectedMonth(value)
-                        }
-                      >
-                        <SelectTrigger className="glass-panel h-8 gap-1.5 rounded-lg px-2.5 text-xs">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent align="end">
-                          {rankingMonths.map((month) => (
-                            <SelectItem key={month} value={month}>
-                              {month}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    }
                   />
                 </>
               )}
             </div>
+
+            <ChartCard
+              title="Target Trend"
+              description="Monthly target vs. actual, company-level"
+            >
+              <TargetTrendChart data={trendFor("all")} />
+            </ChartCard>
           </TabsPanel>
 
           <TabsPanel value="individual" className="space-y-6">
-            <p className="text-sm text-text-tertiary">
-              Monthly and yearly targets for every sales representative
-            </p>
-
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:gap-6 xl:grid-cols-3">
-              {people.map((person) => (
-                <IndividualTargetCard
-                  key={person.id}
-                  person={person}
-                  canEdit
-                  onSave={(values) => updatePersonTarget(person.id, values)}
-                />
-              ))}
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-sm text-text-tertiary">
+                Who owns how much of the target, and who&apos;s on track
+              </p>
+              <TargetPeriodSelector selection={selection} onChange={setSelection} />
             </div>
+
+            <TargetAllocation people={people} selection={selection} />
+
+            <SalespersonTargetTable
+              people={people}
+              selection={selection}
+              year={currentYear}
+              onSave={updatePersonTarget}
+            />
           </TabsPanel>
         </Tabs>
       </Reveal>

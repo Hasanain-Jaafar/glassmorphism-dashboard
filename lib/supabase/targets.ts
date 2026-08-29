@@ -1,29 +1,16 @@
 import { createClient } from "@/lib/supabase/client";
+import { MONTH_NUMBERS } from "@/lib/target-period";
+
+export { MONTH_NUMBERS };
 
 export type CompanyTargets = {
   yearlyTarget: number;
-  monthlyTarget: number;
+  /** Month number (1–12) → target amount, for whichever months have a saved row. */
+  monthlyTargets: Record<number, number>;
 };
 
-export const MONTH_NUMBERS: Record<string, number> = {
-  Jan: 1,
-  Feb: 2,
-  Mar: 3,
-  Apr: 4,
-  May: 5,
-  Jun: 6,
-  Jul: 7,
-  Aug: 8,
-  Sep: 9,
-  Oct: 10,
-  Nov: 11,
-  Dec: 12,
-};
-
-export async function fetchCompanyTargets(
-  year: number,
-  month: number
-): Promise<CompanyTargets> {
+/** Fetches every company target row for a year in one query, so switching between Month/Quarter/Custom periods doesn't need a refetch. */
+export async function fetchCompanyTargets(year: number): Promise<CompanyTargets> {
   const supabase = createClient();
   const { data, error } = await supabase
     .from("targets")
@@ -34,13 +21,16 @@ export async function fetchCompanyTargets(
   if (error) throw error;
 
   const yearly = data?.find((row) => row.period_type === "yearly");
-  const monthly = data?.find(
-    (row) => row.period_type === "monthly" && row.month === month
-  );
+  const monthlyTargets: Record<number, number> = {};
+  for (const row of data ?? []) {
+    if (row.period_type === "monthly" && row.month != null) {
+      monthlyTargets[row.month] = Number(row.amount);
+    }
+  }
 
   return {
     yearlyTarget: yearly ? Number(yearly.amount) : 0,
-    monthlyTarget: monthly ? Number(monthly.amount) : 0,
+    monthlyTargets,
   };
 }
 
@@ -85,7 +75,7 @@ async function upsertCompanyTarget(
 export async function saveCompanyTargets(
   year: number,
   month: number,
-  values: CompanyTargets
+  values: { yearlyTarget: number; monthlyTarget: number }
 ): Promise<void> {
   await upsertCompanyTarget("yearly", year, null, values.yearlyTarget);
   await upsertCompanyTarget("monthly", year, month, values.monthlyTarget);
