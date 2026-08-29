@@ -33,6 +33,9 @@ In `supabase/migrations/`, run each file in filename order:
     (active/prospect/inactive) column the Customers page has always shown,
     which the original `customers` table never had. **Required** — the
     Customers page will fail to load/save until this runs.
+12. `20260101000012_customers_realtime.sql` — enables Supabase Realtime on
+    `customers`, so one admin's add/edit/delete shows up for every other
+    admin with /customers open, without a manual refresh.
 
 ## 2. Seed baseline data (optional)
 

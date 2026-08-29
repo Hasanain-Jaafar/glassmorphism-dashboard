@@ -98,3 +98,40 @@ export async function updateCustomer(
   if (error) throw error;
   return fromRow(data);
 }
+
+/**
+ * Live-updates the customers list across every admin session with
+ * /customers open — one admin's add/edit/delete reaches everyone else
+ * without a manual refresh, via Supabase Realtime (see migration 12,
+ * `alter publication supabase_realtime add table customers`). Returns an
+ * unsubscribe function to call on unmount.
+ */
+export function subscribeToCustomers(handlers: {
+  onInsert: (customer: Customer) => void;
+  onUpdate: (customer: Customer) => void;
+  onDelete: (id: string) => void;
+}): () => void {
+  const supabase = createClient();
+  const channel = supabase
+    .channel("customers-changes")
+    .on(
+      "postgres_changes",
+      { event: "INSERT", schema: "public", table: "customers" },
+      (payload) => handlers.onInsert(fromRow(payload.new as CustomerRow))
+    )
+    .on(
+      "postgres_changes",
+      { event: "UPDATE", schema: "public", table: "customers" },
+      (payload) => handlers.onUpdate(fromRow(payload.new as CustomerRow))
+    )
+    .on(
+      "postgres_changes",
+      { event: "DELETE", schema: "public", table: "customers" },
+      (payload) => handlers.onDelete((payload.old as { id: string }).id)
+    )
+    .subscribe();
+
+  return () => {
+    supabase.removeChannel(channel);
+  };
+}

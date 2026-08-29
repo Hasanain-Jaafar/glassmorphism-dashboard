@@ -40,6 +40,7 @@ import {
   fetchCustomers,
   createCustomer,
   updateCustomer,
+  subscribeToCustomers,
 } from "@/lib/supabase/customers";
 import {
   computeCustomerStats,
@@ -88,6 +89,33 @@ export default function CustomersPage() {
 
   const [formOpen, setFormOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | undefined>();
+
+  // Live sync across admin sessions: another admin's add/edit/delete shows
+  // up here without a manual refresh (requires migration 12 — Realtime
+  // enabled on the customers table).
+  useEffect(() => {
+    if (!isAdmin) return;
+    return subscribeToCustomers({
+      onInsert: (customer) => {
+        setCustomersList((prev) => {
+          if (!prev || prev.some((c) => c.id === customer.id)) return prev;
+          return [customer, ...prev];
+        });
+      },
+      onUpdate: (customer) => {
+        setCustomersList((prev) =>
+          prev ? prev.map((c) => (c.id === customer.id ? customer : c)) : prev
+        );
+        setSelectedCustomer((prev) =>
+          prev && prev.id === customer.id ? customer : prev
+        );
+      },
+      onDelete: (id) => {
+        setCustomersList((prev) => (prev ? prev.filter((c) => c.id !== id) : prev));
+        setSelectedCustomer((prev) => (prev && prev.id === id ? undefined : prev));
+      },
+    });
+  }, [isAdmin]);
 
   const stats = useMemo(
     () => computeCustomerStats(customersList ?? []),
