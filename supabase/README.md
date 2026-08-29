@@ -23,6 +23,12 @@ In `supabase/migrations/`, run each file in filename order:
    (General/Praise/Concern/Action Item) to each coaching note
 9. `20260101000009_coaching_notes_editable.sql` — adds `updated_at` and an
    author-only update policy so coaching notes can be edited
+10. `20260101000010_notifications.sql` — `notifications` inbox and
+    `notification_preferences`, fed by triggers on `coaching_notes` (insert),
+    `appointments` (insert), and `deals` (status → `won`). `target_reached`,
+    `quotation_expiring`, and `weekly_summary` exist as preference columns
+    only — no trigger yet, since they need threshold/dedup logic or a
+    scheduler that doesn't exist in this project yet
 
 ## 2. Seed baseline data (optional)
 
@@ -61,7 +67,11 @@ Accounts created from Settings → Team & Access are created with
 ## What's live vs. still mock data
 
 Live in Supabase: **profiles/accounts** (Settings → Team & Access), **products**
-(Products page), **company targets** (Targets → Company tab).
+(Products page), **company targets** (Targets → Company tab), and
+**notifications** (bell + Settings → Notifications) — though only 3 of its 6
+event types actually fire yet (coaching notes, appointments, deals won), since
+`appointments`/`quotations`/`deals`/`invoices` have no UI to create rows in
+them (see below), so those triggers are dormant until that workflow ships.
 
 Still mock data in `lib/mock-data.ts`: individual (per-rep) targets, and all
 sales performance numbers (monthly/yearly sales, closed deals, conversion,

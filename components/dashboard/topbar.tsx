@@ -1,8 +1,9 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { Bell, LogOut, Settings } from "lucide-react";
+import { LogOut, Settings } from "lucide-react";
 import { CommandPalette } from "@/components/dashboard/command-palette";
+import { NotificationBell } from "@/components/dashboard/notification-bell";
 import { ThemeToggle } from "@/components/theme-toggle";
 import {
   DropdownMenu,
@@ -11,7 +12,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useAuth } from "@/components/providers/auth-provider";
 
 function initials(name: string) {
@@ -47,20 +47,7 @@ export function Topbar() {
         <CommandPalette />
       </div>
 
-      <Tooltip>
-        <TooltipTrigger
-          render={
-            <button
-              type="button"
-              aria-disabled
-              className="flex size-9 items-center justify-center rounded-xl text-text-secondary transition-colors hover:bg-foreground/[0.04]"
-            />
-          }
-        >
-          <Bell className="size-[18px]" />
-        </TooltipTrigger>
-        <TooltipContent>No new notifications</TooltipContent>
-      </Tooltip>
+      <NotificationBell />
 
       <ThemeToggle className="flex size-9 items-center justify-center rounded-xl text-text-secondary hover:bg-foreground/[0.04]" />
 

@@ -1,62 +1,88 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useAuth } from "@/components/providers/auth-provider";
+import {
+  fetchNotificationPreferences,
+  saveNotificationPreference,
+  type NotificationPreferences,
+} from "@/lib/supabase/notifications";
 
-type NotificationPref = {
-  id: string;
+type PrefRow = {
+  key: keyof NotificationPreferences;
   label: string;
   description: string;
-  enabled: boolean;
+  adminOnly?: boolean;
+  /** No trigger fires this yet — see supabase/README.md. Still saved for real. */
+  comingSoon?: boolean;
 };
 
-const initialPrefs: NotificationPref[] = [
+const rows: PrefRow[] = [
   {
-    id: "target-reached",
-    label: "Target reached",
-    description: "When you or your team hit a monthly or yearly target.",
-    enabled: true,
+    key: "coachingNoteAdded",
+    label: "Coaching note logged",
+    description: "When another admin logs a coaching note about a rep.",
+    adminOnly: true,
   },
   {
-    id: "new-appointment",
+    key: "newAppointment",
     label: "New appointment",
     description: "When an appointment is scheduled with a customer.",
-    enabled: true,
   },
   {
-    id: "quotation-expiring",
-    label: "Quotation expiring",
-    description: "When a sent quotation is about to expire.",
-    enabled: true,
-  },
-  {
-    id: "deal-won",
+    key: "dealWon",
     label: "Deal won",
     description: "When a quotation converts into a closed deal.",
-    enabled: true,
   },
   {
-    id: "weekly-summary",
+    key: "targetReached",
+    label: "Target reached",
+    description: "When you or your team hit a monthly or yearly target.",
+    comingSoon: true,
+  },
+  {
+    key: "quotationExpiring",
+    label: "Quotation expiring",
+    description: "When a sent quotation is about to expire.",
+    comingSoon: true,
+  },
+  {
+    key: "weeklySummary",
     label: "Weekly performance summary",
     description: "A recap of team performance every Monday.",
-    enabled: false,
+    comingSoon: true,
   },
 ];
 
 export function NotificationsSection() {
-  const [prefs, setPrefs] = useState(initialPrefs);
+  const { isAdmin } = useAuth();
+  const [prefs, setPrefs] = useState<NotificationPreferences | null>(null);
 
-  function toggle(id: string) {
-    setPrefs((prev) =>
-      prev.map((pref) => {
-        if (pref.id !== id) return pref;
-        const next = { ...pref, enabled: !pref.enabled };
-        toast.success(`${pref.label} ${next.enabled ? "enabled" : "disabled"}`);
-        return next;
-      })
-    );
+  useEffect(() => {
+    fetchNotificationPreferences()
+      .then(setPrefs)
+      .catch((error: Error) => toast.error(error.message));
+  }, []);
+
+  async function toggle(row: PrefRow) {
+    if (!prefs) return;
+    const next = !prefs[row.key];
+    setPrefs({ ...prefs, [row.key]: next });
+    try {
+      await saveNotificationPreference(row.key, next);
+      toast.success(`${row.label} ${next ? "enabled" : "disabled"}`);
+    } catch (error) {
+      setPrefs((prev) => (prev ? { ...prev, [row.key]: !next } : prev));
+      toast.error(
+        error instanceof Error ? error.message : "Couldn't save that preference"
+      );
+    }
   }
+
+  const visibleRows = rows.filter((row) => !row.adminOnly || isAdmin);
 
   return (
     <div className="glass-panel rounded-2xl p-5 shadow-sm sm:p-6">
@@ -67,27 +93,40 @@ export function NotificationsSection() {
         Choose what you want to be notified about.
       </p>
 
-      <ul className="mt-5 divide-y divide-glass-border">
-        {prefs.map((pref) => (
-          <li
-            key={pref.id}
-            className="flex items-center justify-between gap-4 py-3.5"
-          >
-            <div className="min-w-0">
-              <p className="text-sm font-medium text-foreground">
-                {pref.label}
-              </p>
-              <p className="mt-0.5 text-xs text-text-tertiary">
-                {pref.description}
-              </p>
-            </div>
-            <Switch
-              checked={pref.enabled}
-              onCheckedChange={() => toggle(pref.id)}
-            />
-          </li>
-        ))}
-      </ul>
+      {prefs === null ? (
+        <div className="mt-5 space-y-3.5">
+          {visibleRows.map((row) => (
+            <Skeleton key={row.key} className="h-12 w-full rounded-lg" />
+          ))}
+        </div>
+      ) : (
+        <ul className="mt-5 divide-y divide-glass-border">
+          {visibleRows.map((row) => (
+            <li
+              key={row.key}
+              className="flex items-center justify-between gap-4 py-3.5"
+            >
+              <div className="min-w-0">
+                <p className="flex items-center gap-2 text-sm font-medium text-foreground">
+                  {row.label}
+                  {row.comingSoon && (
+                    <span className="rounded-full bg-foreground/[0.06] px-1.5 py-0.5 text-[10px] font-medium text-text-tertiary">
+                      Coming soon
+                    </span>
+                  )}
+                </p>
+                <p className="mt-0.5 text-xs text-text-tertiary">
+                  {row.description}
+                </p>
+              </div>
+              <Switch
+                checked={prefs[row.key]}
+                onCheckedChange={() => toggle(row)}
+              />
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }
