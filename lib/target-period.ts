@@ -6,10 +6,9 @@ import {
 
 /**
  * "Target Period" logic for the /targets page's Individual tab. Company
- * actuals still come from the mock revenueSeries/seasonal curve (see
- * lib/sales-analytics.ts's doc comment) — real per-month history only exists
- * for targets (company and, since fetchIndividualTargets, individual) in
- * Supabase, not actual sales yet.
+ * actuals still come from the mock revenueSeries/seasonal curve — real
+ * per-month history only exists for targets (company and, since
+ * fetchIndividualTargets, individual) in Supabase, not actual sales yet.
  */
 
 /** A real salesperson plus their fetched individual targets — see fetchIndividualTargets in lib/supabase/targets.ts. Sales figures are 0 until the appointments/quotations/deals/invoices workflow exists. */

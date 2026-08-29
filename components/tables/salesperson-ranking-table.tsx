@@ -162,8 +162,11 @@ const columns = columnHelper.columns([
 
 export function SalespersonRankingTable({
   data,
+  highlightedId,
 }: {
   data: RankedTeamMember[];
+  /** Row to scroll to and briefly flash — e.g. the command palette's salesperson search. */
+  highlightedId?: string | null;
 }) {
   const [sorting, setSorting] = useState<SortingState>([
     { id: "rank", desc: false },
@@ -218,7 +221,11 @@ export function SalespersonRankingTable({
             {table.getRowModel().rows.map((row) => (
               <tr
                 key={row.id}
-                className="border-b border-glass-border/60 transition-colors last:border-0 hover:bg-foreground/[0.03]"
+                id={`salesperson-${row.original.id}`}
+                className={cn(
+                  "border-b border-glass-border/60 transition-colors duration-500 last:border-0 hover:bg-foreground/[0.03]",
+                  highlightedId === row.original.id && "bg-primary/[0.08]"
+                )}
               >
                 {row.getAllCells().map((cell) => (
                   <td key={cell.id} className="px-4 py-3.5 first:pl-5 last:pr-5">

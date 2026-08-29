@@ -1,9 +1,6 @@
 export type TargetStatus = "on_track" | "at_risk" | "behind";
 
-/**
- * Flat achievement-% thresholds, matching the "Below target" threshold
- * already used by needsAttention() in lib/sales-analytics.ts.
- */
+/** Flat achievement-% thresholds for a target's status badge. */
 export function getTargetStatus(achievementPct: number): TargetStatus {
   if (achievementPct >= 90) return "on_track";
   if (achievementPct >= 70) return "at_risk";

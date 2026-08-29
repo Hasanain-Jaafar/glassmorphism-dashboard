@@ -8,8 +8,9 @@ import {
   Tooltip,
   XAxis,
 } from "recharts";
-import type { TrendPoint } from "@/lib/sales-analytics";
 import { formatUSD } from "@/lib/format";
+
+export type TrendPoint = { month: string; actual: number; target: number };
 
 function ChartTooltip({
   active,

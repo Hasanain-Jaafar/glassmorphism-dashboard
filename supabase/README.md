@@ -110,14 +110,13 @@ appointments, deals won), since `/appointments` and `/deals` write real rows.
 trigger — they need threshold/dedup logic or a scheduler this project
 doesn't have yet.
 
-Still mock data in `lib/mock-data.ts`: the Team page's KPI tab (person
-filter, Sales Trend/Funnel/Needs Attention, and the metric cards/monthly
-sales/closed-deals/conversion numbers across Team and Targets) — it's driven
-by `lib/sales-analytics.ts` and `lib/supabase/team.ts`'s zeroed-out
-performance fields, and hasn't been rewired to aggregate the now-real
-appointments/quotations/deals/invoices tables yet. Same for customers' Total
-Sales/Outstanding/Last Purchase/activity timeline on the Customers page
-(`lib/supabase/customers.ts`'s `fromRow`) and the main Dashboard's KPIs —
-real pipeline data now exists to aggregate from (e.g. `sum(invoices.amount)
-where status = 'paid'` per customer/rep/month), but nothing queries it yet.
-That rewiring is a separate follow-up.
+The Dashboard, Team (KPI + All Salespeople tabs), Targets (Company tab and
+the Individual tab's monthlySales/yearlySales columns), and Customers pages
+are all wired to real aggregates now (`lib/company-performance.ts`,
+`withTeamAggregates`/`withCustomerAggregates` in `lib/supabase/team.ts` /
+`lib/customers-data.ts`), computed from the real appointments/quotations/
+deals/invoices tables. Still mock/stubbed: `personActualForSelection()` in
+`lib/target-period.ts` (always returns 0) — the Targets page's Individual
+tab still shows $0 Actual/Achievement/Remaining for quarter/custom-range
+selections, since that needs a per-rep monthly breakdown this project
+doesn't compute yet (month/year selections are unaffected).
