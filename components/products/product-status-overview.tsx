@@ -1,6 +1,6 @@
 import { ChartCard } from "@/components/dashboard/chart-card";
 import { DonutChart } from "@/components/charts/donut-chart";
-import { products } from "@/lib/mock-data";
+import type { Product } from "@/lib/mock-data";
 import { statusLabels } from "@/components/products/product-styles";
 
 const statusColorVar: Record<string, string> = {
@@ -9,7 +9,7 @@ const statusColorVar: Record<string, string> = {
   archived: "var(--text-tertiary)",
 };
 
-export function ProductStatusOverview() {
+export function ProductStatusOverview({ products }: { products: Product[] }) {
   const activeCount = products.filter((p) => p.status === "active").length;
 
   const segments = (["active", "draft", "archived"] as const).map((status) => ({

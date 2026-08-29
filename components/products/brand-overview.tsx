@@ -1,9 +1,11 @@
 import { ChartCard } from "@/components/dashboard/chart-card";
 import { BrandBubbles } from "@/components/charts/brand-bubbles";
-import { productBrands, products } from "@/lib/mock-data";
+import type { Product } from "@/lib/mock-data";
 
-export function BrandOverview() {
-  const brands = productBrands
+export function BrandOverview({ products }: { products: Product[] }) {
+  const brandNames = Array.from(new Set(products.map((p) => p.brand)));
+
+  const brands = brandNames
     .map((brand) => ({
       id: brand,
       name: brand,

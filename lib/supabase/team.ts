@@ -73,6 +73,104 @@ export async function fetchTeamMembers(): Promise<TeamMember[]> {
   }));
 }
 
+/**
+ * Overlays real per-rep performance onto the roster from fetchTeamMembers()
+ * — same pattern as withCustomerAggregates in lib/customers-data.ts: group
+ * each pipeline table by salesRepId once (O(n)), then O(1) lookups per
+ * member, instead of scanning every table per member. Revenue only counts
+ * paid invoices (CLAUDE.md §3); closedDeals/totalAppointments are scoped to
+ * `month` (matching their field comments above), conversionRate is all-time
+ * won/(won+lost) — the same definition already used for the company-wide
+ * "Win Rate" KPI on /deals.
+ *
+ * `year`/`month` (1–12) are passed in explicitly rather than read from the
+ * system clock — callers should pass lib/mock-data.ts's `currentYear` /
+ * lib/target-period.ts's `currentMonthNumber`, the same "current period"
+ * targets are already keyed by, so a rep's monthlySales lines up with the
+ * monthlyTargets[currentMonthNumber] it gets compared against.
+ */
+export function withTeamAggregates(
+  members: TeamMember[],
+  data: {
+    appointments: { salesRepId: string; scheduledAt: string }[];
+    deals: {
+      salesRepId: string;
+      status: string;
+      amount: number;
+      closedAt: string | null;
+    }[];
+    invoices: {
+      salesRepId: string;
+      status: string;
+      amount: number;
+      paidAt: string | null;
+    }[];
+  },
+  year: number,
+  month: number
+): TeamMember[] {
+  const isThisMonth = (iso: string | null) => {
+    if (!iso) return false;
+    const d = new Date(iso);
+    return d.getFullYear() === year && d.getMonth() + 1 === month;
+  };
+  const isThisYear = (iso: string | null) => {
+    if (!iso) return false;
+    return new Date(iso).getFullYear() === year;
+  };
+
+  const byRep = <T>(items: T[], repId: (item: T) => string) => {
+    const map = new Map<string, T[]>();
+    for (const item of items) {
+      const id = repId(item);
+      const list = map.get(id);
+      if (list) list.push(item);
+      else map.set(id, [item]);
+    }
+    return map;
+  };
+
+  const appointmentsByRep = byRep(data.appointments, (a) => a.salesRepId);
+  const dealsByRep = byRep(data.deals, (d) => d.salesRepId);
+  const invoicesByRep = byRep(data.invoices, (i) => i.salesRepId);
+
+  return members.map((member) => {
+    const invoices = invoicesByRep.get(member.id) ?? [];
+    const deals = dealsByRep.get(member.id) ?? [];
+    const appointments = appointmentsByRep.get(member.id) ?? [];
+
+    let monthlySales = 0;
+    let yearlySales = 0;
+    for (const inv of invoices) {
+      if (inv.status !== "paid" || !inv.paidAt) continue;
+      if (isThisYear(inv.paidAt)) yearlySales += inv.amount;
+      if (isThisMonth(inv.paidAt)) monthlySales += inv.amount;
+    }
+
+    const closedDeals = deals.filter(
+      (d) => d.status === "won" && isThisMonth(d.closedAt)
+    ).length;
+
+    const won = deals.filter((d) => d.status === "won").length;
+    const lost = deals.filter((d) => d.status === "lost").length;
+    const conversionRate = won + lost ? Math.round((won / (won + lost)) * 100) : 0;
+
+    const totalAppointments = appointments.filter((a) =>
+      isThisMonth(a.scheduledAt)
+    ).length;
+
+    return {
+      ...member,
+      monthlySales,
+      yearlySales,
+      closedDeals,
+      conversionRate,
+      avgDeal: closedDeals ? monthlySales / closedDeals : 0,
+      totalAppointments,
+    };
+  });
+}
+
 export function computeTeamStats(people: TeamMember[]) {
   const monthlySalesTotal = people.reduce(
     (sum, person) => sum + person.monthlySales,

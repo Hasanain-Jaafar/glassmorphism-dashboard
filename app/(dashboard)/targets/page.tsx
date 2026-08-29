@@ -22,8 +22,7 @@ import {
   TabsPanel,
   TabsTab,
 } from "@/components/ui/tabs";
-import { company, companyMonthlyTotal, currentYear, revenueSeries } from "@/lib/mock-data";
-import { trendFor } from "@/lib/sales-analytics";
+import { currentYear } from "@/lib/mock-data";
 import {
   currentMonthLabel,
   currentMonthNumber,
@@ -38,7 +37,19 @@ import {
   saveIndividualTarget,
   type CompanyTargets,
 } from "@/lib/supabase/targets";
-import { fetchTeamMembers, type TeamMember } from "@/lib/supabase/team";
+import {
+  fetchTeamMembers,
+  withTeamAggregates,
+  type TeamMember,
+} from "@/lib/supabase/team";
+import { fetchAppointments } from "@/lib/supabase/appointments";
+import { fetchDeals } from "@/lib/supabase/deals";
+import { fetchInvoices, type Invoice } from "@/lib/supabase/invoices";
+import {
+  computeCompanyRevenueSeries,
+  computeMonthlyTotal,
+  computeYearToDateTotals,
+} from "@/lib/company-performance";
 import { useAuth } from "@/components/providers/auth-provider";
 
 const currentMonth = currentMonthLabel;
@@ -97,13 +108,33 @@ export default function TargetsPage() {
   const [individualTargets, setIndividualTargets] = useState<
     Record<string, CompanyTargets>
   >({});
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [pipelineData, setPipelineData] = useState<{
+    appointments: { salesRepId: string; scheduledAt: string }[];
+    deals: {
+      salesRepId: string;
+      status: string;
+      amount: number;
+      closedAt: string | null;
+    }[];
+  }>({ appointments: [], deals: [] });
   const [selection, setSelection] = useState<TargetPeriodSelection>(
     defaultSelectionFor("month")
   );
 
+  const teamMembersWithAggregates = useMemo(() => {
+    if (!teamMembers) return null;
+    return withTeamAggregates(
+      teamMembers,
+      { appointments: pipelineData.appointments, deals: pipelineData.deals, invoices },
+      currentYear,
+      currentMonthNumber
+    );
+  }, [teamMembers, invoices, pipelineData]);
+
   const people = useMemo(
-    () => mergeTargetPeople(teamMembers ?? [], individualTargets),
-    [teamMembers, individualTargets]
+    () => mergeTargetPeople(teamMembersWithAggregates ?? [], individualTargets),
+    [teamMembersWithAggregates, individualTargets]
   );
 
   useEffect(() => {
@@ -112,15 +143,45 @@ export default function TargetsPage() {
       .catch((error: Error) => toast.error(error.message))
       .finally(() => setTargetsLoading(false));
 
-    Promise.all([fetchTeamMembers(), fetchIndividualTargets(currentYear)])
-      .then(([team, targets]) => {
+    Promise.all([
+      fetchTeamMembers(),
+      fetchIndividualTargets(currentYear),
+      fetchAppointments(),
+      fetchDeals(),
+      fetchInvoices(),
+    ])
+      .then(([team, targets, appointments, deals, invoiceRows]) => {
         setTeamMembers(team);
         setIndividualTargets(targets);
+        setPipelineData({ appointments, deals });
+        setInvoices(invoiceRows);
       })
       .catch((error: Error) =>
         toast.error(error.message ?? "Couldn't load the team")
       );
   }, []);
+
+  const yearlyActual = useMemo(
+    () => computeYearToDateTotals(invoices, currentYear, currentMonthNumber).currentYearTotal,
+    [invoices]
+  );
+  const monthlyActual = useMemo(
+    () => computeMonthlyTotal(invoices, currentYear, currentMonthNumber),
+    [invoices]
+  );
+  const revenueSeries = useMemo(
+    () => computeCompanyRevenueSeries(invoices, currentYear, currentMonthNumber),
+    [invoices]
+  );
+  const trendPoints = useMemo(
+    () =>
+      revenueSeries.map((point, i) => ({
+        month: point.month,
+        actual: point.current,
+        target: companyTargets.monthlyTargets[i + 1] ?? 0,
+      })),
+    [revenueSeries, companyTargets]
+  );
 
   async function handleSaveCompanyTargets(values: {
     yearlyTarget: number;
@@ -171,8 +232,6 @@ export default function TargetsPage() {
     }
   }
 
-  const yearlyActual = company.currentYearTotal;
-  const monthlyActual = companyMonthlyTotal(currentMonth);
   const monthlyTarget = companyTargets.monthlyTargets[currentMonthNumber] ?? 0;
 
   const yearProgressPct = companyTargets.yearlyTarget
@@ -260,7 +319,7 @@ export default function TargetsPage() {
               <Reveal delay={0.1}>
                 <MonthlyTargetCard
                   label="Monthly Target"
-                  monthLabel={company.currentMonthLabel}
+                  monthLabel={currentMonthLabel}
                   current={mine.monthlySales}
                   target={mine.monthlyTarget}
                   remaining={Math.max(mine.monthlyTarget - mine.monthlySales, 0)}
@@ -365,7 +424,7 @@ export default function TargetsPage() {
               title="Target Trend"
               description="Monthly target vs. actual, company-level"
             >
-              <TargetTrendChart data={trendFor("all")} />
+              <TargetTrendChart data={trendPoints} />
             </ChartCard>
           </TabsPanel>
 

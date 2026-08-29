@@ -1,0 +1,139 @@
+import type { MonthlyRevenuePoint, PipelineStage } from "@/lib/mock-data";
+
+/**
+ * Company-wide real aggregates, computed from the pipeline tables — the
+ * company-level counterpart to lib/customers-data.ts's per-customer
+ * aggregates. Revenue only counts paid invoices, keyed by paid_at
+ * (CLAUDE.md §3); all functions take already-fetched arrays so callers can
+ * fetch once per page and reuse across widgets.
+ *
+ * `year`/`month` (month is 1–12, matching lib/target-period.ts's
+ * currentMonthNumber and lib/supabase/targets.ts's convention) are always
+ * passed in explicitly rather than read from the system clock here — the
+ * app's targets are keyed by lib/mock-data.ts's `currentYear` /
+ * lib/target-period.ts's `currentMonthNumber` (the "current period" the
+ * rest of the app already agrees on), and revenue has to be computed for
+ * that same period or a target's progress bar would compare against the
+ * wrong window.
+ */
+
+type InvoiceLike = { status: string; amount: number; paidAt: string | null };
+
+const MONTH_LABELS = [
+  "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+];
+
+function paidInYearMonth(inv: InvoiceLike, year: number, month: number): boolean {
+  if (inv.status !== "paid" || !inv.paidAt) return false;
+  const d = new Date(inv.paidAt);
+  return d.getFullYear() === year && d.getMonth() + 1 === month;
+}
+
+/** Sum of paid invoices for one calendar month (month is 1–12). */
+export function computeMonthlyTotal(
+  invoices: InvoiceLike[],
+  year: number,
+  month: number
+): number {
+  return invoices
+    .filter((inv) => paidInYearMonth(inv, year, month))
+    .reduce((sum, inv) => sum + inv.amount, 0);
+}
+
+/**
+ * Year-to-date total for `year` vs. the same period the year before
+ * (day-for-day, using today's real day-of-month as the cutoff) — matches
+ * the mock data's own "previousYearToDateTotal" semantics rather than
+ * comparing to all of last year.
+ */
+export function computeYearToDateTotals(
+  invoices: InvoiceLike[],
+  year: number,
+  month: number
+): { currentYearTotal: number; previousYearToDateTotal: number } {
+  const day = new Date().getDate();
+  const cutoffThisYear = new Date(year, month - 1, day);
+  const cutoffLastYear = new Date(year - 1, month - 1, day);
+
+  let currentYearTotal = 0;
+  let previousYearToDateTotal = 0;
+
+  for (const inv of invoices) {
+    if (inv.status !== "paid" || !inv.paidAt) continue;
+    const paid = new Date(inv.paidAt);
+    if (paid.getFullYear() === year && paid <= cutoffThisYear) {
+      currentYearTotal += inv.amount;
+    } else if (paid.getFullYear() === year - 1 && paid <= cutoffLastYear) {
+      previousYearToDateTotal += inv.amount;
+    }
+  }
+
+  return { currentYearTotal, previousYearToDateTotal };
+}
+
+/** Jan..`month` of `year`, that year vs. the same months the year before. */
+export function computeCompanyRevenueSeries(
+  invoices: InvoiceLike[],
+  year: number,
+  month: number
+): MonthlyRevenuePoint[] {
+  return Array.from({ length: month }, (_, i) => {
+    const m = i + 1;
+    return {
+      month: MONTH_LABELS[i],
+      current: computeMonthlyTotal(invoices, year, m),
+      previous: computeMonthlyTotal(invoices, year - 1, m),
+    };
+  });
+}
+
+/**
+ * The dashboard's Sales Pipeline funnel — one calendar month only:
+ * appointments scheduled, quotations created, deals won, invoices paid.
+ */
+export function computePipelineCounts(
+  appointments: { scheduledAt: string }[],
+  quotations: { createdAt: string }[],
+  deals: { status: string; closedAt: string | null }[],
+  invoices: InvoiceLike[],
+  year: number,
+  month: number
+): { stages: PipelineStage[]; conversions: number[] } {
+  const inThisMonth = (iso: string | null) => {
+    if (!iso) return false;
+    const d = new Date(iso);
+    return d.getFullYear() === year && d.getMonth() + 1 === month;
+  };
+
+  const appointmentCount = appointments.filter((a) =>
+    inThisMonth(a.scheduledAt)
+  ).length;
+  const quotationCount = quotations.filter((q) =>
+    inThisMonth(q.createdAt)
+  ).length;
+  const dealCount = deals.filter(
+    (d) => d.status === "won" && inThisMonth(d.closedAt)
+  ).length;
+  const invoiceCount = invoices.filter(
+    (i) => i.status === "paid" && inThisMonth(i.paidAt)
+  ).length;
+
+  const stages: PipelineStage[] = [
+    { key: "appointments", label: "Appointments", value: appointmentCount },
+    { key: "quotations", label: "Quotations", value: quotationCount },
+    { key: "deals", label: "Closed Deals", value: dealCount },
+    { key: "invoices", label: "Paid Invoices", value: invoiceCount },
+  ];
+
+  const pct = (num: number, den: number) => (den ? Math.round((num / den) * 100) : 0);
+
+  return {
+    stages,
+    conversions: [
+      pct(quotationCount, appointmentCount),
+      pct(dealCount, quotationCount),
+      pct(invoiceCount, dealCount),
+    ],
+  };
+}

@@ -1,13 +1,16 @@
 import { ChartCard } from "@/components/dashboard/chart-card";
 import { CategoryRankChart } from "@/components/charts/category-rank-chart";
-import { productBrands, productCategories, products } from "@/lib/mock-data";
+import type { Product } from "@/lib/mock-data";
 import {
   categoryColorVar,
   fallbackCategoryColorVar,
 } from "@/components/products/product-styles";
 
-export function CatalogOverview() {
-  const categories = productCategories
+export function CatalogOverview({ products }: { products: Product[] }) {
+  const brandCount = new Set(products.map((p) => p.brand)).size;
+  const categoryNames = Array.from(new Set(products.map((p) => p.category)));
+
+  const categories = categoryNames
     .map((category) => {
       const count = products.filter((product) => product.category === category)
         .length;
@@ -24,7 +27,7 @@ export function CatalogOverview() {
   return (
     <ChartCard
       title="Catalog at a Glance"
-      description={`${productBrands.length} brands · ${products.length} products across ${productCategories.length} categories`}
+      description={`${brandCount} brands · ${products.length} products across ${categoryNames.length} categories`}
     >
       <CategoryRankChart categories={categories} />
     </ChartCard>

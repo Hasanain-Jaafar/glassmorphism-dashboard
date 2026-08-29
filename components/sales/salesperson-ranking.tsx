@@ -1,9 +1,9 @@
 import { ChartCard } from "@/components/dashboard/chart-card";
 import { SalespersonRankChart } from "@/components/charts/salesperson-chart";
-import { salespersonRanking } from "@/lib/mock-data";
+import type { RankedTeamMember } from "@/lib/supabase/team";
 
-export function SalespersonRanking() {
-  const people = salespersonRanking.map((person) => ({
+export function SalespersonRanking({ people }: { people: RankedTeamMember[] }) {
+  const ranked = people.map((person) => ({
     id: person.id,
     name: person.name,
     initials: person.initials,
@@ -17,7 +17,7 @@ export function SalespersonRanking() {
       title="Salesperson Performance"
       description="Contribution to year-to-date sales"
     >
-      <SalespersonRankChart people={people} />
+      <SalespersonRankChart people={ranked} />
     </ChartCard>
   );
 }

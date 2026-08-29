@@ -1,5 +1,5 @@
 import { PipelineFunnel } from "@/components/charts/pipeline-funnel";
-import { pipeline, pipelineConversion } from "@/lib/mock-data";
+import type { PipelineStage } from "@/lib/mock-data";
 
 /**
  * Deliberately styled apart from ChartCard (used by every other dashboard
@@ -8,13 +8,13 @@ import { pipeline, pipelineConversion } from "@/lib/mock-data";
  * sanctions a gradient border for "rare, high-value surfaces"; this is the
  * one card on the dashboard that gets it.
  */
-export function PipelineSummary() {
-  const conversions = [
-    pipelineConversion.appointmentToQuotation,
-    pipelineConversion.quotationToClosed,
-    pipelineConversion.closedToPaid,
-  ];
-
+export function PipelineSummary({
+  stages,
+  conversions,
+}: {
+  stages: PipelineStage[];
+  conversions: number[];
+}) {
   return (
     <div className="h-full rounded-3xl bg-gradient-to-br from-primary/50 via-[#8f7fff]/35 to-chart-2/40 p-px shadow-sm">
       <div className="glass-panel relative h-full overflow-hidden rounded-[calc(1.5rem-1px)] p-5 sm:p-6">
@@ -31,7 +31,7 @@ export function PipelineSummary() {
           </p>
         </div>
         <div className="relative">
-          <PipelineFunnel stages={pipeline} conversions={conversions} />
+          <PipelineFunnel stages={stages} conversions={conversions} />
         </div>
       </div>
     </div>
