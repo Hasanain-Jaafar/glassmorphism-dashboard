@@ -1,12 +1,12 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { Pencil, Trash2, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { renderNoteBody } from "@/lib/coaching/note-format";
-import { NoteFormatToolbar } from "@/components/coaching/note-format-toolbar";
+import { NoteRichEditor } from "@/components/coaching/note-rich-editor";
 import {
   Select,
   SelectContent,
@@ -14,7 +14,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import type { TeamMember } from "@/lib/supabase/team";
 import {
@@ -47,7 +46,6 @@ export function NoteTimelineItem({
   onUpdated: (note: CoachingNote) => void;
   onDelete: (id: string) => void;
 }) {
-  const editTextareaRef = useRef<HTMLTextAreaElement>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [editType, setEditType] = useState<CoachingNoteType>(note.type);
   const [editBody, setEditBody] = useState(note.body);
@@ -118,18 +116,8 @@ export function NoteTimelineItem({
             <X className="size-4" />
           </button>
         </div>
-        <div className="mt-3 space-y-2">
-          <NoteFormatToolbar
-            textareaRef={editTextareaRef}
-            value={editBody}
-            onChange={setEditBody}
-          />
-          <Textarea
-            ref={editTextareaRef}
-            rows={3}
-            value={editBody}
-            onChange={(e) => setEditBody(e.target.value)}
-          />
+        <div className="mt-3">
+          <NoteRichEditor value={editBody} onChange={setEditBody} />
         </div>
         {editError && <p className="mt-1.5 text-xs text-danger">{editError}</p>}
         <div className="mt-3 flex justify-end gap-2">
