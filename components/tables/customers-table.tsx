@@ -66,12 +66,20 @@ function buildColumns(actions: {
             <p className="truncate text-sm font-medium text-foreground hover:text-primary">
               {customer.company}
             </p>
-            <p className="truncate text-xs text-text-tertiary">
-              {customer.address}
-            </p>
           </button>
         );
       },
+    }),
+    columnHelper.accessor("address", {
+      header: "Address",
+      cell: (info) => (
+        <span
+          title={info.getValue()}
+          className="block max-w-[220px] truncate text-text-secondary"
+        >
+          {info.getValue()}
+        </span>
+      ),
     }),
     columnHelper.accessor("contactPerson", {
       header: "Contact Person",
@@ -226,7 +234,7 @@ export function CustomersTable({
   return (
     <div className="glass-panel overflow-hidden rounded-2xl shadow-sm">
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[1080px] text-sm">
+        <table className="w-full min-w-[1260px] text-sm">
           <thead>
             {table.getHeaderGroups().map((headerGroup) => (
               <tr key={headerGroup.id} className="border-b border-glass-border">
