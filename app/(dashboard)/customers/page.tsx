@@ -3,9 +3,18 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Lock, Search, UserPlus, UsersRound } from "lucide-react";
+import {
+  Lock,
+  Search,
+  UserCheck,
+  UserPlus,
+  Users,
+  UsersRound,
+  Wallet,
+} from "lucide-react";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { MetricCard } from "@/components/dashboard/metric-card";
+import { CustomerStatusCard } from "@/components/customers/customer-status-card";
 import { Reveal } from "@/components/motion/reveal";
 import { useAuth } from "@/components/providers/auth-provider";
 import { Button } from "@/components/ui/button";
@@ -273,27 +282,36 @@ export default function CustomersPage() {
       </Reveal>
 
       <Reveal delay={0.05}>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 lg:gap-6">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 lg:gap-6 xl:grid-cols-5">
           <MetricCard
             label="Total Customers"
             value={String(stats.total)}
             footnote="All accounts"
+            icon={Users}
+            tone="neutral"
           />
           <MetricCard
             label="New Customers"
             value={String(stats.newThisMonth)}
             footnote="Added this month"
+            icon={UserPlus}
+            tone="cyan"
           />
           <MetricCard
             label="Active Customers"
             value={String(stats.active)}
             footnote="Currently active"
+            icon={UserCheck}
+            tone="success"
           />
           <MetricCard
             label="Total Customer Revenue"
             value={formatUSD(stats.totalRevenue)}
             footnote="Lifetime, all customers"
+            icon={Wallet}
+            tone="primary"
           />
+          <CustomerStatusCard customers={customersWithAggregates ?? []} />
         </div>
       </Reveal>
 

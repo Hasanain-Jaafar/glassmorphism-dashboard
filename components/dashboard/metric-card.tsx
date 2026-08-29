@@ -3,12 +3,24 @@ import { ArrowDownRight, ArrowUpRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { KpiWave } from "@/components/dashboard/kpi-wave";
 
+export type MetricTone = "primary" | "success" | "warning" | "danger" | "cyan" | "neutral";
+
+const toneStyles: Record<MetricTone, string> = {
+  primary: "bg-primary/10 text-primary",
+  success: "bg-success/10 text-success",
+  warning: "bg-warning/10 text-warning",
+  danger: "bg-danger/10 text-danger",
+  cyan: "bg-chart-2/10 text-chart-2",
+  neutral: "bg-foreground/[0.06] text-text-secondary",
+};
+
 export function MetricCard({
   label,
   value,
   delta,
   footnote,
   icon: Icon,
+  tone = "primary",
   wave,
 }: {
   label: string;
@@ -16,6 +28,8 @@ export function MetricCard({
   delta?: { value: number; label: string };
   footnote?: string;
   icon?: LucideIcon;
+  /** Icon chip color — only visible when `icon` is set. Defaults to "primary" (the original hardcoded look). */
+  tone?: MetricTone;
   wave?: number[];
 }) {
   const isPositive = delta ? delta.value >= 0 : undefined;
@@ -27,7 +41,12 @@ export function MetricCard({
         <div className="flex items-center justify-between">
           <p className="text-sm font-medium text-text-secondary">{label}</p>
           {Icon && (
-            <span className="flex size-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
+            <span
+              className={cn(
+                "flex size-8 items-center justify-center rounded-lg",
+                toneStyles[tone]
+              )}
+            >
               <Icon className="size-4" />
             </span>
           )}
