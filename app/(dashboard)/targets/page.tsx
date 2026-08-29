@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Building2, Copy, UserCog } from "lucide-react";
 import { toast } from "sonner";
@@ -22,30 +22,51 @@ import {
   TabsPanel,
   TabsTab,
 } from "@/components/ui/tabs";
-import {
-  company,
-  companyMonthlyTotal,
-  currentYear,
-  rankingMonths,
-  revenueSeries,
-  salespeople as initialSalespeople,
-  type Salesperson,
-} from "@/lib/mock-data";
+import { company, companyMonthlyTotal, currentYear, revenueSeries } from "@/lib/mock-data";
 import { trendFor } from "@/lib/sales-analytics";
 import {
+  currentMonthLabel,
+  currentMonthNumber,
   defaultSelectionFor,
-  MONTH_NUMBERS,
   type TargetPeriodSelection,
+  type TargetPerson,
 } from "@/lib/target-period";
 import {
   fetchCompanyTargets,
+  fetchIndividualTargets,
   saveCompanyTargets,
+  saveIndividualTarget,
   type CompanyTargets,
 } from "@/lib/supabase/targets";
+import { fetchTeamMembers, type TeamMember } from "@/lib/supabase/team";
 import { useAuth } from "@/components/providers/auth-provider";
 
-const currentMonth = rankingMonths[rankingMonths.length - 1];
-const currentMonthNumber = MONTH_NUMBERS[currentMonth];
+const currentMonth = currentMonthLabel;
+
+function mergeTargetPeople(
+  team: TeamMember[],
+  targets: Record<string, CompanyTargets>
+): TargetPerson[] {
+  return team
+    .filter((member) => member.role === "sales_rep")
+    .map((member) => {
+      const personTargets = targets[member.id] ?? {
+        yearlyTarget: 0,
+        monthlyTargets: {},
+      };
+      return {
+        id: member.id,
+        name: member.name,
+        role: "Sales Representative",
+        initials: member.initials,
+        monthlySales: member.monthlySales,
+        monthlyTarget: personTargets.monthlyTargets[currentMonthNumber] ?? 0,
+        yearlySales: member.yearlySales,
+        yearlyTarget: personTargets.yearlyTarget,
+        monthlyTargets: personTargets.monthlyTargets,
+      };
+    });
+}
 
 export default function TargetsPage() {
   const { isAdmin: admin, profile } = useAuth();
@@ -72,9 +93,17 @@ export default function TargetsPage() {
     monthlyTargets: {},
   });
   const [targetsLoading, setTargetsLoading] = useState(true);
-  const [people, setPeople] = useState<Salesperson[]>(initialSalespeople);
+  const [teamMembers, setTeamMembers] = useState<TeamMember[] | null>(null);
+  const [individualTargets, setIndividualTargets] = useState<
+    Record<string, CompanyTargets>
+  >({});
   const [selection, setSelection] = useState<TargetPeriodSelection>(
     defaultSelectionFor("month")
+  );
+
+  const people = useMemo(
+    () => mergeTargetPeople(teamMembers ?? [], individualTargets),
+    [teamMembers, individualTargets]
   );
 
   useEffect(() => {
@@ -82,6 +111,15 @@ export default function TargetsPage() {
       .then(setCompanyTargets)
       .catch((error: Error) => toast.error(error.message))
       .finally(() => setTargetsLoading(false));
+
+    Promise.all([fetchTeamMembers(), fetchIndividualTargets(currentYear)])
+      .then(([team, targets]) => {
+        setTeamMembers(team);
+        setIndividualTargets(targets);
+      })
+      .catch((error: Error) =>
+        toast.error(error.message ?? "Couldn't load the team")
+      );
   }, []);
 
   async function handleSaveCompanyTargets(values: {
@@ -143,52 +181,98 @@ export default function TargetsPage() {
   const monthlyProgressPct = monthlyTarget ? (monthlyActual / monthlyTarget) * 100 : 0;
   const monthlyRemaining = Math.max(monthlyTarget - monthlyActual, 0);
 
-  function updatePersonTarget(
+  async function updatePersonTarget(
     id: string,
     values: { monthlyTarget: number; yearlyTarget: number }
   ) {
-    setPeople((prev) =>
-      prev.map((person) =>
-        person.id === id ? { ...person, ...values } : person
-      )
-    );
+    try {
+      await saveIndividualTarget(id, currentYear, currentMonthNumber, values);
+      setIndividualTargets((prev) => ({
+        ...prev,
+        [id]: {
+          yearlyTarget: values.yearlyTarget,
+          monthlyTargets: {
+            ...(prev[id]?.monthlyTargets ?? {}),
+            [currentMonthNumber]: values.monthlyTarget,
+          },
+        },
+      }));
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Couldn't save target"
+      );
+      throw error;
+    }
   }
 
   if (!admin) {
-    // The sales pipeline data below is still mock-data (not yet migrated to
-    // Supabase), so bridge the real signed-in profile to a mock salesperson
-    // by email; falls back to the first rep if there's no match.
-    const mine =
-      people.find((person) => person.email === profile?.email) ?? people[0];
+    const mine = teamMembers
+      ? people.find((person) => person.id === profile?.id)
+      : undefined;
+
+    if (teamMembers && !mine) {
+      return (
+        <div className="space-y-6">
+          <Reveal>
+            <PageHeader title="My Targets" />
+          </Reveal>
+          <Reveal delay={0.05}>
+            <p className="text-sm text-text-tertiary">
+              No targets have been assigned to you yet. Contact your
+              administrator.
+            </p>
+          </Reveal>
+        </div>
+      );
+    }
 
     return (
       <div className="space-y-6">
         <Reveal>
           <PageHeader
             title="My Targets"
-            description={`Monthly and yearly goals for ${mine.name}`}
+            description={
+              mine ? `Monthly and yearly goals for ${mine.name}` : undefined
+            }
           />
         </Reveal>
 
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-6">
-          <Reveal delay={0.05}>
-            <RadialTarget
-              label="Yearly Target"
-              current={mine.yearlySales}
-              target={mine.yearlyTarget}
-              progressPct={(mine.yearlySales / mine.yearlyTarget) * 100}
-            />
-          </Reveal>
-          <Reveal delay={0.1}>
-            <MonthlyTargetCard
-              label="Monthly Target"
-              monthLabel={company.currentMonthLabel}
-              current={mine.monthlySales}
-              target={mine.monthlyTarget}
-              remaining={Math.max(mine.monthlyTarget - mine.monthlySales, 0)}
-              progressPct={(mine.monthlySales / mine.monthlyTarget) * 100}
-            />
-          </Reveal>
+          {!mine ? (
+            <>
+              <Skeleton className="h-48 w-full rounded-2xl" />
+              <Skeleton className="h-48 w-full rounded-2xl" />
+            </>
+          ) : (
+            <>
+              <Reveal delay={0.05}>
+                <RadialTarget
+                  label="Yearly Target"
+                  current={mine.yearlySales}
+                  target={mine.yearlyTarget}
+                  progressPct={
+                    mine.yearlyTarget
+                      ? (mine.yearlySales / mine.yearlyTarget) * 100
+                      : 0
+                  }
+                />
+              </Reveal>
+              <Reveal delay={0.1}>
+                <MonthlyTargetCard
+                  label="Monthly Target"
+                  monthLabel={company.currentMonthLabel}
+                  current={mine.monthlySales}
+                  target={mine.monthlyTarget}
+                  remaining={Math.max(mine.monthlyTarget - mine.monthlySales, 0)}
+                  progressPct={
+                    mine.monthlyTarget
+                      ? (mine.monthlySales / mine.monthlyTarget) * 100
+                      : 0
+                  }
+                />
+              </Reveal>
+            </>
+          )}
         </div>
 
         <Reveal delay={0.15}>
@@ -293,14 +377,32 @@ export default function TargetsPage() {
               <TargetPeriodSelector selection={selection} onChange={setSelection} />
             </div>
 
-            <TargetAllocation people={people} selection={selection} />
+            {teamMembers === null ? (
+              <>
+                <Skeleton className="h-64 w-full rounded-2xl" />
+                <Skeleton className="h-72 w-full rounded-2xl" />
+              </>
+            ) : people.length === 0 ? (
+              <div className="glass-panel rounded-2xl p-8 text-center">
+                <p className="text-sm font-medium text-foreground">
+                  No sales representatives yet
+                </p>
+                <p className="mx-auto mt-1 max-w-sm text-sm text-text-tertiary">
+                  Add your first team member from Settings → Team & Access to
+                  assign them a target.
+                </p>
+              </div>
+            ) : (
+              <>
+                <TargetAllocation people={people} selection={selection} />
 
-            <SalespersonTargetTable
-              people={people}
-              selection={selection}
-              year={currentYear}
-              onSave={updatePersonTarget}
-            />
+                <SalespersonTargetTable
+                  people={people}
+                  selection={selection}
+                  onSave={updatePersonTarget}
+                />
+              </>
+            )}
           </TabsPanel>
         </Tabs>
       </Reveal>

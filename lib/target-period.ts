@@ -2,17 +2,29 @@ import {
   rankingMonths,
   companyMonthlyTotal,
   companyYearlyTotal,
-  salesForPeriod,
-  type Salesperson,
 } from "@/lib/mock-data";
-import { seasonalTarget } from "@/lib/sales-analytics";
 
 /**
- * "Target Period" logic for the /targets page's Individual tab. Company and
- * per-person actuals still come from the mock revenueSeries/seasonal curve
- * (see lib/sales-analytics.ts's doc comment) — real per-month history only
- * exists for company targets in Supabase, not company/rep actual sales yet.
+ * "Target Period" logic for the /targets page's Individual tab. Company
+ * actuals still come from the mock revenueSeries/seasonal curve (see
+ * lib/sales-analytics.ts's doc comment) — real per-month history only exists
+ * for targets (company and, since fetchIndividualTargets, individual) in
+ * Supabase, not actual sales yet.
  */
+
+/** A real salesperson plus their fetched individual targets — see fetchIndividualTargets in lib/supabase/targets.ts. Sales figures are 0 until the appointments/quotations/deals/invoices workflow exists. */
+export type TargetPerson = {
+  id: string;
+  name: string;
+  role: string;
+  initials: string;
+  monthlySales: number;
+  monthlyTarget: number;
+  yearlySales: number;
+  yearlyTarget: number;
+  /** Month number (1–12) → target amount. */
+  monthlyTargets: Record<number, number>;
+};
 export type TargetPeriodType = "year" | "quarter" | "month" | "custom";
 
 export const targetPeriodTypeOptions: { value: TargetPeriodType; label: string }[] = [
@@ -38,6 +50,10 @@ export const MONTH_NUMBERS: Record<string, number> = {
 };
 
 const fullYearMonths = Object.keys(MONTH_NUMBERS);
+
+/** The most recent month the mock company timeline has data for — stands in for "today" across the app (see lib/mock-data.ts's currentYear). */
+export const currentMonthLabel = rankingMonths[rankingMonths.length - 1];
+export const currentMonthNumber = MONTH_NUMBERS[currentMonthLabel];
 
 export type QuarterValue = "Q1" | "Q2" | "Q3" | "Q4";
 
@@ -141,24 +157,17 @@ export function companyTargetForSelection(
 }
 
 export function personTargetForSelection(
-  person: Salesperson,
+  person: TargetPerson,
   selection: TargetPeriodSelection
 ): number {
   if (selection.type === "year") return person.yearlyTarget;
-  return monthsForSelection(selection).reduce(
-    (sum, month) => sum + seasonalTarget(person.monthlyTarget, month),
-    0
-  );
+  return monthsForSelection(selection).reduce((sum, month) => {
+    const num = MONTH_NUMBERS[month];
+    return sum + (num ? (person.monthlyTargets[num] ?? 0) : 0);
+  }, 0);
 }
 
-export function personActualForSelection(
-  person: Salesperson,
-  selection: TargetPeriodSelection,
-  year: number
-): number {
-  if (selection.type === "year") return person.yearlySales;
-  return monthsForSelection(selection).reduce(
-    (sum, month) => sum + salesForPeriod(person, year, month),
-    0
-  );
+/** Always 0 — real per-rep sales require appointments/quotations/deals/invoices data, which doesn't exist yet (see lib/supabase/team.ts). */
+export function personActualForSelection(): number {
+  return 0;
 }

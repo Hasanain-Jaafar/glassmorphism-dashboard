@@ -259,6 +259,7 @@ export function needsAttention(period: Period): AttentionEntry[] {
     );
 }
 
+/** Shared with the Team page's real (non-mock) Salesperson Comparison rows — see realComparisonRows in app/(dashboard)/team/page.tsx. */
 export type ComparisonRow = {
   id: string;
   name: string;
@@ -270,22 +271,3 @@ export type ComparisonRow = {
   deals: number;
   conversionRate: number;
 };
-
-export function comparisonRows(period: Period): ComparisonRow[] {
-  return salespeople
-    .map((person) => {
-      const overview = overviewForPerson(person, period);
-      return {
-        id: person.id,
-        name: person.name,
-        initials: person.initials,
-        sales: overview.totalSales,
-        target: overview.target,
-        achievementPct: overview.achievementPct,
-        deals: overview.dealsClosed,
-        conversionRate: overview.conversionRate,
-      };
-    })
-    .sort((a, b) => b.sales - a.sales)
-    .map((row, index) => ({ ...row, rank: index + 1 }));
-}

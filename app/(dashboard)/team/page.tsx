@@ -31,16 +31,21 @@ import {
   computeRanking,
   type TeamMember,
 } from "@/lib/supabase/team";
-import { salespeople } from "@/lib/mock-data";
+import { salespeople, currentYear } from "@/lib/mock-data";
 import {
   periodOptions,
   getOverview,
   trendFor,
   funnelFor,
   needsAttention,
-  comparisonRows,
   type Period,
+  type ComparisonRow,
 } from "@/lib/sales-analytics";
+import { currentMonthNumber } from "@/lib/target-period";
+import {
+  fetchIndividualTargets,
+  type CompanyTargets,
+} from "@/lib/supabase/targets";
 import { formatUSD, formatPercent } from "@/lib/format";
 
 const teamTabs = ["kpi", "team", "rankings", "all"] as const;
@@ -50,13 +55,72 @@ function isTeamTab(value: string | null): value is TeamTab {
   return (teamTabs as readonly string[]).includes(value ?? "");
 }
 
+/** The month numbers a KPI period covers — empty for "year" (handled as the yearly target directly). */
+function monthsForPeriod(period: Period): number[] {
+  if (period === "year") return [];
+  if (period === "month") return [currentMonthNumber];
+  const quarterStart = Math.floor((currentMonthNumber - 1) / 3) * 3 + 1;
+  return Array.from(
+    { length: currentMonthNumber - quarterStart + 1 },
+    (_, i) => quarterStart + i
+  );
+}
+
+/**
+ * Real Salesperson Comparison rows: every active sales rep (not just the
+ * mock roster's 7), with real individual targets. Sales/deals/conversion
+ * are 0 until the appointments/quotations/deals/invoices workflow exists —
+ * see lib/supabase/team.ts.
+ */
+function realComparisonRows(
+  team: TeamMember[],
+  targets: Record<string, CompanyTargets>,
+  period: Period
+): ComparisonRow[] {
+  const months = monthsForPeriod(period);
+  return team
+    .filter((member) => member.role === "sales_rep")
+    .map((member) => {
+      const personTargets = targets[member.id] ?? {
+        yearlyTarget: 0,
+        monthlyTargets: {},
+      };
+      const target =
+        period === "year"
+          ? personTargets.yearlyTarget
+          : months.reduce(
+              (sum, month) => sum + (personTargets.monthlyTargets[month] ?? 0),
+              0
+            );
+      return {
+        id: member.id,
+        name: member.name,
+        initials: member.initials,
+        rank: 0,
+        sales: 0,
+        target,
+        achievementPct: 0,
+        deals: 0,
+        conversionRate: 0,
+      };
+    })
+    .sort((a, b) => b.target - a.target)
+    .map((row, index) => ({ ...row, rank: index + 1 }));
+}
+
 export default function TeamPage() {
   const [people, setPeople] = useState<TeamMember[] | null>(null);
+  const [individualTargets, setIndividualTargets] = useState<
+    Record<string, CompanyTargets>
+  >({});
 
   useEffect(() => {
     fetchTeamMembers()
       .then(setPeople)
       .catch((err) => toast.error(err.message ?? "Couldn't load the team"));
+    fetchIndividualTargets(currentYear)
+      .then(setIndividualTargets)
+      .catch((err) => toast.error(err.message ?? "Couldn't load targets"));
   }, []);
 
   const searchParams = useSearchParams();
@@ -140,7 +204,10 @@ export default function TeamPage() {
       ? entries
       : entries.filter((entry) => entry.person.id === kpiPersonId);
   }, [kpiPersonId, period]);
-  const comparison = useMemo(() => comparisonRows(period), [period]);
+  const comparison = useMemo(
+    () => realComparisonRows(people ?? [], individualTargets, period),
+    [people, individualTargets, period]
+  );
 
   const kpiRemaining = Math.max(overview.target - overview.totalSales, 0);
 

@@ -13,11 +13,11 @@ import type { SortingState } from "@tanstack/react-table";
 import { ArrowDown, ArrowUp, ChevronsUpDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { EditTargetDialog } from "@/components/sales/edit-target-dialog";
-import type { Salesperson } from "@/lib/mock-data";
 import {
   personActualForSelection,
   personTargetForSelection,
   type TargetPeriodSelection,
+  type TargetPerson,
 } from "@/lib/target-period";
 import {
   getTargetStatus,
@@ -46,7 +46,7 @@ const features = tableFeatures({
 
 const columnHelper = createColumnHelper<typeof features, TargetRow>();
 
-function buildColumns(people: Salesperson[], onSave: (id: string, values: { monthlyTarget: number; yearlyTarget: number }) => void) {
+function buildColumns(people: TargetPerson[], onSave: (id: string, values: { monthlyTarget: number; yearlyTarget: number }) => void) {
   return columnHelper.columns([
     columnHelper.accessor("name", {
       header: "Salesperson",
@@ -153,12 +153,10 @@ function buildColumns(people: Salesperson[], onSave: (id: string, values: { mont
 export function SalespersonTargetTable({
   people,
   selection,
-  year,
   onSave,
 }: {
-  people: Salesperson[];
+  people: TargetPerson[];
   selection: TargetPeriodSelection;
-  year: number;
   onSave: (id: string, values: { monthlyTarget: number; yearlyTarget: number }) => void;
 }) {
   const [sorting, setSorting] = useState<SortingState>([
@@ -167,7 +165,7 @@ export function SalespersonTargetTable({
 
   const data: TargetRow[] = people.map((person) => {
     const target = personTargetForSelection(person, selection);
-    const actual = personActualForSelection(person, selection, year);
+    const actual = personActualForSelection();
     return {
       id: person.id,
       name: person.name,

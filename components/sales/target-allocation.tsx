@@ -1,13 +1,16 @@
 import { ChartCard } from "@/components/dashboard/chart-card";
 import { SalespersonRankChart, type RankedPerson } from "@/components/charts/salesperson-chart";
-import type { Salesperson } from "@/lib/mock-data";
-import { personTargetForSelection, type TargetPeriodSelection } from "@/lib/target-period";
+import {
+  personTargetForSelection,
+  type TargetPeriodSelection,
+  type TargetPerson,
+} from "@/lib/target-period";
 
 export function TargetAllocation({
   people,
   selection,
 }: {
-  people: Salesperson[];
+  people: TargetPerson[];
   selection: TargetPeriodSelection;
 }) {
   const withTargets = people.map((person) => ({

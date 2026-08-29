@@ -34,7 +34,9 @@ export async function fetchCompanyTargets(year: number): Promise<CompanyTargets>
   };
 }
 
-async function upsertCompanyTarget(
+async function upsertTarget(
+  targetType: "company" | "individual",
+  salespersonId: string | null,
   periodType: "yearly" | "monthly",
   year: number,
   month: number | null,
@@ -45,10 +47,13 @@ async function upsertCompanyTarget(
   let query = supabase
     .from("targets")
     .select("id")
-    .eq("target_type", "company")
+    .eq("target_type", targetType)
     .eq("period_type", periodType)
-    .eq("year", year)
-    .is("salesperson_id", null);
+    .eq("year", year);
+  query =
+    salespersonId === null
+      ? query.is("salesperson_id", salespersonId)
+      : query.eq("salesperson_id", salespersonId);
   query = month === null ? query.is("month", month) : query.eq("month", month);
 
   const { data: existing, error: selectError } = await query.maybeSingle();
@@ -62,8 +67,9 @@ async function upsertCompanyTarget(
     if (error) throw error;
   } else {
     const { error } = await supabase.from("targets").insert({
-      target_type: "company",
+      target_type: targetType,
       period_type: periodType,
+      salesperson_id: salespersonId,
       year,
       month,
       amount,
@@ -77,6 +83,58 @@ export async function saveCompanyTargets(
   month: number,
   values: { yearlyTarget: number; monthlyTarget: number }
 ): Promise<void> {
-  await upsertCompanyTarget("yearly", year, null, values.yearlyTarget);
-  await upsertCompanyTarget("monthly", year, month, values.monthlyTarget);
+  await upsertTarget("company", null, "yearly", year, null, values.yearlyTarget);
+  await upsertTarget("company", null, "monthly", year, month, values.monthlyTarget);
+}
+
+/** Every individual target row for a year, grouped by salesperson_id — one round trip for the whole Targets → Individual tab (and the Team page's Salesperson Comparison). */
+export async function fetchIndividualTargets(
+  year: number
+): Promise<Record<string, CompanyTargets>> {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("targets")
+    .select("salesperson_id, period_type, amount, month")
+    .eq("target_type", "individual")
+    .eq("year", year);
+  if (error) throw error;
+
+  const byPerson: Record<string, CompanyTargets> = {};
+  for (const row of data ?? []) {
+    if (!row.salesperson_id) continue;
+    const entry = (byPerson[row.salesperson_id] ??= {
+      yearlyTarget: 0,
+      monthlyTargets: {},
+    });
+    if (row.period_type === "yearly") {
+      entry.yearlyTarget = Number(row.amount);
+    } else if (row.period_type === "monthly" && row.month != null) {
+      entry.monthlyTargets[row.month] = Number(row.amount);
+    }
+  }
+  return byPerson;
+}
+
+export async function saveIndividualTarget(
+  salespersonId: string,
+  year: number,
+  month: number,
+  values: { yearlyTarget: number; monthlyTarget: number }
+): Promise<void> {
+  await upsertTarget(
+    "individual",
+    salespersonId,
+    "yearly",
+    year,
+    null,
+    values.yearlyTarget
+  );
+  await upsertTarget(
+    "individual",
+    salespersonId,
+    "monthly",
+    year,
+    month,
+    values.monthlyTarget
+  );
 }

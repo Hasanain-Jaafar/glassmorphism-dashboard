@@ -67,15 +67,19 @@ Accounts created from Settings → Team & Access are created with
 ## What's live vs. still mock data
 
 Live in Supabase: **profiles/accounts** (Settings → Team & Access), **products**
-(Products page), **company targets** (Targets → Company tab), and
+(Products page), **company and individual targets** (Targets → Company and
+Individual tabs, and the Team page's Salesperson Comparison table), and
 **notifications** (bell + Settings → Notifications) — though only 3 of its 6
 event types actually fire yet (coaching notes, appointments, deals won), since
 `appointments`/`quotations`/`deals`/`invoices` have no UI to create rows in
 them (see below), so those triggers are dormant until that workflow ships.
 
-Still mock data in `lib/mock-data.ts`: individual (per-rep) targets, and all
-sales performance numbers (monthly/yearly sales, closed deals, conversion,
-avg deal) shown on the Team page — those require real `appointments` /
-`quotations` / `deals` / `invoices` rows, and there's no UI yet to create
-them. New sales reps you add will show up with real identities everywhere,
-just with $0 / 0 performance stats until that workflow is built.
+Still mock data in `lib/mock-data.ts`: all sales performance numbers
+(monthly/yearly sales, closed deals, conversion, avg deal) shown on the Team
+page — those require real `appointments` / `quotations` / `deals` /
+`invoices` rows, and there's no UI yet to create them. New sales reps you add
+show up with real identities and real targets everywhere, just with $0 / 0
+performance stats until that workflow is built. The Team page's KPI tab
+(person filter, Sales Trend/Funnel/Needs Attention) is the one place still
+fully on the mock 7-person roster — it's driven by `lib/sales-analytics.ts`,
+which hasn't been migrated yet.
