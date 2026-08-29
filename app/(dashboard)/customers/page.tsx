@@ -74,9 +74,9 @@ export default function CustomersPage() {
       });
     fetchTeamMembers()
       .then((team) => setSalespeople(team.filter((m) => m.role === "sales_rep")))
-      .catch(() => {
-        // Assignment dropdown just degrades to empty.
-      });
+      .catch((err) =>
+        toast.error(err.message ?? "Couldn't load salespeople")
+      );
   }, [isAdmin]);
 
   const [search, setSearch] = useState("");
@@ -312,11 +312,17 @@ export default function CustomersPage() {
               </SelectTrigger>
               <SelectContent align="end">
                 <SelectItem value={ALL}>All Salespeople</SelectItem>
-                {salespeople.map((person) => (
-                  <SelectItem key={person.id} value={person.id}>
-                    {person.name}
-                  </SelectItem>
-                ))}
+                {salespeople.length === 0 ? (
+                  <p className="px-2 py-1.5 text-xs text-text-tertiary">
+                    No sales representatives yet
+                  </p>
+                ) : (
+                  salespeople.map((person) => (
+                    <SelectItem key={person.id} value={person.id}>
+                      {person.name}
+                    </SelectItem>
+                  ))
+                )}
               </SelectContent>
             </Select>
 
