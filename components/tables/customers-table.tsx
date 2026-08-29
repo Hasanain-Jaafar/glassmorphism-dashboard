@@ -237,7 +237,7 @@ export function CustomersTable({
   });
 
   return (
-    <div className="glass-panel overflow-hidden rounded-2xl shadow-sm">
+    <div className="glass-panel overflow-hidden rounded-md shadow-sm">
       <div className="overflow-x-auto">
         <table className="w-full min-w-[1260px] text-sm">
           <thead>
