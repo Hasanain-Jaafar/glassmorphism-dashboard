@@ -4,6 +4,7 @@ import {
   LabelList,
   PolarAngleAxis,
   PolarGrid,
+  PolarRadiusAxis,
   Radar,
   RadarChart,
   ResponsiveContainer,
@@ -19,12 +20,15 @@ export function TeamHealthRadar({ data }: { data: TeamHealthAxis[] }) {
   return (
     <div className="h-[220px] w-full sm:h-[240px]">
       <ResponsiveContainer width="100%" height="100%">
-        <RadarChart data={data} outerRadius="65%">
+        <RadarChart data={data} outerRadius="50%">
           <PolarGrid stroke="var(--foreground)" strokeOpacity={0.08} />
           <PolarAngleAxis
             dataKey="axis"
             tick={{ fill: "var(--text-tertiary)", fontSize: 11 }}
           />
+          {/* headroom above 100 keeps a maxed-out value's vertex/label from
+           * landing on top of the axis category label at the outer edge */}
+          <PolarRadiusAxis domain={[0, 145]} tick={false} axisLine={false} />
           <Radar
             dataKey="value"
             stroke="var(--primary)"
@@ -37,6 +41,7 @@ export function TeamHealthRadar({ data }: { data: TeamHealthAxis[] }) {
             <LabelList
               dataKey="value"
               position="outside"
+              offset={14}
               fill="var(--foreground)"
               fontSize={12}
               fontWeight={600}
