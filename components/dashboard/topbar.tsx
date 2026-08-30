@@ -54,13 +54,16 @@ export function Topbar() {
           aria-label="AI Brain"
           className="flex size-9 items-center justify-center rounded-xl text-warning transition-colors hover:bg-warning/10"
         >
-          <Brain className="size-[18px]" />
+          <Brain className="size-[23px]" />
         </button>
       )}
 
       <NotificationBell />
 
-      <ThemeToggle className="flex size-9 items-center justify-center rounded-xl text-text-secondary hover:bg-foreground/[0.04]" />
+      <ThemeToggle
+        className="flex size-9 items-center justify-center rounded-xl text-text-secondary hover:bg-foreground/[0.04]"
+        iconClassName="size-[23px]"
+      />
 
       <DropdownMenu>
         <DropdownMenuTrigger

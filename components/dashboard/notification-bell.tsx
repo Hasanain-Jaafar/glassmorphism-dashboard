@@ -92,7 +92,7 @@ export function NotificationBell() {
           />
         }
       >
-        <Bell className="size-[18px]" />
+        <Bell className="size-[23px]" />
         {unreadCount > 0 && (
           <span className="absolute top-1.5 right-1.5 flex size-4 items-center justify-center rounded-full bg-primary text-[10px] font-semibold text-primary-foreground">
             {unreadCount > 9 ? "9+" : unreadCount}
