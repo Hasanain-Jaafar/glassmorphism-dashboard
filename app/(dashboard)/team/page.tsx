@@ -3,7 +3,14 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
-import { Gauge, Table2, Settings as SettingsIcon } from "lucide-react";
+import {
+  Gauge,
+  Table2,
+  Settings as SettingsIcon,
+  Wallet,
+  Handshake,
+  CircleDollarSign,
+} from "lucide-react";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { MetricCard } from "@/components/dashboard/metric-card";
 import { ChartCard } from "@/components/dashboard/chart-card";
@@ -219,16 +226,22 @@ export default function TeamPage() {
                     label="Team Sales"
                     value={formatUSD(stats.monthlySalesTotal)}
                     footnote={`This month · of ${formatUSD(stats.monthlyTargetTotal)} target`}
+                    icon={Wallet}
+                    tone="primary"
                   />
                   <MetricCard
                     label="Closed Deals"
                     value={String(stats.closedDealsTotal)}
                     footnote="This month, across the team"
+                    icon={Handshake}
+                    tone="success"
                   />
                   <MetricCard
                     label="Avg. Deal Size"
                     value={formatUSD(avgDealSize)}
                     footnote="This month, per deal"
+                    icon={CircleDollarSign}
+                    tone="cyan"
                   />
                 </div>
 
