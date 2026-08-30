@@ -18,6 +18,7 @@ import {
   fetchTeamMembersServer,
   fetchCompanyTargetsServer,
   fetchIndividualTargetsServer,
+  fetchKnowledgeBaseServer,
   type ServerSupabase,
 } from "@/lib/ai/data";
 
@@ -28,7 +29,7 @@ export type AssistantToolContext = {
 };
 
 /**
- * 4 read-only tools the assistant can call, each scoped by Postgres RLS via
+ * 5 read-only tools the assistant can call, each scoped by Postgres RLS via
  * the request's own Supabase server client — a sales rep's tool calls only
  * ever see their own rows, an admin's see everyone's, exactly like the rest
  * of the dashboard. `year`/`month` follow the same "current period" the rest
@@ -239,5 +240,27 @@ export function buildAssistantTools(ctx: AssistantToolContext) {
     },
   });
 
-  return [getPerformanceSummary, getTeamRanking, getPipelineStats, getTargetProgress];
+  const getKnowledgeBase = betaZodTool({
+    name: "get_knowledge_base",
+    description:
+      "Company documents an admin has uploaded — policies, playbooks, product info. Call this for questions the other tools can't answer with live sales data, e.g. \"what's our discount policy?\" or \"how do we handle price objections?\".",
+    inputSchema: z.object({}),
+    run: async () => {
+      const docs = await fetchKnowledgeBaseServer(supabase);
+      if (docs.length === 0) {
+        return "No documents have been uploaded to the knowledge base yet.";
+      }
+      return docs
+        .map((doc) => `# ${doc.title}\n\n${doc.content}`)
+        .join("\n\n---\n\n");
+    },
+  });
+
+  return [
+    getPerformanceSummary,
+    getTeamRanking,
+    getPipelineStats,
+    getTargetProgress,
+    getKnowledgeBase,
+  ];
 }

@@ -15,6 +15,7 @@ import {
 import { ProfileSection } from "@/components/settings/profile-section";
 import { NotificationsSection } from "@/components/settings/notifications-section";
 import { AiAssistantSection } from "@/components/settings/ai-assistant-section";
+import { KnowledgeBaseSection } from "@/components/settings/knowledge-base-section";
 import { CompanyDefaultsSection } from "@/components/settings/company-defaults-section";
 import { useAuth } from "@/components/providers/auth-provider";
 
@@ -92,8 +93,9 @@ export default function SettingsPage() {
           </TabsPanel>
 
           {admin && (
-            <TabsPanel value="assistant">
+            <TabsPanel value="assistant" className="space-y-6">
               <AiAssistantSection />
+              <KnowledgeBaseSection />
             </TabsPanel>
           )}
 

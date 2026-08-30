@@ -157,6 +157,20 @@ export async function fetchCompanyTargetsServer(
   return { yearlyTarget: yearly ? Number(yearly.amount) : 0, monthlyTargets };
 }
 
+export type KnowledgeBaseDocumentContent = { title: string; content: string };
+
+/** Admin-only via RLS — a rep's session (were it ever used here) would just get an empty array. */
+export async function fetchKnowledgeBaseServer(
+  supabase: ServerSupabase
+): Promise<KnowledgeBaseDocumentContent[]> {
+  const { data, error } = await supabase
+    .from("knowledge_base_documents")
+    .select("title, content")
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return data ?? [];
+}
+
 /** RLS scopes this to the caller's own rows for a rep, everyone's for an admin. */
 export async function fetchIndividualTargetsServer(
   supabase: ServerSupabase,

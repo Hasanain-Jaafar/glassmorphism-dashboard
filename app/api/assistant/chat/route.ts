@@ -30,6 +30,7 @@ function systemPrompt(name: string, role: UserRole, customInstructions: string |
     `The current business period is ${period} — use this when a question doesn't name a specific month or year.`,
     `Rules:`,
     `- For any question about sales figures, targets, pipeline, or team performance, always call the relevant tool first. Never guess or invent numbers.`,
+    `- For questions about company policy, product info, or playbooks (things the other tools wouldn't know), call get_knowledge_base before answering — don't guess at policy details.`,
     `- Ground every suggestion in the data a tool just returned — cite specific figures rather than giving generic advice.`,
     `- Be concise: short paragraphs or a few bullet points, not long essays.`,
     `- The chat UI renders plain text only, not markdown — never use **bold**, #headers, or markdown tables. For lists, start each line with "- " (a dash and a space); for emphasis, just say it plainly instead of styling it.`,

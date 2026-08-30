@@ -90,6 +90,13 @@ In `supabase/migrations/`, run each file in filename order:
     `deals_target` (nullable ints) to `targets`, for the Targets →
     Individual tab's per-rep edit dialog. Reuses the existing target row/RLS
     model — no new table or policies.
+23. `20260101000023_knowledge_base.sql` — a private `knowledge-base` Storage
+    bucket and `knowledge_base_documents` table backing AI Brain's knowledge
+    base (Settings → AI Brain, admin-only both via RLS and app-level gating).
+    PDFs are uploaded through `app/api/admin/knowledge-base/route.ts`, which
+    extracts text once at upload time (via the `unpdf` package) and caches it
+    in `content` — a scanned/image-only PDF with no text layer will upload
+    fine but contribute nothing usable to AI Brain (no OCR).
 
 ## 2. Seed baseline data (optional)
 
@@ -140,9 +147,10 @@ trigger-backed on insert/update; target reached, quotation expiring, and the
 weekly summary are backed by migration 18's trigger + `pg_cron` jobs (see
 migration 18's note above — `pg_cron` must be enabled on the project for the
 latter two), and **AI Brain** (`/assistant`, admin-only — Settings → AI Brain
-for its per-user custom instructions), which calls 4 read-only tools
-(`lib/ai/tools.ts`) backed by the same real aggregates the rest of the
-dashboard uses, via the Claude API (requires `ANTHROPIC_API_KEY`).
+for its per-user custom instructions and its knowledge base), which calls 5
+read-only tools (`lib/ai/tools.ts`) — 4 backed by the same real aggregates
+the rest of the dashboard uses, plus a 5th reading admin-uploaded knowledge
+base PDFs — via the Claude API (requires `ANTHROPIC_API_KEY`).
 
 The Dashboard, Team (KPI + All Salespeople tabs), Targets (Company tab and
 the Individual tab's monthlySales/yearlySales columns), and Customers pages
