@@ -11,7 +11,7 @@ import { createClient } from "@/lib/supabase/client";
 const MAX_LENGTH = 1000;
 
 /**
- * Persistent, per-user instructions the AI Assistant includes on every chat
+ * Persistent, per-user instructions AI Brain includes on every chat
  * — the same idea as ChatGPT's "Custom Instructions". Stored on
  * profiles.custom_instructions (own-row RLS already covers it) and read by
  * app/api/assistant/chat/route.ts's systemPrompt().
@@ -61,10 +61,10 @@ export function AiAssistantSection() {
   return (
     <div className="glass-panel rounded-2xl p-5 shadow-sm sm:p-6">
       <h3 className="text-sm font-semibold text-foreground sm:text-base">
-        AI Assistant
+        AI Brain
       </h3>
       <p className="mt-0.5 text-xs text-text-tertiary">
-        Instructions the assistant should always keep in mind, in every conversation.
+        Instructions AI Brain should always keep in mind, in every conversation.
       </p>
 
       <div className="mt-5 space-y-2">

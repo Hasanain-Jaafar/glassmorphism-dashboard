@@ -1,5 +1,5 @@
 -- ============================================================================
--- AI Assistant — per-user chat history for the /assistant page. Private by
+-- AI Brain — per-user chat history for the /assistant page. Private by
 -- design: every policy is scoped to auth.uid(), so even an admin only ever
 -- sees their own conversations, never a team-wide chat log.
 -- ============================================================================

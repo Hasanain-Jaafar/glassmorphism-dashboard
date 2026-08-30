@@ -124,7 +124,7 @@ export default function AssistantPage() {
     <div className="space-y-6">
       <Reveal>
         <PageHeader
-          title="AI Assistant"
+          title="AI Brain"
           description="Ask about your pipeline, targets, or team performance"
         />
       </Reveal>

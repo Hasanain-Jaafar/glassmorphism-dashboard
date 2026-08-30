@@ -33,7 +33,7 @@ export const navGroups: NavGroup[] = [
     label: "Overview",
     items: [
       { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard, enabled: true },
-      { label: "AI Assistant", href: "/assistant", icon: Sparkles, enabled: true },
+      { label: "AI Brain", href: "/assistant", icon: Sparkles, enabled: true },
     ],
   },
   {

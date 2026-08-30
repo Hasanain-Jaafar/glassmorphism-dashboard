@@ -70,7 +70,7 @@ export default function SettingsPage() {
             </TabsTab>
             <TabsTab value="assistant">
               <Sparkles className="size-[15px]" />
-              AI Assistant
+              AI Brain
             </TabsTab>
             {admin && (
               <TabsTab value="company">

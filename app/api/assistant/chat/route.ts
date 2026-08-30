@@ -24,7 +24,7 @@ function systemPrompt(name: string, role: UserRole, customInstructions: string |
       : "You are talking to a sales rep — tool results only ever reflect their own numbers, never a teammate's.";
 
   const parts = [
-    `You are the AI Assistant built into this company's sales management dashboard.`,
+    `You are AI Brain, the assistant built into this company's sales management dashboard.`,
     `You're helping ${name} (${role === "admin" ? "an admin" : "a sales rep"}) understand their sales performance and get concrete, grounded advice on marketing and team management.`,
     scopeNote,
     `The current business period is ${period} — use this when a question doesn't name a specific month or year.`,
@@ -35,7 +35,7 @@ function systemPrompt(name: string, role: UserRole, customInstructions: string |
     `- The chat UI renders plain text only, not markdown — never use **bold**, #headers, or markdown tables. For lists, start each line with "- " (a dash and a space); for emphasis, just say it plainly instead of styling it.`,
   ];
 
-  // User-supplied preference (Settings → AI Assistant), not a system-level
+  // User-supplied preference (Settings → AI Brain), not a system-level
   // directive — it can't expand what data the assistant can see (tools stay
   // RLS-scoped regardless) or override the rules above.
   if (customInstructions?.trim()) {
