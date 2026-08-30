@@ -59,6 +59,19 @@ In `supabase/migrations/`, run each file in filename order:
     (composite with `sales_rep_id`) on appointments/quotations/deals/invoices,
     which migration 13's RLS policy filters on but the original schema never
     indexed. Performance fix — safe to run any time.
+18. `20260101000018_target_quotation_weekly_notifications.sql` — wires up the
+    3 notification types that migration 10 only added as preference columns:
+    `target_reached` (trigger on `invoices`, fires the moment a paid invoice
+    pushes a rep's or the company's monthly/yearly actual past its target —
+    deduped via a new `target_achievement_notifications` table so it only
+    fires once per period), `quotation_expiring` (daily `pg_cron` job, notifies
+    once when a sent quotation's `valid_until` is within 3 days), and
+    `weekly_summary` (Monday-morning `pg_cron` job recapping the past 7 days —
+    company-wide for admins, personal for reps). **Requires the `pg_cron`
+    extension** — enable it once via Dashboard → Database → Extensions before
+    running this migration, or the two `cron.schedule(...)` calls at the
+    bottom will fail (the `target_reached` trigger doesn't need it and still
+    works on its own).
 
 ## 2. Seed baseline data (optional)
 
@@ -103,12 +116,12 @@ sales pipeline** (`/appointments`, `/quotations`, `/deals`, `/invoices` — a
 rep manages their own, an admin sees everyone's; a quotation's line items
 live in `quotation_items`), **company and individual targets** (Targets →
 Company and Individual tabs, and the Team page's Salesperson Comparison
-table), and **notifications** (bell + Settings → Notifications) — all 3 of
-its trigger-backed event types now fire for real (coaching notes,
-appointments, deals won), since `/appointments` and `/deals` write real rows.
-`target_reached`, `quotation_expiring`, and `weekly_summary` still have no
-trigger — they need threshold/dedup logic or a scheduler this project
-doesn't have yet.
+table), and **notifications** (bell + Settings → Notifications) — all 6 event types
+now fire for real: coaching notes, appointments, and deals won are
+trigger-backed on insert/update; target reached, quotation expiring, and the
+weekly summary are backed by migration 18's trigger + `pg_cron` jobs (see
+migration 18's note above — `pg_cron` must be enabled on the project for the
+latter two).
 
 The Dashboard, Team (KPI + All Salespeople tabs), Targets (Company tab and
 the Individual tab's monthlySales/yearlySales columns), and Customers pages

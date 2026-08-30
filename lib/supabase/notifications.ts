@@ -89,9 +89,9 @@ export async function markNotificationRead(id: string): Promise<void> {
 }
 
 /**
- * Notification preferences. Wired types (real triggers exist):
- * coachingNoteAdded, newAppointment, dealWon. The rest have a column to save
- * into but no trigger yet — see supabase/README.md.
+ * Notification preferences. All 6 types are backed by a real Supabase
+ * trigger or pg_cron job — see supabase/README.md and
+ * 20260101000018_target_quotation_weekly_notifications.sql.
  */
 export type NotificationPreferences = {
   coachingNoteAdded: boolean;

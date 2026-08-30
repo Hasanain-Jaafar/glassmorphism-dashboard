@@ -16,8 +16,6 @@ type PrefRow = {
   label: string;
   description: string;
   adminOnly?: boolean;
-  /** No trigger fires this yet — see supabase/README.md. Still saved for real. */
-  comingSoon?: boolean;
 };
 
 const rows: PrefRow[] = [
@@ -41,19 +39,16 @@ const rows: PrefRow[] = [
     key: "targetReached",
     label: "Target reached",
     description: "When you or your team hit a monthly or yearly target.",
-    comingSoon: true,
   },
   {
     key: "quotationExpiring",
     label: "Quotation expiring",
     description: "When a sent quotation is about to expire.",
-    comingSoon: true,
   },
   {
     key: "weeklySummary",
     label: "Weekly performance summary",
     description: "A recap of team performance every Monday.",
-    comingSoon: true,
   },
 ];
 
@@ -107,14 +102,7 @@ export function NotificationsSection() {
               className="flex items-center justify-between gap-4 py-3.5"
             >
               <div className="min-w-0">
-                <p className="flex items-center gap-2 text-sm font-medium text-foreground">
-                  {row.label}
-                  {row.comingSoon && (
-                    <span className="rounded-full bg-foreground/[0.06] px-1.5 py-0.5 text-[10px] font-medium text-text-tertiary">
-                      Coming soon
-                    </span>
-                  )}
-                </p>
+                <p className="text-sm font-medium text-foreground">{row.label}</p>
                 <p className="mt-0.5 text-xs text-text-tertiary">
                   {row.description}
                 </p>
