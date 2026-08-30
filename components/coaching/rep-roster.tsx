@@ -67,8 +67,17 @@ export function RepRoster({
                     isSelected ? "bg-primary/10" : "hover:bg-foreground/[0.04]"
                   )}
                 >
-                  <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-accent text-xs font-semibold text-accent-foreground">
-                    {person.initials}
+                  <div className="flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-accent text-xs font-semibold text-accent-foreground">
+                    {person.avatarUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={person.avatarUrl}
+                        alt=""
+                        className="size-full object-cover"
+                      />
+                    ) : (
+                      person.initials
+                    )}
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-medium text-foreground">
