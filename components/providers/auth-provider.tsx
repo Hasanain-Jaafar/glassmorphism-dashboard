@@ -23,6 +23,7 @@ export type Profile = {
   is_active: boolean;
   has_car?: boolean;
   start_date?: string | null;
+  custom_instructions?: string | null;
 };
 
 type AuthContextValue = {
@@ -46,7 +47,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const supabase = createClient();
     const { data } = await supabase
       .from("profiles")
-      .select("id, full_name, email, phone, avatar_url, role, is_active")
+      .select(
+        "id, full_name, email, phone, avatar_url, role, is_active, custom_instructions"
+      )
       .eq("id", userId)
       .single();
     setProfile((data as Profile) ?? null);

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { Bell, Building2, User } from "lucide-react";
+import { Bell, Building2, Sparkles, User } from "lucide-react";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Reveal } from "@/components/motion/reveal";
 import {
@@ -14,10 +14,11 @@ import {
 } from "@/components/ui/tabs";
 import { ProfileSection } from "@/components/settings/profile-section";
 import { NotificationsSection } from "@/components/settings/notifications-section";
+import { AiAssistantSection } from "@/components/settings/ai-assistant-section";
 import { CompanyDefaultsSection } from "@/components/settings/company-defaults-section";
 import { useAuth } from "@/components/providers/auth-provider";
 
-const settingsTabs = ["profile", "notifications", "company"] as const;
+const settingsTabs = ["profile", "notifications", "assistant", "company"] as const;
 type SettingsTab = (typeof settingsTabs)[number];
 
 function resolveSettingsTab(tab: string | null, admin: boolean): SettingsTab {
@@ -67,6 +68,10 @@ export default function SettingsPage() {
               <Bell className="size-[15px]" />
               Notifications
             </TabsTab>
+            <TabsTab value="assistant">
+              <Sparkles className="size-[15px]" />
+              AI Assistant
+            </TabsTab>
             {admin && (
               <TabsTab value="company">
                 <Building2 className="size-[15px]" />
@@ -82,6 +87,10 @@ export default function SettingsPage() {
 
           <TabsPanel value="notifications">
             <NotificationsSection />
+          </TabsPanel>
+
+          <TabsPanel value="assistant">
+            <AiAssistantSection />
           </TabsPanel>
 
           {admin && (
