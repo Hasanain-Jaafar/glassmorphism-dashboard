@@ -12,7 +12,6 @@ import {
   FileText,
   Handshake,
   Receipt,
-  Sparkles,
 } from "lucide-react";
 
 export type NavItem = {
@@ -33,7 +32,6 @@ export const navGroups: NavGroup[] = [
     label: "Overview",
     items: [
       { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard, enabled: true },
-      { label: "AI Brain", href: "/assistant", icon: Sparkles, enabled: true, adminOnly: true },
     ],
   },
   {
