@@ -13,6 +13,7 @@ export type TargetPerson = {
   name: string;
   role: string;
   initials: string;
+  avatarUrl: string | null;
   monthlySales: number;
   monthlyTarget: number;
   yearlySales: number;

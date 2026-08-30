@@ -30,6 +30,7 @@ type TargetRow = {
   id: string;
   name: string;
   initials: string;
+  avatarUrl: string | null;
   role: string;
   target: number;
   actual: number;
@@ -53,8 +54,17 @@ function buildColumns(peopleById: Map<string, TargetPerson>, onSave: (id: string
         const row = info.row.original;
         return (
           <div className="flex items-center gap-3">
-            <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-accent text-xs font-semibold text-accent-foreground">
-              {row.initials}
+            <div className="flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-accent text-xs font-semibold text-accent-foreground">
+              {row.avatarUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={row.avatarUrl}
+                  alt=""
+                  className="size-full object-cover"
+                />
+              ) : (
+                row.initials
+              )}
             </div>
             <div className="min-w-0">
               <p className="truncate text-sm font-medium text-foreground">
@@ -179,6 +189,7 @@ export function SalespersonTargetTable({
           id: person.id,
           name: person.name,
           initials: person.initials,
+          avatarUrl: person.avatarUrl,
           role: person.role,
           target,
           actual,

@@ -75,6 +75,7 @@ function mergeTargetPeople(
         name: member.name,
         role: "Sales Representative",
         initials: member.initials,
+        avatarUrl: member.avatarUrl,
         monthlySales: member.monthlySales,
         monthlyTarget: personTargets.monthlyTargets[currentMonthNumber] ?? 0,
         yearlySales: member.yearlySales,
