@@ -214,6 +214,13 @@
   html {
     @apply font-sans;
   }
+  /* Recharts makes its SVG focusable (role="application" tabindex="0") for
+     screen-reader users, but there's no keyboard interaction to support here
+     — that focusability only shows up visually as a stray outline on click. */
+  .recharts-surface:focus,
+  .recharts-surface:focus-visible {
+    outline: none;
+  }
 }
 
 @layer utilities {
