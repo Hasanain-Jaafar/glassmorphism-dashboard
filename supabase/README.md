@@ -86,6 +86,10 @@ In `supabase/migrations/`, run each file in filename order:
     (AI Brain is admin-only). **Required if you run 19 before this** — without
     it, a sales rep could still read/write their own AI Brain rows directly
     via their own Supabase session even though the UI and API route hide it.
+22. `20260101000022_activity_targets.sql` — adds `appointments_target` and
+    `deals_target` (nullable ints) to `targets`, for the Targets →
+    Individual tab's per-rep edit dialog. Reuses the existing target row/RLS
+    model — no new table or policies.
 
 ## 2. Seed baseline data (optional)
 

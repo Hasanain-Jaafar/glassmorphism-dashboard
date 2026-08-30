@@ -20,6 +20,13 @@ export type TargetPerson = {
   yearlyTarget: number;
   /** Month number (1–12) → target amount. */
   monthlyTargets: Record<number, number>;
+  /** Current month only — mirrors monthlyTarget above, for the edit dialog. */
+  monthlyAppointmentsTarget?: number;
+  yearlyAppointmentsTarget?: number;
+  monthlyAppointmentsTargets?: Record<number, number>;
+  monthlyDealsTarget?: number;
+  yearlyDealsTarget?: number;
+  monthlyDealsTargets?: Record<number, number>;
 };
 export type TargetPeriodType = "year" | "quarter" | "month" | "custom";
 
@@ -150,4 +157,25 @@ export function personTargetForSelection(
     const num = MONTH_NUMBERS[month];
     return sum + (num ? (person.monthlyTargets[num] ?? 0) : 0);
   }, 0);
+}
+
+/** companyTargetForSelection is generic over any {yearlyTarget, monthlyTargets} shape, so it doubles as the reducer for these two non-revenue metrics. */
+export function personAppointmentsTargetForSelection(
+  person: TargetPerson,
+  selection: TargetPeriodSelection
+): number {
+  return companyTargetForSelection(selection, {
+    yearlyTarget: person.yearlyAppointmentsTarget ?? 0,
+    monthlyTargets: person.monthlyAppointmentsTargets ?? {},
+  });
+}
+
+export function personDealsTargetForSelection(
+  person: TargetPerson,
+  selection: TargetPeriodSelection
+): number {
+  return companyTargetForSelection(selection, {
+    yearlyTarget: person.yearlyDealsTarget ?? 0,
+    monthlyTargets: person.monthlyDealsTargets ?? {},
+  });
 }

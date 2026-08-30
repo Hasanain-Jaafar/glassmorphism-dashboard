@@ -9,6 +9,7 @@ import { Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
 import {
   Dialog,
   DialogContent,
@@ -22,6 +23,10 @@ import {
 const targetFormSchema = z.object({
   monthlyTarget: z.coerce.number().min(0, "Must be 0 or more"),
   yearlyTarget: z.coerce.number().min(0, "Must be 0 or more"),
+  monthlyAppointmentsTarget: z.coerce.number().min(0, "Must be 0 or more").optional(),
+  yearlyAppointmentsTarget: z.coerce.number().min(0, "Must be 0 or more").optional(),
+  monthlyDealsTarget: z.coerce.number().min(0, "Must be 0 or more").optional(),
+  yearlyDealsTarget: z.coerce.number().min(0, "Must be 0 or more").optional(),
 });
 
 type FormInput = z.input<typeof targetFormSchema>;
@@ -32,6 +37,10 @@ export function EditTargetDialog({
   description,
   monthlyTarget,
   yearlyTarget,
+  monthlyAppointmentsTarget,
+  yearlyAppointmentsTarget,
+  monthlyDealsTarget,
+  yearlyDealsTarget,
   onSave,
   triggerLabel = "Edit",
 }: {
@@ -39,10 +48,25 @@ export function EditTargetDialog({
   description: string;
   monthlyTarget: number;
   yearlyTarget: number;
+  /** Individual-only — omit all 4 to keep the Company tab's dialog revenue-only. */
+  monthlyAppointmentsTarget?: number;
+  yearlyAppointmentsTarget?: number;
+  monthlyDealsTarget?: number;
+  yearlyDealsTarget?: number;
   onSave: (values: FormOutput) => void | Promise<void>;
   triggerLabel?: string;
 }) {
   const [open, setOpen] = useState(false);
+  const hasActivityTargets = monthlyAppointmentsTarget !== undefined;
+
+  const defaultValues = {
+    monthlyTarget,
+    yearlyTarget,
+    monthlyAppointmentsTarget: monthlyAppointmentsTarget ?? 0,
+    yearlyAppointmentsTarget: yearlyAppointmentsTarget ?? 0,
+    monthlyDealsTarget: monthlyDealsTarget ?? 0,
+    yearlyDealsTarget: yearlyDealsTarget ?? 0,
+  };
 
   const {
     register,
@@ -51,7 +75,7 @@ export function EditTargetDialog({
     formState: { errors, isSubmitting },
   } = useForm<FormInput, unknown, FormOutput>({
     resolver: zodResolver(targetFormSchema),
-    values: { monthlyTarget, yearlyTarget },
+    values: defaultValues,
   });
 
   async function onSubmit(values: FormOutput) {
@@ -70,7 +94,7 @@ export function EditTargetDialog({
       open={open}
       onOpenChange={(next) => {
         setOpen(next);
-        if (!next) reset({ monthlyTarget, yearlyTarget });
+        if (!next) reset(defaultValues);
       }}
     >
       <DialogTrigger
@@ -116,6 +140,81 @@ export function EditTargetDialog({
               </p>
             )}
           </div>
+
+          {hasActivityTargets && (
+            <>
+              <div className="sm:col-span-2">
+                <Separator />
+                <p className="mt-4 text-xs font-medium tracking-wide text-text-tertiary uppercase">
+                  Activity Targets
+                </p>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="target-appointments-monthly">
+                  Monthly Appointments Target
+                </Label>
+                <Input
+                  id="target-appointments-monthly"
+                  type="number"
+                  {...register("monthlyAppointmentsTarget")}
+                />
+                {errors.monthlyAppointmentsTarget && (
+                  <p className="text-xs text-danger">
+                    {errors.monthlyAppointmentsTarget.message}
+                  </p>
+                )}
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="target-appointments-yearly">
+                  Yearly Appointments Target
+                </Label>
+                <Input
+                  id="target-appointments-yearly"
+                  type="number"
+                  {...register("yearlyAppointmentsTarget")}
+                />
+                {errors.yearlyAppointmentsTarget && (
+                  <p className="text-xs text-danger">
+                    {errors.yearlyAppointmentsTarget.message}
+                  </p>
+                )}
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="target-deals-monthly">
+                  Monthly Deals Target
+                </Label>
+                <Input
+                  id="target-deals-monthly"
+                  type="number"
+                  {...register("monthlyDealsTarget")}
+                />
+                {errors.monthlyDealsTarget && (
+                  <p className="text-xs text-danger">
+                    {errors.monthlyDealsTarget.message}
+                  </p>
+                )}
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="target-deals-yearly">
+                  Yearly Deals Target
+                </Label>
+                <Input
+                  id="target-deals-yearly"
+                  type="number"
+                  {...register("yearlyDealsTarget")}
+                />
+                {errors.yearlyDealsTarget && (
+                  <p className="text-xs text-danger">
+                    {errors.yearlyDealsTarget.message}
+                  </p>
+                )}
+              </div>
+            </>
+          )}
 
           <DialogFooter className="sm:col-span-2">
             <Button type="submit" disabled={isSubmitting}>

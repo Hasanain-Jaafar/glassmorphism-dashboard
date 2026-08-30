@@ -7,6 +7,11 @@ export type CompanyTargets = {
   yearlyTarget: number;
   /** Month number (1–12) → target amount, for whichever months have a saved row. */
   monthlyTargets: Record<number, number>;
+  /** Individual-only — never populated by fetchCompanyTargets/saveCompanyTargets. */
+  yearlyAppointmentsTarget?: number;
+  monthlyAppointmentsTargets?: Record<number, number>;
+  yearlyDealsTarget?: number;
+  monthlyDealsTargets?: Record<number, number>;
 };
 
 /** Fetches every company target row for a year in one query, so switching between Month/Quarter/Custom periods doesn't need a refetch. */
@@ -34,13 +39,24 @@ export async function fetchCompanyTargets(year: number): Promise<CompanyTargets>
   };
 }
 
+/**
+ * Only the fields actually passed get written — `amount` on its own (the
+ * Company tab's calls) never touches appointments_target/deals_target on an
+ * existing row, and vice versa.
+ */
+type UpsertValues = {
+  amount?: number;
+  appointmentsTarget?: number;
+  dealsTarget?: number;
+};
+
 async function upsertTarget(
   targetType: "company" | "individual",
   salespersonId: string | null,
   periodType: "yearly" | "monthly",
   year: number,
   month: number | null,
-  amount: number
+  values: UpsertValues
 ): Promise<void> {
   const supabase = createClient();
 
@@ -60,11 +76,20 @@ async function upsertTarget(
   if (selectError) throw selectError;
 
   if (existing) {
-    const { error } = await supabase
-      .from("targets")
-      .update({ amount })
-      .eq("id", existing.id);
-    if (error) throw error;
+    const updates: Record<string, number> = {};
+    if (values.amount !== undefined) updates.amount = values.amount;
+    if (values.appointmentsTarget !== undefined) {
+      updates.appointments_target = values.appointmentsTarget;
+    }
+    if (values.dealsTarget !== undefined) updates.deals_target = values.dealsTarget;
+
+    if (Object.keys(updates).length > 0) {
+      const { error } = await supabase
+        .from("targets")
+        .update(updates)
+        .eq("id", existing.id);
+      if (error) throw error;
+    }
   } else {
     const { error } = await supabase.from("targets").insert({
       target_type: targetType,
@@ -72,7 +97,9 @@ async function upsertTarget(
       salesperson_id: salespersonId,
       year,
       month,
-      amount,
+      amount: values.amount ?? 0,
+      appointments_target: values.appointmentsTarget ?? null,
+      deals_target: values.dealsTarget ?? null,
     });
     if (error) throw error;
   }
@@ -83,8 +110,12 @@ export async function saveCompanyTargets(
   month: number,
   values: { yearlyTarget: number; monthlyTarget: number }
 ): Promise<void> {
-  await upsertTarget("company", null, "yearly", year, null, values.yearlyTarget);
-  await upsertTarget("company", null, "monthly", year, month, values.monthlyTarget);
+  await upsertTarget("company", null, "yearly", year, null, {
+    amount: values.yearlyTarget,
+  });
+  await upsertTarget("company", null, "monthly", year, month, {
+    amount: values.monthlyTarget,
+  });
 }
 
 /** Every individual target row for a year, grouped by salesperson_id — one round trip for the whole Targets → Individual tab (and the Team page's Salesperson Comparison). */
@@ -94,7 +125,7 @@ export async function fetchIndividualTargets(
   const supabase = createClient();
   const { data, error } = await supabase
     .from("targets")
-    .select("salesperson_id, period_type, amount, month")
+    .select("salesperson_id, period_type, amount, month, appointments_target, deals_target")
     .eq("target_type", "individual")
     .eq("year", year);
   if (error) throw error;
@@ -105,11 +136,25 @@ export async function fetchIndividualTargets(
     const entry = (byPerson[row.salesperson_id] ??= {
       yearlyTarget: 0,
       monthlyTargets: {},
+      yearlyAppointmentsTarget: 0,
+      monthlyAppointmentsTargets: {},
+      yearlyDealsTarget: 0,
+      monthlyDealsTargets: {},
     });
     if (row.period_type === "yearly") {
       entry.yearlyTarget = Number(row.amount);
+      if (row.appointments_target != null) {
+        entry.yearlyAppointmentsTarget = row.appointments_target;
+      }
+      if (row.deals_target != null) entry.yearlyDealsTarget = row.deals_target;
     } else if (row.period_type === "monthly" && row.month != null) {
       entry.monthlyTargets[row.month] = Number(row.amount);
+      if (row.appointments_target != null) {
+        entry.monthlyAppointmentsTargets![row.month] = row.appointments_target;
+      }
+      if (row.deals_target != null) {
+        entry.monthlyDealsTargets![row.month] = row.deals_target;
+      }
     }
   }
   return byPerson;
@@ -119,22 +164,23 @@ export async function saveIndividualTarget(
   salespersonId: string,
   year: number,
   month: number,
-  values: { yearlyTarget: number; monthlyTarget: number }
+  values: {
+    yearlyTarget: number;
+    monthlyTarget: number;
+    yearlyAppointmentsTarget?: number;
+    monthlyAppointmentsTarget?: number;
+    yearlyDealsTarget?: number;
+    monthlyDealsTarget?: number;
+  }
 ): Promise<void> {
-  await upsertTarget(
-    "individual",
-    salespersonId,
-    "yearly",
-    year,
-    null,
-    values.yearlyTarget
-  );
-  await upsertTarget(
-    "individual",
-    salespersonId,
-    "monthly",
-    year,
-    month,
-    values.monthlyTarget
-  );
+  await upsertTarget("individual", salespersonId, "yearly", year, null, {
+    amount: values.yearlyTarget,
+    appointmentsTarget: values.yearlyAppointmentsTarget,
+    dealsTarget: values.yearlyDealsTarget,
+  });
+  await upsertTarget("individual", salespersonId, "monthly", year, month, {
+    amount: values.monthlyTarget,
+    appointmentsTarget: values.monthlyAppointmentsTarget,
+    dealsTarget: values.monthlyDealsTarget,
+  });
 }

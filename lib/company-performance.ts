@@ -19,6 +19,8 @@ import type { MonthlyRevenuePoint, PipelineStage } from "@/lib/mock-data";
 
 type InvoiceLike = { status: string; amount: number; paidAt: string | null };
 type RepInvoiceLike = InvoiceLike & { salesRepId: string };
+type RepAppointmentLike = { salesRepId: string; scheduledAt: string };
+type RepDealLike = { salesRepId: string; status: string; closedAt: string | null };
 
 const MONTH_LABELS = [
   "Jan", "Feb", "Mar", "Apr", "May", "Jun",
@@ -63,6 +65,46 @@ export function computePersonActualForMonths(
       return months.length === 0 || months.includes(paid.getMonth() + 1);
     })
     .reduce((sum, inv) => sum + inv.amount, 0);
+}
+
+/**
+ * One rep's appointment count for a set of months in `year` — the Targets
+ * page's Individual tab's "Appointments" column. Counts every appointment
+ * regardless of status, matching computeAppointmentStats' unfiltered "Total"
+ * in lib/supabase/appointments.ts. Empty `months` means the whole year.
+ */
+export function computePersonAppointmentCountForMonths(
+  appointments: RepAppointmentLike[],
+  repId: string,
+  year: number,
+  months: number[]
+): number {
+  return appointments.filter((a) => {
+    if (a.salesRepId !== repId) return false;
+    const scheduled = new Date(a.scheduledAt);
+    if (scheduled.getFullYear() !== year) return false;
+    return months.length === 0 || months.includes(scheduled.getMonth() + 1);
+  }).length;
+}
+
+/**
+ * One rep's closed-won deal count for a set of months in `year` — the
+ * Targets page's Individual tab's "Deals" column. Matches the "closedDeals"
+ * definition already used in withTeamAggregates (lib/supabase/team.ts):
+ * status === "won", keyed by closedAt. Empty `months` means the whole year.
+ */
+export function computePersonDealCountForMonths(
+  deals: RepDealLike[],
+  repId: string,
+  year: number,
+  months: number[]
+): number {
+  return deals.filter((d) => {
+    if (d.salesRepId !== repId || d.status !== "won" || !d.closedAt) return false;
+    const closed = new Date(d.closedAt);
+    if (closed.getFullYear() !== year) return false;
+    return months.length === 0 || months.includes(closed.getMonth() + 1);
+  }).length;
 }
 
 /**

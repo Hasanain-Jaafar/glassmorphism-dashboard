@@ -15,6 +15,8 @@ import { cn } from "@/lib/utils";
 import { EditTargetDialog } from "@/components/sales/edit-target-dialog";
 import {
   personTargetForSelection,
+  personAppointmentsTargetForSelection,
+  personDealsTargetForSelection,
   type TargetPeriodSelection,
   type TargetPerson,
 } from "@/lib/target-period";
@@ -36,6 +38,19 @@ type TargetRow = {
   actual: number;
   achievementPct: number;
   remaining: number;
+  appointmentsActual: number;
+  appointmentsTarget: number;
+  dealsActual: number;
+  dealsTarget: number;
+};
+
+type SaveValues = {
+  monthlyTarget: number;
+  yearlyTarget: number;
+  monthlyAppointmentsTarget?: number;
+  yearlyAppointmentsTarget?: number;
+  monthlyDealsTarget?: number;
+  yearlyDealsTarget?: number;
 };
 
 const features = tableFeatures({
@@ -46,7 +61,7 @@ const features = tableFeatures({
 
 const columnHelper = createColumnHelper<typeof features, TargetRow>();
 
-function buildColumns(peopleById: Map<string, TargetPerson>, onSave: (id: string, values: { monthlyTarget: number; yearlyTarget: number }) => void) {
+function buildColumns(peopleById: Map<string, TargetPerson>, onSave: (id: string, values: SaveValues) => void) {
   return columnHelper.columns([
     columnHelper.accessor("name", {
       header: "Salesperson",
@@ -122,6 +137,30 @@ function buildColumns(peopleById: Map<string, TargetPerson>, onSave: (id: string
       },
     }),
     columnHelper.display({
+      id: "appointments",
+      header: "Appointments",
+      cell: (info) => {
+        const row = info.row.original;
+        return (
+          <span className="tabular-nums text-text-secondary">
+            {row.appointmentsActual} / {row.appointmentsTarget || "—"}
+          </span>
+        );
+      },
+    }),
+    columnHelper.display({
+      id: "deals",
+      header: "Deals",
+      cell: (info) => {
+        const row = info.row.original;
+        return (
+          <span className="tabular-nums text-text-secondary">
+            {row.dealsActual} / {row.dealsTarget || "—"}
+          </span>
+        );
+      },
+    }),
+    columnHelper.display({
       id: "status",
       header: "Status",
       cell: (info) => {
@@ -151,6 +190,10 @@ function buildColumns(peopleById: Map<string, TargetPerson>, onSave: (id: string
             description="Update the monthly and yearly sales target for this representative."
             monthlyTarget={person.monthlyTarget}
             yearlyTarget={person.yearlyTarget}
+            monthlyAppointmentsTarget={person.monthlyAppointmentsTarget ?? 0}
+            yearlyAppointmentsTarget={person.yearlyAppointmentsTarget ?? 0}
+            monthlyDealsTarget={person.monthlyDealsTarget ?? 0}
+            yearlyDealsTarget={person.yearlyDealsTarget ?? 0}
             onSave={(values) => onSave(person.id, values)}
           />
         );
@@ -163,13 +206,18 @@ export function SalespersonTargetTable({
   people,
   selection,
   actuals,
+  appointmentsActuals,
+  dealsActuals,
   onSave,
 }: {
   people: TargetPerson[];
   selection: TargetPeriodSelection;
   /** Real paid total per rep for the selected period — see computePersonActualForMonths in lib/company-performance.ts. */
   actuals: Record<string, number>;
-  onSave: (id: string, values: { monthlyTarget: number; yearlyTarget: number }) => void;
+  /** Real appointment/won-deal counts per rep for the selected period — see lib/company-performance.ts. */
+  appointmentsActuals: Record<string, number>;
+  dealsActuals: Record<string, number>;
+  onSave: (id: string, values: SaveValues) => void;
 }) {
   const [sorting, setSorting] = useState<SortingState>([
     { id: "target", desc: true },
@@ -195,9 +243,13 @@ export function SalespersonTargetTable({
           actual,
           achievementPct: target ? (actual / target) * 100 : 0,
           remaining: Math.max(target - actual, 0),
+          appointmentsActual: appointmentsActuals[person.id] ?? 0,
+          appointmentsTarget: personAppointmentsTargetForSelection(person, selection),
+          dealsActual: dealsActuals[person.id] ?? 0,
+          dealsTarget: personDealsTargetForSelection(person, selection),
         };
       }),
-    [people, selection, actuals]
+    [people, selection, actuals, appointmentsActuals, dealsActuals]
   );
 
   const columns = useMemo(
@@ -216,7 +268,7 @@ export function SalespersonTargetTable({
   return (
     <div className="glass-panel overflow-hidden rounded-sm shadow-sm">
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[860px] text-sm">
+        <table className="w-full min-w-[1080px] text-sm">
           <thead>
             {table.getHeaderGroups().map((headerGroup) => (
               <tr key={headerGroup.id} className="border-b border-glass-border">

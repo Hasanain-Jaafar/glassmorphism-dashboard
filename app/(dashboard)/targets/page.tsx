@@ -52,6 +52,8 @@ import {
   computeCompanyRevenueSeries,
   computeMonthlyTotal,
   computePersonActualForMonths,
+  computePersonAppointmentCountForMonths,
+  computePersonDealCountForMonths,
   computeYearToDateTotals,
 } from "@/lib/company-performance";
 import { formatUSD, formatPercent } from "@/lib/format";
@@ -81,6 +83,13 @@ function mergeTargetPeople(
         yearlySales: member.yearlySales,
         yearlyTarget: personTargets.yearlyTarget,
         monthlyTargets: personTargets.monthlyTargets,
+        monthlyAppointmentsTarget:
+          personTargets.monthlyAppointmentsTargets?.[currentMonthNumber] ?? 0,
+        yearlyAppointmentsTarget: personTargets.yearlyAppointmentsTarget ?? 0,
+        monthlyAppointmentsTargets: personTargets.monthlyAppointmentsTargets ?? {},
+        monthlyDealsTarget: personTargets.monthlyDealsTargets?.[currentMonthNumber] ?? 0,
+        yearlyDealsTarget: personTargets.yearlyDealsTarget ?? 0,
+        monthlyDealsTargets: personTargets.monthlyDealsTargets ?? {},
       };
     });
 }
@@ -162,6 +171,40 @@ export default function TargetsPage() {
     }
     return map;
   }, [people, invoices, selection]);
+
+  // Same period-derivation as actualsByPerson above, for the Individual
+  // tab's Appointments/Deals columns.
+  const appointmentsActualsByPerson = useMemo(() => {
+    const months = monthsForSelection(selection)
+      .map((label) => MONTH_NUMBERS[label])
+      .filter((n): n is number => Boolean(n));
+    const map: Record<string, number> = {};
+    for (const person of people) {
+      map[person.id] = computePersonAppointmentCountForMonths(
+        pipelineData.appointments,
+        person.id,
+        currentYear,
+        months
+      );
+    }
+    return map;
+  }, [people, pipelineData, selection]);
+
+  const dealsActualsByPerson = useMemo(() => {
+    const months = monthsForSelection(selection)
+      .map((label) => MONTH_NUMBERS[label])
+      .filter((n): n is number => Boolean(n));
+    const map: Record<string, number> = {};
+    for (const person of people) {
+      map[person.id] = computePersonDealCountForMonths(
+        pipelineData.deals,
+        person.id,
+        currentYear,
+        months
+      );
+    }
+    return map;
+  }, [people, pipelineData, selection]);
 
   const individualStats = useMemo(() => {
     let totalTarget = 0;
@@ -259,7 +302,17 @@ export default function TargetsPage() {
   const monthlyRemaining = Math.max(monthlyTarget - monthlyActual, 0);
 
   const updatePersonTarget = useCallback(
-    async (id: string, values: { monthlyTarget: number; yearlyTarget: number }) => {
+    async (
+      id: string,
+      values: {
+        monthlyTarget: number;
+        yearlyTarget: number;
+        monthlyAppointmentsTarget?: number;
+        yearlyAppointmentsTarget?: number;
+        monthlyDealsTarget?: number;
+        yearlyDealsTarget?: number;
+      }
+    ) => {
       try {
         await saveIndividualTarget(id, currentYear, currentMonthNumber, values);
         setIndividualTargets((prev) => ({
@@ -269,6 +322,17 @@ export default function TargetsPage() {
             monthlyTargets: {
               ...(prev[id]?.monthlyTargets ?? {}),
               [currentMonthNumber]: values.monthlyTarget,
+            },
+            yearlyAppointmentsTarget:
+              values.yearlyAppointmentsTarget ?? prev[id]?.yearlyAppointmentsTarget ?? 0,
+            monthlyAppointmentsTargets: {
+              ...(prev[id]?.monthlyAppointmentsTargets ?? {}),
+              [currentMonthNumber]: values.monthlyAppointmentsTarget ?? 0,
+            },
+            yearlyDealsTarget: values.yearlyDealsTarget ?? prev[id]?.yearlyDealsTarget ?? 0,
+            monthlyDealsTargets: {
+              ...(prev[id]?.monthlyDealsTargets ?? {}),
+              [currentMonthNumber]: values.monthlyDealsTarget ?? 0,
             },
           },
         }));
@@ -500,6 +564,8 @@ export default function TargetsPage() {
                   people={people}
                   selection={selection}
                   actuals={actualsByPerson}
+                  appointmentsActuals={appointmentsActualsByPerson}
+                  dealsActuals={dealsActualsByPerson}
                   onSave={updatePersonTarget}
                 />
               </>
