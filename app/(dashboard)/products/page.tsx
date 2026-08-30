@@ -3,11 +3,15 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import {
+  CheckCircle2,
+  CircleDollarSign,
   LayoutGrid,
+  Package,
   PackagePlus,
   PackageSearch,
   Search,
   Table2,
+  Tags,
 } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/dashboard/page-header";
@@ -197,24 +201,32 @@ export default function ProductsPage() {
             value={String(stats.total)}
             footnote="Across all categories"
             wave={kpiWaves.countByCategory}
+            icon={Package}
+            tone="neutral"
           />
           <MetricCard
             label="Active"
             value={String(stats.active)}
             footnote="Currently available for quotations"
             wave={kpiWaves.activeByCategory}
+            icon={CheckCircle2}
+            tone="success"
           />
           <MetricCard
             label="Categories"
             value={String(stats.categories)}
             footnote="Distinct catalog groups"
             wave={kpiWaves.avgPriceByCategory}
+            icon={Tags}
+            tone="cyan"
           />
           <MetricCard
             label="Avg. Price"
             value={formatUSD(stats.avgPrice)}
             footnote="Across all products"
             wave={kpiWaves.sortedPrices}
+            icon={CircleDollarSign}
+            tone="primary"
           />
         </div>
       </Reveal>
