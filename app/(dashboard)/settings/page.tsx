@@ -23,7 +23,7 @@ type SettingsTab = (typeof settingsTabs)[number];
 
 function resolveSettingsTab(tab: string | null, admin: boolean): SettingsTab {
   if (!(settingsTabs as readonly string[]).includes(tab ?? "")) return "profile";
-  if (tab === "company" && !admin) return "profile";
+  if ((tab === "company" || tab === "assistant") && !admin) return "profile";
   return tab as SettingsTab;
 }
 
@@ -68,10 +68,12 @@ export default function SettingsPage() {
               <Bell className="size-[15px]" />
               Notifications
             </TabsTab>
-            <TabsTab value="assistant">
-              <Sparkles className="size-[15px]" />
-              AI Brain
-            </TabsTab>
+            {admin && (
+              <TabsTab value="assistant">
+                <Sparkles className="size-[15px]" />
+                AI Brain
+              </TabsTab>
+            )}
             {admin && (
               <TabsTab value="company">
                 <Building2 className="size-[15px]" />
@@ -89,9 +91,11 @@ export default function SettingsPage() {
             <NotificationsSection />
           </TabsPanel>
 
-          <TabsPanel value="assistant">
-            <AiAssistantSection />
-          </TabsPanel>
+          {admin && (
+            <TabsPanel value="assistant">
+              <AiAssistantSection />
+            </TabsPanel>
+          )}
 
           {admin && (
             <TabsPanel value="company">

@@ -77,6 +77,13 @@ export async function POST(request: Request) {
   }
   const role = profile.role as UserRole;
 
+  if (role !== "admin") {
+    return NextResponse.json(
+      { error: "AI Brain isn't available to sales representatives" },
+      { status: 403 }
+    );
+  }
+
   if (conversationId) {
     // Confirm this conversation is actually the caller's own — RLS would
     // return it empty either way, but this turns a foreign/stale id into a

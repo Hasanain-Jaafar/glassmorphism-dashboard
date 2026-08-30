@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Menu } from "lucide-react";
+import { Lock, Menu } from "lucide-react";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Reveal } from "@/components/motion/reveal";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { ConversationList } from "@/components/assistant/conversation-list";
 import { ChatThread, type DisplayMessage } from "@/components/assistant/chat-thread";
 import { ChatInput } from "@/components/assistant/chat-input";
+import { useAuth } from "@/components/providers/auth-provider";
 import {
   fetchConversations,
   fetchMessages,
@@ -18,6 +19,7 @@ import {
 } from "@/lib/supabase/ai-assistant";
 
 export default function AssistantPage() {
+  const { isAdmin } = useAuth();
   const [conversations, setConversations] = useState<Conversation[] | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [messages, setMessages] = useState<DisplayMessage[]>([]);
@@ -35,8 +37,9 @@ export default function AssistantPage() {
   }, []);
 
   useEffect(() => {
+    if (!isAdmin) return;
     loadConversations();
-  }, [loadConversations]);
+  }, [isAdmin, loadConversations]);
 
   async function openConversation(id: string) {
     setActiveId(id);
@@ -119,6 +122,27 @@ export default function AssistantPage() {
     onNew: startNewChat,
     onDelete: handleDelete,
   };
+
+  if (!isAdmin) {
+    return (
+      <div className="space-y-6">
+        <Reveal>
+          <PageHeader title="AI Brain" />
+        </Reveal>
+        <Reveal delay={0.05}>
+          <div className="glass-panel flex flex-col items-center rounded-2xl p-10 text-center">
+            <Lock className="size-6 text-text-tertiary" />
+            <p className="mt-3 text-sm font-medium text-foreground">
+              Admins only
+            </p>
+            <p className="mx-auto mt-1 max-w-sm text-sm text-text-tertiary">
+              AI Brain isn&apos;t available to sales representatives.
+            </p>
+          </div>
+        </Reveal>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

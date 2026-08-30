@@ -72,6 +72,20 @@ In `supabase/migrations/`, run each file in filename order:
     running this migration, or the two `cron.schedule(...)` calls at the
     bottom will fail (the `target_reached` trigger doesn't need it and still
     works on its own).
+19. `20260101000019_ai_assistant.sql` — `ai_conversations` and `ai_messages`
+    tables backing AI Brain (`/assistant`), the chat page with saved history.
+    Private by design: RLS scopes every row to `auth.uid()`, so even an admin
+    only ever sees their own conversations.
+20. `20260101000020_ai_custom_instructions.sql` — adds
+    `profiles.custom_instructions`, a per-user standing instruction AI Brain
+    includes on every chat (Settings → AI Brain), the same idea as ChatGPT's
+    custom instructions.
+21. `20260101000021_ai_brain_admin_only.sql` — restricts `ai_conversations`/
+    `ai_messages` RLS to admins only, matching the app-level gating already in
+    `app/(dashboard)/assistant/page.tsx` and `app/api/assistant/chat/route.ts`
+    (AI Brain is admin-only). **Required if you run 19 before this** — without
+    it, a sales rep could still read/write their own AI Brain rows directly
+    via their own Supabase session even though the UI and API route hide it.
 
 ## 2. Seed baseline data (optional)
 
@@ -121,7 +135,10 @@ now fire for real: coaching notes, appointments, and deals won are
 trigger-backed on insert/update; target reached, quotation expiring, and the
 weekly summary are backed by migration 18's trigger + `pg_cron` jobs (see
 migration 18's note above — `pg_cron` must be enabled on the project for the
-latter two).
+latter two), and **AI Brain** (`/assistant`, admin-only — Settings → AI Brain
+for its per-user custom instructions), which calls 4 read-only tools
+(`lib/ai/tools.ts`) backed by the same real aggregates the rest of the
+dashboard uses, via the Claude API (requires `ANTHROPIC_API_KEY`).
 
 The Dashboard, Team (KPI + All Salespeople tabs), Targets (Company tab and
 the Individual tab's monthlySales/yearlySales columns), and Customers pages
