@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Receipt } from "lucide-react";
+import { AlertTriangle, CircleDollarSign, Receipt, Wallet } from "lucide-react";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { MetricCard } from "@/components/dashboard/metric-card";
 import { Reveal } from "@/components/motion/reveal";
@@ -188,21 +188,29 @@ export default function InvoicesPage() {
             label="Paid"
             value={formatUSD(stats.paidTotal)}
             footnote={`${stats.paidCount} invoices`}
+            icon={CircleDollarSign}
+            tone="success"
           />
           <MetricCard
             label="Outstanding"
             value={formatUSD(stats.outstandingTotal)}
             footnote="Sent or overdue"
+            icon={Wallet}
+            tone="warning"
           />
           <MetricCard
             label="Overdue"
             value={String(stats.overdueCount)}
             footnote="Needs follow-up"
+            icon={AlertTriangle}
+            tone="danger"
           />
           <MetricCard
             label="Total Invoices"
             value={String((invoices ?? []).length)}
             footnote="All time"
+            icon={Receipt}
+            tone="neutral"
           />
         </div>
       </Reveal>

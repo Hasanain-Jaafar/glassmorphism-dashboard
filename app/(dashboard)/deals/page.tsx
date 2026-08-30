@@ -3,7 +3,13 @@
 import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
-import { Handshake, HandshakeIcon } from "lucide-react";
+import {
+  CircleDollarSign,
+  Handshake,
+  HandshakeIcon,
+  TrendingUp,
+  Wallet,
+} from "lucide-react";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { MetricCard } from "@/components/dashboard/metric-card";
 import { Reveal } from "@/components/motion/reveal";
@@ -229,21 +235,29 @@ function DealsPageContent() {
             label="Open Value"
             value={formatUSD(stats.openValue)}
             footnote="Still in play"
+            icon={Wallet}
+            tone="neutral"
           />
           <MetricCard
             label="Won Value"
             value={formatUSD(stats.wonValue)}
             footnote={`${stats.wonCount} deals`}
+            icon={CircleDollarSign}
+            tone="success"
           />
           <MetricCard
             label="Win Rate"
             value={`${stats.winRate}%`}
             footnote="Of closed deals"
+            icon={TrendingUp}
+            tone="primary"
           />
           <MetricCard
             label="Won Deals"
             value={String(stats.wonCount)}
             footnote="All time"
+            icon={Handshake}
+            tone="cyan"
           />
         </div>
       </Reveal>

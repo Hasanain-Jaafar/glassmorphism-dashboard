@@ -3,7 +3,13 @@
 import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
-import { FilePlus2, FileText } from "lucide-react";
+import {
+  CheckCircle2,
+  FilePenLine,
+  FilePlus2,
+  FileText,
+  Send,
+} from "lucide-react";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { MetricCard } from "@/components/dashboard/metric-card";
 import { Reveal } from "@/components/motion/reveal";
@@ -231,13 +237,33 @@ function QuotationsPageContent() {
 
       <Reveal delay={0.05}>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 lg:gap-6">
-          <MetricCard label="Total" value={String(stats.total)} footnote="All quotations" />
-          <MetricCard label="Draft" value={String(stats.draft)} footnote="Not sent yet" />
-          <MetricCard label="Sent" value={String(stats.sent)} footnote="Awaiting response" />
+          <MetricCard
+            label="Total"
+            value={String(stats.total)}
+            footnote="All quotations"
+            icon={FileText}
+            tone="neutral"
+          />
+          <MetricCard
+            label="Draft"
+            value={String(stats.draft)}
+            footnote="Not sent yet"
+            icon={FilePenLine}
+            tone="neutral"
+          />
+          <MetricCard
+            label="Sent"
+            value={String(stats.sent)}
+            footnote="Awaiting response"
+            icon={Send}
+            tone="cyan"
+          />
           <MetricCard
             label="Accepted Value"
             value={formatUSD(stats.acceptedValue)}
             footnote="Ready to convert"
+            icon={CheckCircle2}
+            tone="success"
           />
         </div>
       </Reveal>

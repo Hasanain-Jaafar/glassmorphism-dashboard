@@ -3,7 +3,13 @@
 import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
-import { CalendarClock, CalendarPlus } from "lucide-react";
+import {
+  CalendarClock,
+  CalendarDays,
+  CalendarPlus,
+  CheckCircle2,
+  XCircle,
+} from "lucide-react";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { MetricCard } from "@/components/dashboard/metric-card";
 import { Reveal } from "@/components/motion/reveal";
@@ -205,21 +211,33 @@ function AppointmentsPageContent() {
 
       <Reveal delay={0.05}>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 lg:gap-6">
-          <MetricCard label="Total" value={String(stats.total)} footnote="All appointments" />
+          <MetricCard
+            label="Total"
+            value={String(stats.total)}
+            footnote="All appointments"
+            icon={CalendarDays}
+            tone="neutral"
+          />
           <MetricCard
             label="This Week"
             value={String(stats.thisWeek)}
             footnote="Scheduled, next 7 days"
+            icon={CalendarClock}
+            tone="primary"
           />
           <MetricCard
             label="Completed"
             value={String(stats.completed)}
             footnote="All time"
+            icon={CheckCircle2}
+            tone="success"
           />
           <MetricCard
             label="Cancelled / No Show"
             value={String(stats.cancelled)}
             footnote="All time"
+            icon={XCircle}
+            tone="danger"
           />
         </div>
       </Reveal>
