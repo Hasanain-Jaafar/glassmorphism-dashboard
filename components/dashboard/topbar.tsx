@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { LogOut, Settings } from "lucide-react";
+import { Brain, LogOut, Settings } from "lucide-react";
 import { CommandPalette } from "@/components/dashboard/command-palette";
 import { NotificationBell } from "@/components/dashboard/notification-bell";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -46,6 +46,17 @@ export function Topbar() {
       <div className="flex-1">
         <CommandPalette />
       </div>
+
+      {isAdmin && (
+        <button
+          type="button"
+          onClick={() => router.push("/assistant")}
+          aria-label="AI Brain"
+          className="flex size-9 items-center justify-center rounded-xl text-warning transition-colors hover:bg-warning/10"
+        >
+          <Brain className="size-[18px]" />
+        </button>
+      )}
 
       <NotificationBell />
 
