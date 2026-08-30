@@ -129,10 +129,22 @@ export function KnowledgeBaseSection() {
   }
 
   async function handleView(doc: KnowledgeBaseDocument) {
+    // Open the tab synchronously, in direct response to the click — most
+    // browsers silently block window.open() once it happens after an
+    // await, since that's no longer "the direct result of a user gesture".
+    // Redirect this already-open tab once the signed URL resolves instead.
+    const tab = window.open("", "_blank", "noopener,noreferrer");
     try {
       const url = await getKnowledgeBaseDocumentViewUrl(doc.storagePath);
-      window.open(url, "_blank", "noopener,noreferrer");
+      if (tab) {
+        tab.location.href = url;
+      } else {
+        toast.error(
+          "Your browser blocked the popup — allow popups for this site and try again"
+        );
+      }
     } catch (error) {
+      tab?.close();
       toast.error(
         error instanceof Error ? error.message : "Couldn't open that document"
       );
