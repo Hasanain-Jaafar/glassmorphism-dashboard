@@ -23,8 +23,6 @@ import type { Product } from "@/lib/mock-data";
 import { quotationStatusLabels } from "@/components/quotations/quotation-styles";
 import { formatUSD } from "@/lib/format";
 
-const NONE = "none";
-
 const quotationItemSchema = z.object({
   productId: z.string().min(1, "Select a product"),
   quantity: z.coerce.number().int().min(1, "Must be at least 1"),
@@ -32,9 +30,7 @@ const quotationItemSchema = z.object({
 });
 
 const quotationSchema = z.object({
-  customerId: z.string().min(1, "Select a customer"),
-  salesRepId: z.string().min(1, "Select a sales rep"),
-  appointmentId: z.string(),
+  appointmentId: z.string().min(1, "Select an appointment"),
   status: z.enum(["draft", "sent", "accepted", "rejected", "expired"]),
   validUntil: z.string(),
   items: z.array(quotationItemSchema).min(1, "Add at least one line item"),
@@ -44,9 +40,7 @@ type FormInput = z.input<typeof quotationSchema>;
 type FormOutput = z.output<typeof quotationSchema>;
 
 export type QuotationFormValues = {
-  customerId: string;
-  salesRepId: string;
-  appointmentId: string | null;
+  appointmentId: string;
   status: QuotationStatus;
   validUntil: string | null;
   items: { productId: string | null; quantity: number; unitPrice: number }[];
@@ -54,14 +48,16 @@ export type QuotationFormValues = {
 
 function defaultsFor(
   quotation: Quotation | undefined,
-  currentUserId: string,
-  isAdmin: boolean,
-  initialCustomerId?: string
+  initialCustomerId: string | undefined,
+  appointments: Appointment[]
 ): FormInput {
+  const defaultAppointmentId =
+    quotation?.appointmentId ??
+    (initialCustomerId
+      ? (appointments.find((a) => a.customerId === initialCustomerId)?.id ?? "")
+      : "");
   return {
-    customerId: quotation?.customerId ?? initialCustomerId ?? "",
-    salesRepId: quotation?.salesRepId ?? (isAdmin ? "" : currentUserId),
-    appointmentId: quotation?.appointmentId ?? NONE,
+    appointmentId: defaultAppointmentId,
     status: quotation?.status ?? "draft",
     validUntil: quotation?.validUntil ?? "",
     items: quotation?.items.length
@@ -80,8 +76,6 @@ export function QuotationForm({
   salespeople,
   appointments,
   products,
-  currentUserId,
-  isAdmin,
   initialCustomerId,
   onSubmit,
 }: {
@@ -90,8 +84,6 @@ export function QuotationForm({
   salespeople: TeamMember[];
   appointments: Appointment[];
   products: Product[];
-  currentUserId: string;
-  isAdmin: boolean;
   initialCustomerId?: string;
   onSubmit: (values: QuotationFormValues) => void | Promise<void>;
 }) {
@@ -104,26 +96,31 @@ export function QuotationForm({
     formState: { errors, isSubmitting },
   } = useForm<FormInput, unknown, FormOutput>({
     resolver: zodResolver(quotationSchema),
-    values: defaultsFor(quotation, currentUserId, isAdmin, initialCustomerId),
+    values: defaultsFor(quotation, initialCustomerId, appointments),
   });
 
   const { fields, append, remove } = useFieldArray({ control, name: "items" });
 
-  const watchedCustomerId = watch("customerId");
+  const watchedAppointmentId = watch("appointmentId");
   const watchedItems = watch("items");
   const total = watchedItems.reduce(
     (sum, item) => sum + (Number(item.quantity) || 0) * (Number(item.unitPrice) || 0),
     0
   );
 
-  const customerAppointments = appointments.filter(
-    (a) => a.customerId === watchedCustomerId
-  );
+  const customersById = new Map(customers.map((c) => [c.id, c]));
+  const salespeopleById = new Map(salespeople.map((p) => [p.id, p]));
+  const selectedAppointment = appointments.find((a) => a.id === watchedAppointmentId);
+  const selectedCustomer = selectedAppointment
+    ? customersById.get(selectedAppointment.customerId)
+    : undefined;
+  const selectedRep = selectedAppointment
+    ? salespeopleById.get(selectedAppointment.salesRepId)
+    : undefined;
 
   async function submit(values: FormOutput) {
     await onSubmit({
       ...values,
-      appointmentId: values.appointmentId === NONE ? null : values.appointmentId,
       validUntil: values.validUntil === "" ? null : values.validUntil,
       items: values.items.map((item) => ({
         productId: item.productId || null,
@@ -140,79 +137,59 @@ export function QuotationForm({
     >
       <Controller
         control={control}
-        name="customerId"
-        render={({ field }) => (
-          <div className="space-y-1.5 sm:col-span-2">
-            <Label>Customer</Label>
-            <Select
-              value={field.value}
-              onValueChange={(value) => {
-                if (!value) return;
-                field.onChange(value);
-                setValue("appointmentId", NONE);
-              }}
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue>
-                  {(value: string) =>
-                    customers.find((c) => c.id === value)?.company ??
-                    "Select a customer"
-                  }
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                {customers.length === 0 ? (
-                  <p className="px-2 py-1.5 text-xs text-text-tertiary">
-                    No customers yet
-                  </p>
-                ) : (
-                  customers.map((customer) => (
-                    <SelectItem key={customer.id} value={customer.id}>
-                      {customer.company}
-                    </SelectItem>
-                  ))
-                )}
-              </SelectContent>
-            </Select>
-            {errors.customerId && (
-              <p className="text-xs text-danger">{errors.customerId.message}</p>
-            )}
-          </div>
-        )}
-      />
-
-      <Controller
-        control={control}
         name="appointmentId"
         render={({ field }) => (
-          <div className="space-y-1.5">
-            <Label>Appointment (optional)</Label>
+          <div className="space-y-1.5 sm:col-span-2">
+            <Label>Appointment</Label>
             <Select
               value={field.value}
               onValueChange={(value) => value && field.onChange(value)}
             >
               <SelectTrigger className="w-full">
                 <SelectValue>
-                  {(value: string) =>
-                    value === NONE
-                      ? "None"
-                      : (customerAppointments.find((a) => a.id === value)?.title ??
-                        "None")
-                  }
+                  {(value: string) => {
+                    const appointment = appointments.find((a) => a.id === value);
+                    if (!appointment) return "Select an appointment";
+                    const customer = customersById.get(appointment.customerId);
+                    return `${customer?.company ?? "Unknown customer"} — ${appointment.title}`;
+                  }}
                 </SelectValue>
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value={NONE}>None</SelectItem>
-                {customerAppointments.map((appointment) => (
-                  <SelectItem key={appointment.id} value={appointment.id}>
-                    {appointment.title}
-                  </SelectItem>
-                ))}
+                {appointments.length === 0 ? (
+                  <p className="px-2 py-1.5 text-xs text-text-tertiary">
+                    No appointments yet — create one first.
+                  </p>
+                ) : (
+                  appointments.map((appointment) => (
+                    <SelectItem key={appointment.id} value={appointment.id}>
+                      {(customersById.get(appointment.customerId)?.company ??
+                        "Unknown customer") + " — " + appointment.title}
+                    </SelectItem>
+                  ))
+                )}
               </SelectContent>
             </Select>
+            {errors.appointmentId && (
+              <p className="text-xs text-danger">{errors.appointmentId.message}</p>
+            )}
           </div>
         )}
       />
+
+      <div className="space-y-1.5">
+        <Label>Customer</Label>
+        <p className="flex h-8 items-center rounded-lg border border-input bg-foreground/[0.02] px-2.5 text-sm text-foreground">
+          {selectedCustomer?.company ?? "—"}
+        </p>
+      </div>
+
+      <div className="space-y-1.5">
+        <Label>Sales Rep</Label>
+        <p className="flex h-8 items-center rounded-lg border border-input bg-foreground/[0.02] px-2.5 text-sm text-foreground">
+          {selectedRep?.name ?? "—"}
+        </p>
+      </div>
 
       <Controller
         control={control}
@@ -246,47 +223,6 @@ export function QuotationForm({
           </div>
         )}
       />
-
-      {isAdmin && (
-        <Controller
-          control={control}
-          name="salesRepId"
-          render={({ field }) => (
-            <div className="space-y-1.5">
-              <Label>Sales Rep</Label>
-              <Select
-                value={field.value}
-                onValueChange={(value) => value && field.onChange(value)}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue>
-                    {(value: string) =>
-                      salespeople.find((p) => p.id === value)?.name ??
-                      "Select a sales rep"
-                    }
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  {salespeople.length === 0 ? (
-                    <p className="px-2 py-1.5 text-xs text-text-tertiary">
-                      No sales representatives yet
-                    </p>
-                  ) : (
-                    salespeople.map((person) => (
-                      <SelectItem key={person.id} value={person.id}>
-                        {person.name}
-                      </SelectItem>
-                    ))
-                  )}
-                </SelectContent>
-              </Select>
-              {errors.salesRepId && (
-                <p className="text-xs text-danger">{errors.salesRepId.message}</p>
-              )}
-            </div>
-          )}
-        />
-      )}
 
       <div className="space-y-1.5">
         <Label htmlFor="q-valid-until">Valid Until (optional)</Label>

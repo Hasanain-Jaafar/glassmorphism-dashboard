@@ -21,12 +21,8 @@ import type { TeamMember } from "@/lib/supabase/team";
 import { invoiceStatusLabels } from "@/components/invoices/invoice-styles";
 import { formatUSD } from "@/lib/format";
 
-const NONE = "none";
-
 const invoiceSchema = z.object({
-  customerId: z.string().min(1, "Select a customer"),
-  salesRepId: z.string().min(1, "Select a sales rep"),
-  dealId: z.string(),
+  dealId: z.string().min(1, "Select a won deal"),
   status: z.enum(["draft", "sent", "paid", "overdue", "cancelled"]),
   amount: z.coerce.number().min(0, "Must be 0 or more"),
   dueDate: z.string(),
@@ -36,26 +32,17 @@ type FormInput = z.input<typeof invoiceSchema>;
 type FormOutput = z.output<typeof invoiceSchema>;
 
 export type InvoiceFormValues = {
-  customerId: string;
-  salesRepId: string;
-  dealId: string | null;
+  dealId: string;
   status: InvoiceStatus;
   amount: number;
   dueDate: string | null;
 };
 
-function defaultsFor(
-  invoice: Invoice | undefined,
-  currentUserId: string,
-  isAdmin: boolean,
-  prefill?: { customerId?: string; dealId?: string; amount?: number }
-): FormInput {
+function defaultsFor(invoice: Invoice | undefined): FormInput {
   return {
-    customerId: invoice?.customerId ?? prefill?.customerId ?? "",
-    salesRepId: invoice?.salesRepId ?? (isAdmin ? "" : currentUserId),
-    dealId: invoice?.dealId ?? prefill?.dealId ?? NONE,
+    dealId: invoice?.dealId ?? "",
     status: invoice?.status ?? "draft",
-    amount: invoice?.amount ?? prefill?.amount ?? 0,
+    amount: invoice?.amount ?? 0,
     dueDate: invoice?.dueDate ?? "",
   };
 }
@@ -65,34 +52,41 @@ export function InvoiceForm({
   customers,
   salespeople,
   deals,
-  currentUserId,
-  isAdmin,
-  prefill,
   onSubmit,
 }: {
   invoice?: Invoice;
   customers: Customer[];
   salespeople: TeamMember[];
+  /** Should already be filtered to status === "won" by the caller. */
   deals: Deal[];
-  currentUserId: string;
-  isAdmin: boolean;
-  prefill?: { customerId?: string; dealId?: string; amount?: number };
   onSubmit: (values: InvoiceFormValues) => void | Promise<void>;
 }) {
   const {
     register,
     control,
     handleSubmit,
+    watch,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<FormInput, unknown, FormOutput>({
     resolver: zodResolver(invoiceSchema),
-    values: defaultsFor(invoice, currentUserId, isAdmin, prefill),
+    values: defaultsFor(invoice),
   });
+
+  const watchedDealId = watch("dealId");
+  const customersById = new Map(customers.map((c) => [c.id, c]));
+  const salespeopleById = new Map(salespeople.map((p) => [p.id, p]));
+  const selectedDeal = deals.find((d) => d.id === watchedDealId);
+  const selectedCustomer = selectedDeal
+    ? customersById.get(selectedDeal.customerId)
+    : undefined;
+  const selectedRep = selectedDeal
+    ? salespeopleById.get(selectedDeal.salesRepId)
+    : undefined;
 
   async function submit(values: FormOutput) {
     await onSubmit({
       ...values,
-      dealId: values.dealId === NONE ? null : values.dealId,
       dueDate: values.dueDate === "" ? null : values.dueDate,
     });
   }
@@ -104,72 +98,66 @@ export function InvoiceForm({
     >
       <Controller
         control={control}
-        name="customerId"
+        name="dealId"
         render={({ field }) => (
           <div className="space-y-1.5 sm:col-span-2">
-            <Label>Customer</Label>
+            <Label>Deal</Label>
             <Select
               value={field.value}
-              onValueChange={(value) => value && field.onChange(value)}
+              onValueChange={(value) => {
+                if (!value) return;
+                field.onChange(value);
+                const deal = deals.find((d) => d.id === value);
+                if (deal) setValue("amount", deal.amount);
+              }}
             >
               <SelectTrigger className="w-full">
                 <SelectValue>
-                  {(value: string) =>
-                    customers.find((c) => c.id === value)?.company ??
-                    "Select a customer"
-                  }
+                  {(value: string) => {
+                    const deal = deals.find((d) => d.id === value);
+                    if (!deal) return "Select a won deal";
+                    const customer = customersById.get(deal.customerId);
+                    return `${customer?.company ?? "Unknown customer"} · ${formatUSD(deal.amount)}`;
+                  }}
                 </SelectValue>
               </SelectTrigger>
               <SelectContent>
-                {customers.length === 0 ? (
+                {deals.length === 0 ? (
                   <p className="px-2 py-1.5 text-xs text-text-tertiary">
-                    No customers yet
+                    No won deals yet.
                   </p>
                 ) : (
-                  customers.map((customer) => (
-                    <SelectItem key={customer.id} value={customer.id}>
-                      {customer.company}
+                  deals.map((deal) => (
+                    <SelectItem key={deal.id} value={deal.id}>
+                      {(customersById.get(deal.customerId)?.company ??
+                        "Unknown customer") +
+                        " · " +
+                        formatUSD(deal.amount)}
                     </SelectItem>
                   ))
                 )}
               </SelectContent>
             </Select>
-            {errors.customerId && (
-              <p className="text-xs text-danger">{errors.customerId.message}</p>
+            {errors.dealId && (
+              <p className="text-xs text-danger">{errors.dealId.message}</p>
             )}
           </div>
         )}
       />
 
-      <Controller
-        control={control}
-        name="dealId"
-        render={({ field }) => (
-          <div className="space-y-1.5">
-            <Label>Deal (optional)</Label>
-            <Select
-              value={field.value}
-              onValueChange={(value) => value && field.onChange(value)}
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue>
-                  {(value: string) => (value === NONE ? "None" : "Linked deal")}
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={NONE}>None</SelectItem>
-                {deals.map((deal) => (
-                  <SelectItem key={deal.id} value={deal.id}>
-                    {customers.find((c) => c.id === deal.customerId)?.company ??
-                      "Deal"}{" "}
-                    · {formatUSD(deal.amount)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        )}
-      />
+      <div className="space-y-1.5">
+        <Label>Customer</Label>
+        <p className="flex h-8 items-center rounded-lg border border-input bg-foreground/[0.02] px-2.5 text-sm text-foreground">
+          {selectedCustomer?.company ?? "—"}
+        </p>
+      </div>
+
+      <div className="space-y-1.5">
+        <Label>Sales Rep</Label>
+        <p className="flex h-8 items-center rounded-lg border border-input bg-foreground/[0.02] px-2.5 text-sm text-foreground">
+          {selectedRep?.name ?? "—"}
+        </p>
+      </div>
 
       <div className="space-y-1.5">
         <Label htmlFor="i-amount">Amount</Label>
@@ -188,7 +176,7 @@ export function InvoiceForm({
         control={control}
         name="status"
         render={({ field }) => (
-          <div className="space-y-1.5">
+          <div className="space-y-1.5 sm:col-span-2">
             <Label>Status</Label>
             <Select
               value={field.value}
@@ -216,47 +204,6 @@ export function InvoiceForm({
           </div>
         )}
       />
-
-      {isAdmin && (
-        <Controller
-          control={control}
-          name="salesRepId"
-          render={({ field }) => (
-            <div className="space-y-1.5 sm:col-span-2">
-              <Label>Sales Rep</Label>
-              <Select
-                value={field.value}
-                onValueChange={(value) => value && field.onChange(value)}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue>
-                    {(value: string) =>
-                      salespeople.find((p) => p.id === value)?.name ??
-                      "Select a sales rep"
-                    }
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  {salespeople.length === 0 ? (
-                    <p className="px-2 py-1.5 text-xs text-text-tertiary">
-                      No sales representatives yet
-                    </p>
-                  ) : (
-                    salespeople.map((person) => (
-                      <SelectItem key={person.id} value={person.id}>
-                        {person.name}
-                      </SelectItem>
-                    ))
-                  )}
-                </SelectContent>
-              </Select>
-              {errors.salesRepId && (
-                <p className="text-xs text-danger">{errors.salesRepId.message}</p>
-              )}
-            </div>
-          )}
-        />
-      )}
 
       <DialogFooter className="sm:col-span-2">
         <DialogClose render={<Button type="button" variant="outline" />}>

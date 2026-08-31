@@ -13,7 +13,6 @@ import {
 import { PageHeader } from "@/components/dashboard/page-header";
 import { MetricCard } from "@/components/dashboard/metric-card";
 import { Reveal } from "@/components/motion/reveal";
-import { useAuth } from "@/components/providers/auth-provider";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -64,7 +63,6 @@ export default function DealsPage() {
 }
 
 function DealsPageContent() {
-  const { isAdmin, profile } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -123,6 +121,17 @@ function DealsPageContent() {
   const customersById = useMemo(
     () => new Map(customers.map((c) => [c.id, c])),
     [customers]
+  );
+
+  // Deals can only be created from an accepted quotation — but keep the
+  // deal's own quotation in the list when editing, even if its status has
+  // since moved on, so the Select always has a match for the current value.
+  const dealableQuotations = useMemo(
+    () =>
+      quotations.filter(
+        (q) => q.status === "accepted" || q.id === editingDeal?.quotationId
+      ),
+    [quotations, editingDeal]
   );
 
   const stats = useMemo(() => {
@@ -198,8 +207,6 @@ function DealsPageContent() {
   const handleCreateInvoice = useCallback(async (deal: Deal) => {
     try {
       await createInvoice({
-        salesRepId: deal.salesRepId,
-        customerId: deal.customerId,
         dealId: deal.id,
         status: "draft",
         amount: deal.amount,
@@ -354,9 +361,7 @@ function DealsPageContent() {
             deal={editingDeal}
             customers={customers}
             salespeople={salespeople}
-            quotations={quotations}
-            currentUserId={profile?.id ?? ""}
-            isAdmin={isAdmin}
+            quotations={dealableQuotations}
             onSubmit={handleFormSubmit}
           />
         </DialogContent>

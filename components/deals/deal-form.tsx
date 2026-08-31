@@ -19,13 +19,10 @@ import type { Quotation } from "@/lib/supabase/quotations";
 import type { Customer } from "@/lib/customers-data";
 import type { TeamMember } from "@/lib/supabase/team";
 import { dealStatusLabels } from "@/components/deals/deal-styles";
-
-const NONE = "none";
+import { formatUSD } from "@/lib/format";
 
 const dealSchema = z.object({
-  customerId: z.string().min(1, "Select a customer"),
-  salesRepId: z.string().min(1, "Select a sales rep"),
-  quotationId: z.string(),
+  quotationId: z.string().min(1, "Select an accepted quotation"),
   status: z.enum(["open", "won", "lost"]),
   amount: z.coerce.number().min(0, "Must be 0 or more"),
 });
@@ -34,25 +31,16 @@ type FormInput = z.input<typeof dealSchema>;
 type FormOutput = z.output<typeof dealSchema>;
 
 export type DealFormValues = {
-  customerId: string;
-  salesRepId: string;
-  quotationId: string | null;
+  quotationId: string;
   status: DealStatus;
   amount: number;
 };
 
-function defaultsFor(
-  deal: Deal | undefined,
-  currentUserId: string,
-  isAdmin: boolean,
-  prefill?: { customerId?: string; quotationId?: string; amount?: number }
-): FormInput {
+function defaultsFor(deal: Deal | undefined): FormInput {
   return {
-    customerId: deal?.customerId ?? prefill?.customerId ?? "",
-    salesRepId: deal?.salesRepId ?? (isAdmin ? "" : currentUserId),
-    quotationId: deal?.quotationId ?? prefill?.quotationId ?? NONE,
+    quotationId: deal?.quotationId ?? "",
     status: deal?.status ?? "open",
-    amount: deal?.amount ?? prefill?.amount ?? 0,
+    amount: deal?.amount ?? 0,
   };
 }
 
@@ -61,35 +49,40 @@ export function DealForm({
   customers,
   salespeople,
   quotations,
-  currentUserId,
-  isAdmin,
-  prefill,
   onSubmit,
 }: {
   deal?: Deal;
   customers: Customer[];
   salespeople: TeamMember[];
+  /** Should already be filtered to status === "accepted" by the caller. */
   quotations: Quotation[];
-  currentUserId: string;
-  isAdmin: boolean;
-  prefill?: { customerId?: string; quotationId?: string; amount?: number };
   onSubmit: (values: DealFormValues) => void | Promise<void>;
 }) {
   const {
-    register,
     control,
+    register,
     handleSubmit,
+    watch,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<FormInput, unknown, FormOutput>({
     resolver: zodResolver(dealSchema),
-    values: defaultsFor(deal, currentUserId, isAdmin, prefill),
+    values: defaultsFor(deal),
   });
 
+  const watchedQuotationId = watch("quotationId");
+  const customersById = new Map(customers.map((c) => [c.id, c]));
+  const salespeopleById = new Map(salespeople.map((p) => [p.id, p]));
+  const selectedQuotation = quotations.find((q) => q.id === watchedQuotationId);
+  const selectedCustomer = selectedQuotation
+    ? customersById.get(selectedQuotation.customerId)
+    : undefined;
+  const selectedRep = selectedQuotation
+    ? salespeopleById.get(selectedQuotation.salesRepId)
+    : undefined;
+
   async function submit(values: FormOutput) {
-    await onSubmit({
-      ...values,
-      quotationId: values.quotationId === NONE ? null : values.quotationId,
-    });
+    await onSubmit(values);
   }
 
   return (
@@ -99,72 +92,66 @@ export function DealForm({
     >
       <Controller
         control={control}
-        name="customerId"
+        name="quotationId"
         render={({ field }) => (
           <div className="space-y-1.5 sm:col-span-2">
-            <Label>Customer</Label>
+            <Label>Quotation</Label>
             <Select
               value={field.value}
-              onValueChange={(value) => value && field.onChange(value)}
+              onValueChange={(value) => {
+                if (!value) return;
+                field.onChange(value);
+                const quotation = quotations.find((q) => q.id === value);
+                if (quotation) setValue("amount", quotation.total);
+              }}
             >
               <SelectTrigger className="w-full">
                 <SelectValue>
-                  {(value: string) =>
-                    customers.find((c) => c.id === value)?.company ??
-                    "Select a customer"
-                  }
+                  {(value: string) => {
+                    const quotation = quotations.find((q) => q.id === value);
+                    if (!quotation) return "Select an accepted quotation";
+                    const customer = customersById.get(quotation.customerId);
+                    return `${customer?.company ?? "Unknown customer"} · ${formatUSD(quotation.total)}`;
+                  }}
                 </SelectValue>
               </SelectTrigger>
               <SelectContent>
-                {customers.length === 0 ? (
+                {quotations.length === 0 ? (
                   <p className="px-2 py-1.5 text-xs text-text-tertiary">
-                    No customers yet
+                    No accepted quotations yet.
                   </p>
                 ) : (
-                  customers.map((customer) => (
-                    <SelectItem key={customer.id} value={customer.id}>
-                      {customer.company}
+                  quotations.map((quotation) => (
+                    <SelectItem key={quotation.id} value={quotation.id}>
+                      {(customersById.get(quotation.customerId)?.company ??
+                        "Unknown customer") +
+                        " · " +
+                        formatUSD(quotation.total)}
                     </SelectItem>
                   ))
                 )}
               </SelectContent>
             </Select>
-            {errors.customerId && (
-              <p className="text-xs text-danger">{errors.customerId.message}</p>
+            {errors.quotationId && (
+              <p className="text-xs text-danger">{errors.quotationId.message}</p>
             )}
           </div>
         )}
       />
 
-      <Controller
-        control={control}
-        name="quotationId"
-        render={({ field }) => (
-          <div className="space-y-1.5">
-            <Label>Quotation (optional)</Label>
-            <Select
-              value={field.value}
-              onValueChange={(value) => value && field.onChange(value)}
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue>
-                  {(value: string) => (value === NONE ? "None" : "Linked quotation")}
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={NONE}>None</SelectItem>
-                {quotations.map((quotation) => (
-                  <SelectItem key={quotation.id} value={quotation.id}>
-                    {customers.find((c) => c.id === quotation.customerId)?.company ??
-                      "Quotation"}{" "}
-                    · {quotation.total}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        )}
-      />
+      <div className="space-y-1.5">
+        <Label>Customer</Label>
+        <p className="flex h-8 items-center rounded-lg border border-input bg-foreground/[0.02] px-2.5 text-sm text-foreground">
+          {selectedCustomer?.company ?? "—"}
+        </p>
+      </div>
+
+      <div className="space-y-1.5">
+        <Label>Sales Rep</Label>
+        <p className="flex h-8 items-center rounded-lg border border-input bg-foreground/[0.02] px-2.5 text-sm text-foreground">
+          {selectedRep?.name ?? "—"}
+        </p>
+      </div>
 
       <div className="space-y-1.5">
         <Label htmlFor="d-amount">Amount</Label>
@@ -200,47 +187,6 @@ export function DealForm({
           </div>
         )}
       />
-
-      {isAdmin && (
-        <Controller
-          control={control}
-          name="salesRepId"
-          render={({ field }) => (
-            <div className="space-y-1.5 sm:col-span-2">
-              <Label>Sales Rep</Label>
-              <Select
-                value={field.value}
-                onValueChange={(value) => value && field.onChange(value)}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue>
-                    {(value: string) =>
-                      salespeople.find((p) => p.id === value)?.name ??
-                      "Select a sales rep"
-                    }
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  {salespeople.length === 0 ? (
-                    <p className="px-2 py-1.5 text-xs text-text-tertiary">
-                      No sales representatives yet
-                    </p>
-                  ) : (
-                    salespeople.map((person) => (
-                      <SelectItem key={person.id} value={person.id}>
-                        {person.name}
-                      </SelectItem>
-                    ))
-                  )}
-                </SelectContent>
-              </Select>
-              {errors.salesRepId && (
-                <p className="text-xs text-danger">{errors.salesRepId.message}</p>
-              )}
-            </div>
-          )}
-        />
-      )}
 
       <DialogFooter className="sm:col-span-2">
         <DialogClose render={<Button type="button" variant="outline" />}>

@@ -13,7 +13,6 @@ import {
 import { PageHeader } from "@/components/dashboard/page-header";
 import { MetricCard } from "@/components/dashboard/metric-card";
 import { Reveal } from "@/components/motion/reveal";
-import { useAuth } from "@/components/providers/auth-provider";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -69,7 +68,6 @@ export default function QuotationsPage() {
 }
 
 function QuotationsPageContent() {
-  const { isAdmin, profile } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -203,8 +201,6 @@ function QuotationsPageContent() {
   const handleConvertToDeal = useCallback(async (quotation: Quotation) => {
     try {
       await createDeal({
-        salesRepId: quotation.salesRepId,
-        customerId: quotation.customerId,
         quotationId: quotation.id,
         status: "open",
         amount: quotation.total,
@@ -367,8 +363,6 @@ function QuotationsPageContent() {
             salespeople={salespeople}
             appointments={appointments}
             products={products}
-            currentUserId={profile?.id ?? ""}
-            isAdmin={isAdmin}
             initialCustomerId={initialCustomerId}
             onSubmit={handleFormSubmit}
           />

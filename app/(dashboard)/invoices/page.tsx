@@ -6,7 +6,6 @@ import { AlertTriangle, CircleDollarSign, Receipt, Wallet } from "lucide-react";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { MetricCard } from "@/components/dashboard/metric-card";
 import { Reveal } from "@/components/motion/reveal";
-import { useAuth } from "@/components/providers/auth-provider";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -51,8 +50,6 @@ import { formatUSD } from "@/lib/format";
 const ALL = "all";
 
 export default function InvoicesPage() {
-  const { isAdmin, profile } = useAuth();
-
   const [invoices, setInvoices] = useState<Invoice[] | null>(null);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [salespeople, setSalespeople] = useState<TeamMember[]>([]);
@@ -85,6 +82,14 @@ export default function InvoicesPage() {
   const customersById = useMemo(
     () => new Map(customers.map((c) => [c.id, c])),
     [customers]
+  );
+
+  // Invoices can only be created from a won deal — but keep the invoice's
+  // own deal in the list when editing, even if its status has since moved
+  // on, so the Select always has a match for the current value.
+  const invoiceableDeals = useMemo(
+    () => deals.filter((d) => d.status === "won" || d.id === editingInvoice?.dealId),
+    [deals, editingInvoice]
   );
 
   const stats = useMemo(() => {
@@ -307,9 +312,7 @@ export default function InvoicesPage() {
             invoice={editingInvoice}
             customers={customers}
             salespeople={salespeople}
-            deals={deals}
-            currentUserId={profile?.id ?? ""}
-            isAdmin={isAdmin}
+            deals={invoiceableDeals}
             onSubmit={handleFormSubmit}
           />
         </DialogContent>

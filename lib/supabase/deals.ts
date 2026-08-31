@@ -5,8 +5,8 @@ export type DealStatus = "open" | "won" | "lost";
 export type Deal = {
   id: string;
   salesRepId: string;
-  customerId: string | null;
-  quotationId: string | null;
+  customerId: string;
+  quotationId: string;
   status: DealStatus;
   amount: number;
   /** ISO datetime, or null if still open. */
@@ -17,8 +17,8 @@ export type Deal = {
 type DealRow = {
   id: string;
   sales_rep_id: string;
-  customer_id: string | null;
-  quotation_id: string | null;
+  customer_id: string;
+  quotation_id: string;
   status: DealStatus;
   amount: number | string;
   closed_at: string | null;
@@ -52,25 +52,33 @@ export async function fetchDeals(): Promise<Deal[]> {
 }
 
 export type DealInput = {
-  salesRepId: string;
-  customerId: string | null;
-  quotationId: string | null;
+  quotationId: string;
   status: DealStatus;
   amount: number;
 };
 
-function toRow(values: DealInput) {
-  return {
-    sales_rep_id: values.salesRepId,
-    customer_id: values.customerId,
-    quotation_id: values.quotationId,
-    status: values.status,
-    amount: values.amount,
-  };
+// Customer + Sales Rep are always derived from the linked quotation, never
+// caller-supplied — this is the single choke point that keeps a deal from
+// ever pointing at a different customer/rep than its own quotation.
+async function fetchQuotationIdentity(
+  supabase: ReturnType<typeof createClient>,
+  quotationId: string
+): Promise<{ customerId: string; salesRepId: string }> {
+  const { data, error } = await supabase
+    .from("quotations")
+    .select("customer_id, sales_rep_id")
+    .eq("id", quotationId)
+    .single();
+  if (error) throw error;
+  return { customerId: data.customer_id, salesRepId: data.sales_rep_id };
 }
 
 export async function createDeal(values: DealInput): Promise<Deal> {
   const supabase = createClient();
+  const { customerId, salesRepId } = await fetchQuotationIdentity(
+    supabase,
+    values.quotationId
+  );
 
   // The create form's status dropdown offers "Won"/"Lost" like any other
   // status (not just via the edit form or the Mark Won/Lost quick actions)
@@ -80,7 +88,11 @@ export async function createDeal(values: DealInput): Promise<Deal> {
   const { data, error } = await supabase
     .from("deals")
     .insert({
-      ...toRow(values),
+      sales_rep_id: salesRepId,
+      customer_id: customerId,
+      quotation_id: values.quotationId,
+      status: values.status,
+      amount: values.amount,
       closed_at: values.status !== "open" ? new Date().toISOString() : null,
     })
     .select(SELECT_COLUMNS)
@@ -91,6 +103,10 @@ export async function createDeal(values: DealInput): Promise<Deal> {
 
 export async function updateDeal(id: string, values: DealInput): Promise<Deal> {
   const supabase = createClient();
+  const { customerId, salesRepId } = await fetchQuotationIdentity(
+    supabase,
+    values.quotationId
+  );
 
   // The edit form lets status be set to "won"/"lost" directly (not just via
   // the Mark Won/Lost quick actions) — stamp closed_at on that transition
@@ -114,7 +130,14 @@ export async function updateDeal(id: string, values: DealInput): Promise<Deal> {
 
   const { data, error } = await supabase
     .from("deals")
-    .update({ ...toRow(values), closed_at: closedAt })
+    .update({
+      sales_rep_id: salesRepId,
+      customer_id: customerId,
+      quotation_id: values.quotationId,
+      status: values.status,
+      amount: values.amount,
+      closed_at: closedAt,
+    })
     .eq("id", id)
     .select(SELECT_COLUMNS)
     .single();

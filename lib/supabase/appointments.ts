@@ -5,7 +5,7 @@ export type AppointmentStatus = "scheduled" | "completed" | "cancelled" | "no_sh
 export type Appointment = {
   id: string;
   salesRepId: string;
-  customerId: string | null;
+  customerId: string;
   title: string;
   /** ISO datetime */
   scheduledAt: string;
@@ -17,7 +17,7 @@ export type Appointment = {
 type AppointmentRow = {
   id: string;
   sales_rep_id: string;
-  customer_id: string | null;
+  customer_id: string;
   title: string;
   scheduled_at: string;
   status: AppointmentStatus;
@@ -53,7 +53,7 @@ export async function fetchAppointments(): Promise<Appointment[]> {
 
 export type AppointmentInput = {
   salesRepId: string;
-  customerId: string | null;
+  customerId: string;
   title: string;
   scheduledAt: string;
   status: AppointmentStatus;

@@ -4,9 +4,9 @@ export type InvoiceStatus = "draft" | "sent" | "paid" | "overdue" | "cancelled";
 
 export type Invoice = {
   id: string;
-  dealId: string | null;
+  dealId: string;
   salesRepId: string;
-  customerId: string | null;
+  customerId: string;
   status: InvoiceStatus;
   amount: number;
   /** ISO date, or null if not set. */
@@ -18,9 +18,9 @@ export type Invoice = {
 
 type InvoiceRow = {
   id: string;
-  deal_id: string | null;
+  deal_id: string;
   sales_rep_id: string;
-  customer_id: string | null;
+  customer_id: string;
   status: InvoiceStatus;
   amount: number | string;
   due_date: string | null;
@@ -56,27 +56,31 @@ export async function fetchInvoices(): Promise<Invoice[]> {
 }
 
 export type InvoiceInput = {
-  salesRepId: string;
-  customerId: string | null;
-  dealId: string | null;
+  dealId: string;
   status: InvoiceStatus;
   amount: number;
   dueDate: string | null;
 };
 
-function toRow(values: InvoiceInput) {
-  return {
-    sales_rep_id: values.salesRepId,
-    customer_id: values.customerId,
-    deal_id: values.dealId,
-    status: values.status,
-    amount: values.amount,
-    due_date: values.dueDate,
-  };
+// Customer + Sales Rep are always derived from the linked deal, never
+// caller-supplied — this is the single choke point that keeps an invoice
+// from ever pointing at a different customer/rep than its own deal.
+async function fetchDealIdentity(
+  supabase: ReturnType<typeof createClient>,
+  dealId: string
+): Promise<{ customerId: string; salesRepId: string }> {
+  const { data, error } = await supabase
+    .from("deals")
+    .select("customer_id, sales_rep_id")
+    .eq("id", dealId)
+    .single();
+  if (error) throw error;
+  return { customerId: data.customer_id, salesRepId: data.sales_rep_id };
 }
 
 export async function createInvoice(values: InvoiceInput): Promise<Invoice> {
   const supabase = createClient();
+  const { customerId, salesRepId } = await fetchDealIdentity(supabase, values.dealId);
 
   // The create form's status dropdown offers "Paid" like any other status
   // (not just via the edit form or the "Mark Paid" quick action) — stamp
@@ -86,7 +90,12 @@ export async function createInvoice(values: InvoiceInput): Promise<Invoice> {
   const { data, error } = await supabase
     .from("invoices")
     .insert({
-      ...toRow(values),
+      sales_rep_id: salesRepId,
+      customer_id: customerId,
+      deal_id: values.dealId,
+      status: values.status,
+      amount: values.amount,
+      due_date: values.dueDate,
       paid_at: values.status === "paid" ? new Date().toISOString() : null,
     })
     .select(SELECT_COLUMNS)
@@ -100,6 +109,7 @@ export async function updateInvoice(
   values: InvoiceInput
 ): Promise<Invoice> {
   const supabase = createClient();
+  const { customerId, salesRepId } = await fetchDealIdentity(supabase, values.dealId);
 
   // The edit form lets status be set to "paid" directly (not just via the
   // "Mark Paid" quick action) — stamp paid_at on that transition too, but
@@ -123,7 +133,15 @@ export async function updateInvoice(
 
   const { data, error } = await supabase
     .from("invoices")
-    .update({ ...toRow(values), paid_at: paidAt })
+    .update({
+      sales_rep_id: salesRepId,
+      customer_id: customerId,
+      deal_id: values.dealId,
+      status: values.status,
+      amount: values.amount,
+      due_date: values.dueDate,
+      paid_at: paidAt,
+    })
     .eq("id", id)
     .select(SELECT_COLUMNS)
     .single();

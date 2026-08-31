@@ -12,8 +12,8 @@ export type QuotationItem = {
 export type Quotation = {
   id: string;
   salesRepId: string;
-  customerId: string | null;
-  appointmentId: string | null;
+  customerId: string;
+  appointmentId: string;
   status: QuotationStatus;
   total: number;
   /** ISO date, or null if not set. */
@@ -32,8 +32,8 @@ type QuotationItemRow = {
 type QuotationRow = {
   id: string;
   sales_rep_id: string;
-  customer_id: string | null;
-  appointment_id: string | null;
+  customer_id: string;
+  appointment_id: string;
   status: QuotationStatus;
   total: number | string;
   valid_until: string | null;
@@ -80,9 +80,7 @@ export type QuotationItemInput = {
 };
 
 export type QuotationInput = {
-  salesRepId: string;
-  customerId: string | null;
-  appointmentId: string | null;
+  appointmentId: string;
   status: QuotationStatus;
   validUntil: string | null;
   items: QuotationItemInput[];
@@ -92,13 +90,33 @@ function quotationTotal(items: QuotationItemInput[]): number {
   return items.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0);
 }
 
+// Customer + Sales Rep are always derived from the linked appointment, never
+// caller-supplied — this is the single choke point that keeps a quotation
+// from ever pointing at a different customer/rep than its own appointment.
+async function fetchAppointmentIdentity(
+  supabase: ReturnType<typeof createClient>,
+  appointmentId: string
+): Promise<{ customerId: string; salesRepId: string }> {
+  const { data, error } = await supabase
+    .from("appointments")
+    .select("customer_id, sales_rep_id")
+    .eq("id", appointmentId)
+    .single();
+  if (error) throw error;
+  return { customerId: data.customer_id, salesRepId: data.sales_rep_id };
+}
+
 export async function createQuotation(values: QuotationInput): Promise<Quotation> {
   const supabase = createClient();
+  const { customerId, salesRepId } = await fetchAppointmentIdentity(
+    supabase,
+    values.appointmentId
+  );
   const { data: quotation, error } = await supabase
     .from("quotations")
     .insert({
-      sales_rep_id: values.salesRepId,
-      customer_id: values.customerId,
+      sales_rep_id: salesRepId,
+      customer_id: customerId,
       appointment_id: values.appointmentId,
       status: values.status,
       total: quotationTotal(values.items),
@@ -128,10 +146,15 @@ export async function updateQuotation(
   values: QuotationInput
 ): Promise<Quotation> {
   const supabase = createClient();
+  const { customerId, salesRepId } = await fetchAppointmentIdentity(
+    supabase,
+    values.appointmentId
+  );
   const { error } = await supabase
     .from("quotations")
     .update({
-      customer_id: values.customerId,
+      sales_rep_id: salesRepId,
+      customer_id: customerId,
       appointment_id: values.appointmentId,
       status: values.status,
       total: quotationTotal(values.items),
