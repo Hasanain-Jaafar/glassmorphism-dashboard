@@ -35,7 +35,12 @@ export async function POST(request: Request) {
 
   let content = "";
   try {
-    const pdf = await getDocumentProxy(bytes);
+    // getDocumentProxy/extractText detach the ArrayBuffer they're given
+    // (pdf.js takes ownership of it for performance) — pass a copy so the
+    // original `bytes` used for the storage upload below stays intact.
+    // Confirmed empirically: without .slice(), bytes.byteLength becomes 0
+    // after extraction, silently uploading a corrupted empty file.
+    const pdf = await getDocumentProxy(bytes.slice());
     const extracted = await extractText(pdf, { mergePages: true });
     content = extracted.text.trim();
   } catch {
