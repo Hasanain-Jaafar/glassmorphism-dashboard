@@ -61,14 +61,18 @@ const features = tableFeatures({
 
 const columnHelper = createColumnHelper<typeof features, TargetRow>();
 
-function buildColumns(peopleById: Map<string, TargetPerson>, onSave: (id: string, values: SaveValues) => void) {
+function buildColumns(onEdit: (id: string) => void) {
   return columnHelper.columns([
     columnHelper.accessor("name", {
       header: "Salesperson",
       cell: (info) => {
         const row = info.row.original;
         return (
-          <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => onEdit(row.id)}
+            className="flex min-w-0 items-center gap-3 text-left"
+          >
             <div className="flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-accent text-xs font-semibold text-accent-foreground">
               {row.avatarUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
@@ -82,12 +86,12 @@ function buildColumns(peopleById: Map<string, TargetPerson>, onSave: (id: string
               )}
             </div>
             <div className="min-w-0">
-              <p className="truncate text-sm font-medium text-foreground">
+              <p className="truncate text-sm font-medium text-foreground hover:text-primary">
                 {row.name}
               </p>
               <p className="truncate text-xs text-text-tertiary">{row.role}</p>
             </div>
-          </div>
+          </button>
         );
       },
     }),
@@ -178,27 +182,6 @@ function buildColumns(peopleById: Map<string, TargetPerson>, onSave: (id: string
         );
       },
     }),
-    columnHelper.display({
-      id: "actions",
-      header: "",
-      cell: (info) => {
-        const person = peopleById.get(info.row.original.id);
-        if (!person) return null;
-        return (
-          <EditTargetDialog
-            title={`Edit ${person.name}'s Targets`}
-            description="Update the monthly and yearly sales target for this representative."
-            monthlyTarget={person.monthlyTarget}
-            yearlyTarget={person.yearlyTarget}
-            monthlyAppointmentsTarget={person.monthlyAppointmentsTarget ?? 0}
-            yearlyAppointmentsTarget={person.yearlyAppointmentsTarget ?? 0}
-            monthlyDealsTarget={person.monthlyDealsTarget ?? 0}
-            yearlyDealsTarget={person.yearlyDealsTarget ?? 0}
-            onSave={(values) => onSave(person.id, values)}
-          />
-        );
-      },
-    }),
   ]);
 }
 
@@ -222,11 +205,13 @@ export function SalespersonTargetTable({
   const [sorting, setSorting] = useState<SortingState>([
     { id: "target", desc: true },
   ]);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   const peopleById = useMemo(
     () => new Map(people.map((p) => [p.id, p])),
     [people]
   );
+  const editingPerson = editingId ? peopleById.get(editingId) : undefined;
 
   const data: TargetRow[] = useMemo(
     () =>
@@ -252,10 +237,7 @@ export function SalespersonTargetTable({
     [people, selection, actuals, appointmentsActuals, dealsActuals]
   );
 
-  const columns = useMemo(
-    () => buildColumns(peopleById, onSave),
-    [peopleById, onSave]
-  );
+  const columns = useMemo(() => buildColumns(setEditingId), []);
 
   const table = useTable({
     features,
@@ -323,6 +305,24 @@ export function SalespersonTargetTable({
           </tbody>
         </table>
       </div>
+
+      {editingPerson && (
+        <EditTargetDialog
+          open={editingId !== null}
+          onOpenChange={(next) => {
+            if (!next) setEditingId(null);
+          }}
+          title={`Edit ${editingPerson.name}'s Targets`}
+          description="Update the monthly and yearly sales target for this representative."
+          monthlyTarget={editingPerson.monthlyTarget}
+          yearlyTarget={editingPerson.yearlyTarget}
+          monthlyAppointmentsTarget={editingPerson.monthlyAppointmentsTarget ?? 0}
+          yearlyAppointmentsTarget={editingPerson.yearlyAppointmentsTarget ?? 0}
+          monthlyDealsTarget={editingPerson.monthlyDealsTarget ?? 0}
+          yearlyDealsTarget={editingPerson.yearlyDealsTarget ?? 0}
+          onSave={(values) => onSave(editingPerson.id, values)}
+        />
+      )}
     </div>
   );
 }

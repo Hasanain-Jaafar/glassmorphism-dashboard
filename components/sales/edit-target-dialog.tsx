@@ -43,6 +43,8 @@ export function EditTargetDialog({
   yearlyDealsTarget,
   onSave,
   triggerLabel = "Edit",
+  open: openProp,
+  onOpenChange: onOpenChangeProp,
 }: {
   title: string;
   description: string;
@@ -55,8 +57,18 @@ export function EditTargetDialog({
   yearlyDealsTarget?: number;
   onSave: (values: FormOutput) => void | Promise<void>;
   triggerLabel?: string;
+  /**
+   * Externally controlled mode — when provided, no internal trigger button
+   * is rendered; the caller owns open state (e.g. a click on a table row's
+   * name cell) and this becomes a plain controlled Dialog.
+   */
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }) {
-  const [open, setOpen] = useState(false);
+  const isControlled = openProp !== undefined;
+  const [internalOpen, setInternalOpen] = useState(false);
+  const open = isControlled ? openProp : internalOpen;
+  const setOpen = isControlled ? (onOpenChangeProp ?? (() => {})) : setInternalOpen;
   const hasActivityTargets = monthlyAppointmentsTarget !== undefined;
 
   const defaultValues = {
@@ -97,12 +109,14 @@ export function EditTargetDialog({
         if (!next) reset(defaultValues);
       }}
     >
-      <DialogTrigger
-        render={<Button variant="outline" size="sm" className="gap-1.5" />}
-      >
-        <Pencil className="size-3.5" />
-        {triggerLabel}
-      </DialogTrigger>
+      {!isControlled && (
+        <DialogTrigger
+          render={<Button variant="outline" size="sm" className="gap-1.5" />}
+        >
+          <Pencil className="size-3.5" />
+          {triggerLabel}
+        </DialogTrigger>
+      )}
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
