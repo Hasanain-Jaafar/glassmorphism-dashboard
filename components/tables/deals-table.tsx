@@ -154,7 +154,7 @@ function buildColumns(
                   </DropdownMenuItem>
                 </>
               )}
-              {deal.status === "won" && (
+              {deal.status === "won" && !hasInvoice && (
                 <>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={() => actions.onCreateInvoice(deal)}>

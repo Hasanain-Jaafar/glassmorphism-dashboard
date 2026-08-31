@@ -166,7 +166,7 @@ function buildColumns(
                   </DropdownMenuItem>
                 </>
               )}
-              {quotation.status === "accepted" && (
+              {quotation.status === "accepted" && !hasDeal && (
                 <>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={() => actions.onConvertToDeal(quotation)}>
