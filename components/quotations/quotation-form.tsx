@@ -3,6 +3,7 @@
 import { Controller, useFieldArray, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { format } from "date-fns";
 import { Plus, Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -110,6 +111,7 @@ export function QuotationForm({
   const { fields, append, remove } = useFieldArray({ control, name: "items" });
 
   const watchedAppointmentId = watch("appointmentId");
+  const watchedValidUntil = watch("validUntil");
   const watchedItems = watch("items");
   const total = watchedItems.reduce(
     (sum, item) => sum + (Number(item.quantity) || 0) * (Number(item.unitPrice) || 0),
@@ -149,43 +151,54 @@ export function QuotationForm({
       <Controller
         control={control}
         name="appointmentId"
-        render={({ field }) => (
-          <div className="space-y-1.5 sm:col-span-2">
-            <Label>Appointment</Label>
-            <Select
-              value={field.value}
-              onValueChange={(value) => value && field.onChange(value)}
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue>
-                  {(value: string) => {
-                    const appointment = appointments.find((a) => a.id === value);
-                    if (!appointment) return "Select an appointment";
-                    const customer = customersById.get(appointment.customerId);
-                    return `${customer?.company ?? "Unknown customer"} — ${appointment.title}`;
-                  }}
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                {appointments.length === 0 ? (
-                  <p className="px-2 py-1.5 text-xs text-text-tertiary">
-                    No appointments yet — create one first.
-                  </p>
-                ) : (
-                  appointments.map((appointment) => (
-                    <SelectItem key={appointment.id} value={appointment.id}>
-                      {(customersById.get(appointment.customerId)?.company ??
-                        "Unknown customer") + " — " + appointment.title}
-                    </SelectItem>
-                  ))
-                )}
-              </SelectContent>
-            </Select>
-            {errors.appointmentId && (
-              <p className="text-xs text-danger">{errors.appointmentId.message}</p>
-            )}
-          </div>
-        )}
+        render={({ field }) =>
+          hasLinkedDeal ? (
+            <div className="space-y-1.5 sm:col-span-2">
+              <Label>Appointment</Label>
+              <p className="flex h-8 items-center rounded-lg border border-input bg-foreground/[0.02] px-2.5 text-sm text-foreground">
+                {selectedAppointment
+                  ? `${selectedCustomer?.company ?? "Unknown customer"} — ${selectedAppointment.title}`
+                  : "—"}
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-1.5 sm:col-span-2">
+              <Label>Appointment</Label>
+              <Select
+                value={field.value}
+                onValueChange={(value) => value && field.onChange(value)}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue>
+                    {(value: string) => {
+                      const appointment = appointments.find((a) => a.id === value);
+                      if (!appointment) return "Select an appointment";
+                      const customer = customersById.get(appointment.customerId);
+                      return `${customer?.company ?? "Unknown customer"} — ${appointment.title}`;
+                    }}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {appointments.length === 0 ? (
+                    <p className="px-2 py-1.5 text-xs text-text-tertiary">
+                      No appointments yet — create one first.
+                    </p>
+                  ) : (
+                    appointments.map((appointment) => (
+                      <SelectItem key={appointment.id} value={appointment.id}>
+                        {(customersById.get(appointment.customerId)?.company ??
+                          "Unknown customer") + " — " + appointment.title}
+                      </SelectItem>
+                    ))
+                  )}
+                </SelectContent>
+              </Select>
+              {errors.appointmentId && (
+                <p className="text-xs text-danger">{errors.appointmentId.message}</p>
+              )}
+            </div>
+          )
+        }
       />
 
       <div className="space-y-1.5">
@@ -252,106 +265,142 @@ export function QuotationForm({
         }
       />
 
-      <div className="space-y-1.5">
-        <Label htmlFor="q-valid-until">Valid Until (optional)</Label>
-        <Controller
-          control={control}
-          name="validUntil"
-          render={({ field }) => (
-            <Input id="q-valid-until" type="date" {...field} />
-          )}
-        />
-      </div>
+      {hasLinkedDeal ? (
+        <div className="space-y-1.5">
+          <Label>Valid Until</Label>
+          <p className="flex h-8 items-center rounded-lg border border-input bg-foreground/[0.02] px-2.5 text-sm text-foreground">
+            {watchedValidUntil
+              ? format(new Date(watchedValidUntil), "MMM d, yyyy")
+              : "No expiration"}
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-1.5">
+          <Label htmlFor="q-valid-until">Valid Until (optional)</Label>
+          <Controller
+            control={control}
+            name="validUntil"
+            render={({ field }) => (
+              <Input id="q-valid-until" type="date" {...field} />
+            )}
+          />
+        </div>
+      )}
 
       <div className="space-y-2 sm:col-span-2">
         <div className="flex items-center justify-between">
           <Label>Line Items</Label>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => append({ productId: "", quantity: 1, unitPrice: 0 })}
-          >
-            <Plus className="size-3.5" />
-            Add Item
-          </Button>
-        </div>
-
-        <div className="space-y-2">
-          {fields.map((field, index) => (
-            <div
-              key={field.id}
-              className="grid grid-cols-[1fr_72px_96px_auto] items-start gap-2 rounded-xl border border-glass-border/60 bg-foreground/[0.02] p-2.5"
+          {!hasLinkedDeal && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => append({ productId: "", quantity: 1, unitPrice: 0 })}
             >
-              <Controller
-                control={control}
-                name={`items.${index}.productId`}
-                render={({ field: productField }) => (
-                  <Select
-                    value={productField.value}
-                    onValueChange={(value) => {
-                      if (!value) return;
-                      productField.onChange(value);
-                      const product = products.find((p) => p.id === value);
-                      if (product) {
-                        setValue(`items.${index}.unitPrice`, product.price);
-                      }
-                    }}
-                  >
-                    <SelectTrigger className="w-full">
-                      <SelectValue>
-                        {(value: string) =>
-                          products.find((p) => p.id === value)?.name ??
-                          "Select a product"
-                        }
-                      </SelectValue>
-                    </SelectTrigger>
-                    <SelectContent>
-                      {products.map((product) => (
-                        <SelectItem key={product.id} value={product.id}>
-                          {product.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
-              />
-
-              <Input
-                type="number"
-                min={1}
-                placeholder="Qty"
-                {...register(`items.${index}.quantity`)}
-              />
-
-              <Input
-                type="number"
-                min={0}
-                placeholder="Price"
-                {...register(`items.${index}.unitPrice`)}
-              />
-
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon-sm"
-                aria-label="Remove item"
-                disabled={fields.length === 1}
-                onClick={() => remove(index)}
-              >
-                <Trash2 className="size-3.5" />
-              </Button>
-            </div>
-          ))}
+              <Plus className="size-3.5" />
+              Add Item
+            </Button>
+          )}
         </div>
-        {errors.items && !Array.isArray(errors.items) && (
-          <p className="text-xs text-danger">{errors.items.message}</p>
-        )}
-        {Array.isArray(errors.items) && errors.items.some(Boolean) && (
-          <p className="text-xs text-danger">
-            One or more line items are incomplete — check the product and
-            quantity above.
-          </p>
+
+        {hasLinkedDeal ? (
+          <div className="space-y-2">
+            {watchedItems.map((item, index) => {
+              const product = products.find((p) => p.id === item.productId);
+              return (
+                <div
+                  key={index}
+                  className="flex items-center justify-between rounded-xl border border-glass-border/60 bg-foreground/[0.02] p-2.5 text-sm"
+                >
+                  <span className="text-foreground">
+                    {product?.name ?? "Unknown product"}
+                  </span>
+                  <span className="tabular-nums text-text-secondary">
+                    {Number(item.quantity)} × {formatUSD(Number(item.unitPrice))}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <>
+            <div className="space-y-2">
+              {fields.map((field, index) => (
+                <div
+                  key={field.id}
+                  className="grid grid-cols-[1fr_72px_96px_auto] items-start gap-2 rounded-xl border border-glass-border/60 bg-foreground/[0.02] p-2.5"
+                >
+                  <Controller
+                    control={control}
+                    name={`items.${index}.productId`}
+                    render={({ field: productField }) => (
+                      <Select
+                        value={productField.value}
+                        onValueChange={(value) => {
+                          if (!value) return;
+                          productField.onChange(value);
+                          const product = products.find((p) => p.id === value);
+                          if (product) {
+                            setValue(`items.${index}.unitPrice`, product.price);
+                          }
+                        }}
+                      >
+                        <SelectTrigger className="w-full">
+                          <SelectValue>
+                            {(value: string) =>
+                              products.find((p) => p.id === value)?.name ??
+                              "Select a product"
+                            }
+                          </SelectValue>
+                        </SelectTrigger>
+                        <SelectContent>
+                          {products.map((product) => (
+                            <SelectItem key={product.id} value={product.id}>
+                              {product.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
+
+                  <Input
+                    type="number"
+                    min={1}
+                    placeholder="Qty"
+                    {...register(`items.${index}.quantity`)}
+                  />
+
+                  <Input
+                    type="number"
+                    min={0}
+                    placeholder="Price"
+                    {...register(`items.${index}.unitPrice`)}
+                  />
+
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-sm"
+                    aria-label="Remove item"
+                    disabled={fields.length === 1}
+                    onClick={() => remove(index)}
+                  >
+                    <Trash2 className="size-3.5" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+            {errors.items && !Array.isArray(errors.items) && (
+              <p className="text-xs text-danger">{errors.items.message}</p>
+            )}
+            {Array.isArray(errors.items) && errors.items.some(Boolean) && (
+              <p className="text-xs text-danger">
+                One or more line items are incomplete — check the product and
+                quantity above.
+              </p>
+            )}
+          </>
         )}
 
         <div className="flex justify-end border-t border-glass-border pt-2">
@@ -364,11 +413,13 @@ export function QuotationForm({
 
       <DialogFooter className="sm:col-span-2">
         <DialogClose render={<Button type="button" variant="outline" />}>
-          Cancel
+          {hasLinkedDeal ? "Close" : "Cancel"}
         </DialogClose>
-        <Button type="submit" disabled={isSubmitting}>
-          {quotation ? "Save Changes" : "Create Quotation"}
-        </Button>
+        {!hasLinkedDeal && (
+          <Button type="submit" disabled={isSubmitting}>
+            {quotation ? "Save Changes" : "Create Quotation"}
+          </Button>
+        )}
       </DialogFooter>
     </form>
   );

@@ -76,6 +76,7 @@ export function DealForm({
   });
 
   const watchedQuotationId = watch("quotationId");
+  const watchedAmount = watch("amount");
   const customersById = new Map(customers.map((c) => [c.id, c]));
   const salespeopleById = new Map(salespeople.map((p) => [p.id, p]));
   const selectedQuotation = quotations.find((q) => q.id === watchedQuotationId);
@@ -99,50 +100,60 @@ export function DealForm({
       <Controller
         control={control}
         name="quotationId"
-        render={({ field }) => (
-          <div className="space-y-1.5 sm:col-span-2">
-            <Label>Quotation</Label>
-            <Select
-              value={field.value}
-              onValueChange={(value) => {
-                if (!value) return;
-                field.onChange(value);
-                const quotation = quotations.find((q) => q.id === value);
-                if (quotation) setValue("amount", quotation.total);
-              }}
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue>
-                  {(value: string) => {
-                    const quotation = quotations.find((q) => q.id === value);
-                    if (!quotation) return "Select an accepted quotation";
-                    const customer = customersById.get(quotation.customerId);
-                    return `${customer?.company ?? "Unknown customer"} · ${formatUSD(quotation.total)}`;
-                  }}
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                {quotations.length === 0 ? (
-                  <p className="px-2 py-1.5 text-xs text-text-tertiary">
-                    No accepted quotations yet.
-                  </p>
-                ) : (
-                  quotations.map((quotation) => (
-                    <SelectItem key={quotation.id} value={quotation.id}>
-                      {(customersById.get(quotation.customerId)?.company ??
-                        "Unknown customer") +
-                        " · " +
-                        formatUSD(quotation.total)}
-                    </SelectItem>
-                  ))
-                )}
-              </SelectContent>
-            </Select>
-            {errors.quotationId && (
-              <p className="text-xs text-danger">{errors.quotationId.message}</p>
-            )}
-          </div>
-        )}
+        render={({ field }) =>
+          hasLinkedInvoice ? (
+            <div className="space-y-1.5 sm:col-span-2">
+              <Label>Quotation</Label>
+              <p className="flex h-8 items-center rounded-lg border border-input bg-foreground/[0.02] px-2.5 text-sm text-foreground">
+                {selectedCustomer?.company ?? "Unknown customer"} ·{" "}
+                {selectedQuotation ? formatUSD(selectedQuotation.total) : "—"}
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-1.5 sm:col-span-2">
+              <Label>Quotation</Label>
+              <Select
+                value={field.value}
+                onValueChange={(value) => {
+                  if (!value) return;
+                  field.onChange(value);
+                  const quotation = quotations.find((q) => q.id === value);
+                  if (quotation) setValue("amount", quotation.total);
+                }}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue>
+                    {(value: string) => {
+                      const quotation = quotations.find((q) => q.id === value);
+                      if (!quotation) return "Select an accepted quotation";
+                      const customer = customersById.get(quotation.customerId);
+                      return `${customer?.company ?? "Unknown customer"} · ${formatUSD(quotation.total)}`;
+                    }}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {quotations.length === 0 ? (
+                    <p className="px-2 py-1.5 text-xs text-text-tertiary">
+                      No accepted quotations yet.
+                    </p>
+                  ) : (
+                    quotations.map((quotation) => (
+                      <SelectItem key={quotation.id} value={quotation.id}>
+                        {(customersById.get(quotation.customerId)?.company ??
+                          "Unknown customer") +
+                          " · " +
+                          formatUSD(quotation.total)}
+                      </SelectItem>
+                    ))
+                  )}
+                </SelectContent>
+              </Select>
+              {errors.quotationId && (
+                <p className="text-xs text-danger">{errors.quotationId.message}</p>
+              )}
+            </div>
+          )
+        }
       />
 
       <div className="space-y-1.5">
@@ -159,13 +170,22 @@ export function DealForm({
         </p>
       </div>
 
-      <div className="space-y-1.5">
-        <Label htmlFor="d-amount">Amount</Label>
-        <Input id="d-amount" type="number" min={0} {...register("amount")} />
-        {errors.amount && (
-          <p className="text-xs text-danger">{errors.amount.message}</p>
-        )}
-      </div>
+      {hasLinkedInvoice ? (
+        <div className="space-y-1.5">
+          <Label>Amount</Label>
+          <p className="flex h-8 items-center rounded-lg border border-input bg-foreground/[0.02] px-2.5 text-sm text-foreground">
+            {formatUSD(Number(watchedAmount))}
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-1.5">
+          <Label htmlFor="d-amount">Amount</Label>
+          <Input id="d-amount" type="number" min={0} {...register("amount")} />
+          {errors.amount && (
+            <p className="text-xs text-danger">{errors.amount.message}</p>
+          )}
+        </div>
+      )}
 
       <Controller
         control={control}
@@ -215,11 +235,13 @@ export function DealForm({
 
       <DialogFooter className="sm:col-span-2">
         <DialogClose render={<Button type="button" variant="outline" />}>
-          Cancel
+          {hasLinkedInvoice ? "Close" : "Cancel"}
         </DialogClose>
-        <Button type="submit" disabled={isSubmitting}>
-          {deal ? "Save Changes" : "Create Deal"}
-        </Button>
+        {!hasLinkedInvoice && (
+          <Button type="submit" disabled={isSubmitting}>
+            {deal ? "Save Changes" : "Create Deal"}
+          </Button>
+        )}
       </DialogFooter>
     </form>
   );
