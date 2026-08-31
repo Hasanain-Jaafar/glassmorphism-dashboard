@@ -25,15 +25,17 @@ const customerSchema = z.object({
   phone: z.string().trim().min(5, "Enter a phone number"),
   address: z.string().trim().min(2, "Enter an address"),
   status: z.enum(["active", "prospect", "inactive"]),
-  assignedSalespersonId: z.string().min(1, "Assign a salesperson"),
+  assignedSalespersonId: z.string(),
 });
+
+const UNASSIGNED = "unassigned";
 
 type FormInput = z.input<typeof customerSchema>;
 type FormOutput = z.output<typeof customerSchema>;
 
 export type CustomerFormValues = FormOutput;
 
-function defaultsFor(customer: Customer | undefined, salespeople: TeamMember[]): FormInput {
+function defaultsFor(customer: Customer | undefined): FormInput {
   return {
     company: customer?.company ?? "",
     contactPerson: customer?.contactPerson ?? "",
@@ -41,7 +43,7 @@ function defaultsFor(customer: Customer | undefined, salespeople: TeamMember[]):
     phone: customer?.phone ?? "",
     address: customer?.address ?? "",
     status: customer?.status ?? "prospect",
-    assignedSalespersonId: customer?.assignedSalespersonId ?? salespeople[0]?.id ?? "",
+    assignedSalespersonId: customer?.assignedSalespersonId ?? "",
   };
 }
 
@@ -61,7 +63,7 @@ export function CustomerForm({
     formState: { errors, isSubmitting },
   } = useForm<FormInput, unknown, FormOutput>({
     resolver: zodResolver(customerSchema),
-    values: defaultsFor(customer, salespeople),
+    values: defaultsFor(customer),
   });
 
   async function submit(values: FormOutput) {
@@ -137,8 +139,10 @@ export function CustomerForm({
           <div className="space-y-1.5">
             <Label>Assigned Salesperson</Label>
             <Select
-              value={field.value}
-              onValueChange={(value) => value && field.onChange(value)}
+              value={field.value || UNASSIGNED}
+              onValueChange={(value) =>
+                value && field.onChange(value === UNASSIGNED ? "" : value)
+              }
             >
               <SelectTrigger className="w-full">
                 <SelectValue>
@@ -148,17 +152,12 @@ export function CustomerForm({
                 </SelectValue>
               </SelectTrigger>
               <SelectContent>
-                {salespeople.length === 0 ? (
-                  <p className="px-2 py-1.5 text-xs text-text-tertiary">
-                    No sales representatives yet
-                  </p>
-                ) : (
-                  salespeople.map((person) => (
-                    <SelectItem key={person.id} value={person.id}>
-                      {person.name}
-                    </SelectItem>
-                  ))
-                )}
+                <SelectItem value={UNASSIGNED}>Unassigned</SelectItem>
+                {salespeople.map((person) => (
+                  <SelectItem key={person.id} value={person.id}>
+                    {person.name}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>

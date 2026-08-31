@@ -71,7 +71,7 @@ function toRow(values: CustomerInput) {
     phone: values.phone,
     address: values.address,
     status: values.status,
-    owner_id: values.assignedSalespersonId,
+    owner_id: values.assignedSalespersonId || null,
   };
 }
 
