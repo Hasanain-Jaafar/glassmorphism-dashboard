@@ -42,6 +42,13 @@ import {
   TabsTab,
 } from "@/components/ui/tabs";
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import {
   computeProductStats,
   productBrands,
   productCategories,
@@ -61,7 +68,7 @@ const statusOptions = [
   { value: "archived", label: "Archived" },
 ];
 
-const productTabs = ["catalog", "all", "add"] as const;
+const productTabs = ["catalog", "all"] as const;
 type ProductTab = (typeof productTabs)[number];
 
 function isProductTab(value: string | null): value is ProductTab {
@@ -79,10 +86,9 @@ export default function ProductsPage() {
   const requestedCategory = searchParams.get("category");
 
   const [activeTab, setActiveTab] = useState<ProductTab>(
-    isProductTab(requestedTab) && (requestedTab !== "add" || admin)
-      ? requestedTab
-      : "catalog"
+    isProductTab(requestedTab) ? requestedTab : "catalog"
   );
+  const [formOpen, setFormOpen] = useState(requestedTab === "add" && admin);
   const [search, setSearch] = useState(requestedQuery ?? "");
   const [categoryFilter, setCategoryFilter] = useState<string>(
     requestedCategory && productCategories.includes(requestedCategory as (typeof productCategories)[number])
@@ -99,8 +105,11 @@ export default function ProductsPage() {
   const [prevDeepLinkKey, setPrevDeepLinkKey] = useState(deepLinkKey);
   if (deepLinkKey !== prevDeepLinkKey) {
     setPrevDeepLinkKey(deepLinkKey);
-    if (isProductTab(requestedTab) && (requestedTab !== "add" || admin)) {
+    if (isProductTab(requestedTab)) {
       setActiveTab(requestedTab);
+    }
+    if (requestedTab === "add" && admin) {
+      setFormOpen(true);
     }
     if (requestedQuery) {
       setSearch(requestedQuery);
@@ -179,6 +188,7 @@ export default function ProductsPage() {
       const created = await insertProduct(product);
       setProducts((prev) => [created, ...prev]);
       toast.success(`${created.name} was added to the catalog`);
+      setFormOpen(false);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Couldn't add product");
       throw error;
@@ -191,6 +201,14 @@ export default function ProductsPage() {
         <PageHeader
           title="Products"
           description="Manage the product catalog available for quotations"
+          actions={
+            admin && (
+              <Button onClick={() => setFormOpen(true)}>
+                <PackagePlus className="size-4" />
+                Add Product
+              </Button>
+            )
+          }
         />
       </Reveal>
 
@@ -325,12 +343,6 @@ export default function ProductsPage() {
               <Table2 className="size-[15px]" />
               All Products
             </TabsTab>
-            {admin && (
-              <TabsTab value="add">
-                <PackagePlus className="size-[15px]" />
-                Add Product
-              </TabsTab>
-            )}
             <TabsIndicator />
           </TabsList>
 
@@ -367,14 +379,23 @@ export default function ProductsPage() {
               />
             )}
           </TabsPanel>
-
-          {admin && (
-            <TabsPanel value="add">
-              <AddProductForm onAdd={handleAdd} />
-            </TabsPanel>
-          )}
         </Tabs>
       </Reveal>
+
+      {admin && (
+        <Dialog open={formOpen} onOpenChange={setFormOpen}>
+          <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Add Product</DialogTitle>
+              <DialogDescription>
+                New products can be added as a Draft until they&apos;re ready to
+                sell.
+              </DialogDescription>
+            </DialogHeader>
+            <AddProductForm onAdd={handleAdd} />
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }

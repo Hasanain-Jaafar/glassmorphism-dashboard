@@ -3,11 +3,11 @@
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { PackagePlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { DialogClose, DialogFooter } from "@/components/ui/dialog";
 import {
   Select,
   SelectContent,
@@ -81,157 +81,137 @@ export function AddProductForm({
   }
 
   return (
-    <div className="glass-panel max-w-2xl rounded-2xl p-5 shadow-sm sm:p-6">
-      <div className="flex items-center gap-3">
-        <span className="flex size-9 items-center justify-center rounded-xl bg-primary/10 text-primary">
-          <PackagePlus className="size-[18px]" />
-        </span>
-        <div>
-          <h3 className="text-sm font-semibold text-foreground sm:text-base">
-            Add Product
-          </h3>
-          <p className="mt-0.5 text-xs text-text-tertiary">
-            New products can be added as a Draft until they&apos;re ready to sell.
-          </p>
-        </div>
+    <form
+      onSubmit={handleSubmit(onSubmit)}
+      className="grid grid-cols-1 gap-4 sm:grid-cols-2"
+    >
+      <div className="space-y-1.5 sm:col-span-2">
+        <Label htmlFor="p-name">Product Name</Label>
+        <Input
+          id="p-name"
+          placeholder="PPR Pressure Pipe & Fitting System — DN20–110"
+          {...register("name")}
+        />
+        {errors.name && (
+          <p className="text-xs text-danger">{errors.name.message}</p>
+        )}
       </div>
 
-      <form
-        onSubmit={handleSubmit(onSubmit)}
-        className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2"
-      >
-        <div className="space-y-1.5 sm:col-span-2">
-          <Label htmlFor="p-name">Product Name</Label>
-          <Input
-            id="p-name"
-            placeholder="PPR Pressure Pipe & Fitting System — DN20–110"
-            {...register("name")}
-          />
-          {errors.name && (
-            <p className="text-xs text-danger">{errors.name.message}</p>
-          )}
-        </div>
+      <div className="space-y-1.5">
+        <Label htmlFor="p-sku">SKU</Label>
+        <Input id="p-sku" placeholder="PIM-PPR-2011" {...register("sku")} />
+        {errors.sku && (
+          <p className="text-xs text-danger">{errors.sku.message}</p>
+        )}
+      </div>
 
-        <div className="space-y-1.5">
-          <Label htmlFor="p-sku">SKU</Label>
-          <Input id="p-sku" placeholder="PIM-PPR-2011" {...register("sku")} />
-          {errors.sku && (
-            <p className="text-xs text-danger">{errors.sku.message}</p>
-          )}
-        </div>
+      <div className="space-y-1.5">
+        <Label htmlFor="p-price">Price</Label>
+        <Input id="p-price" type="number" {...register("price")} />
+        {errors.price && (
+          <p className="text-xs text-danger">{errors.price.message}</p>
+        )}
+      </div>
 
-        <div className="space-y-1.5">
-          <Label htmlFor="p-price">Price</Label>
-          <Input id="p-price" type="number" {...register("price")} />
-          {errors.price && (
-            <p className="text-xs text-danger">{errors.price.message}</p>
-          )}
-        </div>
+      <Controller
+        control={control}
+        name="category"
+        render={({ field }) => (
+          <div className="space-y-1.5">
+            <Label>Category</Label>
+            <Select
+              value={field.value}
+              onValueChange={(value) => value && field.onChange(value)}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {productCategories.map((category) => (
+                  <SelectItem key={category} value={category}>
+                    {category}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+      />
 
-        <Controller
-          control={control}
-          name="category"
-          render={({ field }) => (
-            <div className="space-y-1.5">
-              <Label>Category</Label>
-              <Select
-                value={field.value}
-                onValueChange={(value) => value && field.onChange(value)}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {productCategories.map((category) => (
-                    <SelectItem key={category} value={category}>
-                      {category}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
+      <Controller
+        control={control}
+        name="brand"
+        render={({ field }) => (
+          <div className="space-y-1.5">
+            <Label>Brand</Label>
+            <Select
+              value={field.value}
+              onValueChange={(value) => value && field.onChange(value)}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {productBrands.map((brand) => (
+                  <SelectItem key={brand} value={brand}>
+                    {brand}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+      />
+
+      <Controller
+        control={control}
+        name="status"
+        render={({ field }) => (
+          <div className="space-y-1.5">
+            <Label>Status</Label>
+            <Select
+              value={field.value}
+              onValueChange={(value) =>
+                value && field.onChange(value as ProductStatus)
+              }
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue>
+                  {(value: string) =>
+                    statusLabels[value as ProductStatus] ?? value
+                  }
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="active">Active</SelectItem>
+                <SelectItem value="draft">Draft</SelectItem>
+                <SelectItem value="archived">Archived</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+      />
+
+      <div className="space-y-1.5 sm:col-span-2">
+        <Label htmlFor="p-description">Description</Label>
+        <Textarea
+          id="p-description"
+          placeholder="Short description shown on the catalog and quotations."
+          {...register("description")}
         />
+        {errors.description && (
+          <p className="text-xs text-danger">{errors.description.message}</p>
+        )}
+      </div>
 
-        <Controller
-          control={control}
-          name="brand"
-          render={({ field }) => (
-            <div className="space-y-1.5">
-              <Label>Brand</Label>
-              <Select
-                value={field.value}
-                onValueChange={(value) => value && field.onChange(value)}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {productBrands.map((brand) => (
-                    <SelectItem key={brand} value={brand}>
-                      {brand}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
-        />
-
-        <Controller
-          control={control}
-          name="status"
-          render={({ field }) => (
-            <div className="space-y-1.5">
-              <Label>Status</Label>
-              <Select
-                value={field.value}
-                onValueChange={(value) =>
-                  value && field.onChange(value as ProductStatus)
-                }
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue>
-                    {(value: string) =>
-                      statusLabels[value as ProductStatus] ?? value
-                    }
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="active">Active</SelectItem>
-                  <SelectItem value="draft">Draft</SelectItem>
-                  <SelectItem value="archived">Archived</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          )}
-        />
-
-        <div className="space-y-1.5 sm:col-span-2">
-          <Label htmlFor="p-description">Description</Label>
-          <Textarea
-            id="p-description"
-            placeholder="Short description shown on the catalog and quotations."
-            {...register("description")}
-          />
-          {errors.description && (
-            <p className="text-xs text-danger">{errors.description.message}</p>
-          )}
-        </div>
-
-        <div className="flex justify-end gap-2 pt-2 sm:col-span-2">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => reset(defaultValues)}
-          >
-            Reset
-          </Button>
-          <Button type="submit" disabled={isSubmitting}>
-            Add Product
-          </Button>
-        </div>
-      </form>
-    </div>
+      <DialogFooter className="sm:col-span-2">
+        <DialogClose render={<Button type="button" variant="outline" />}>
+          Cancel
+        </DialogClose>
+        <Button type="submit" disabled={isSubmitting}>
+          Add Product
+        </Button>
+      </DialogFooter>
+    </form>
   );
 }
