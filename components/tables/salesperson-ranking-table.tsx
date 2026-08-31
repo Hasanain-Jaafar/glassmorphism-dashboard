@@ -1,18 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import {
-  tableFeatures,
-  useTable,
-  createColumnHelper,
-  createSortedRowModel,
-  rowSortingFeature,
-  sortFns,
-} from "@tanstack/react-table";
-import type { SortingState } from "@tanstack/react-table";
+import { useTable, createColumnHelper } from "@tanstack/react-table";
+import type { SortingState, ColumnVisibilityState } from "@tanstack/react-table";
 import { format } from "date-fns";
 import { ArrowDown, ArrowUp, Car, ChevronsUpDown } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { sortableTableFeatures as features } from "@/components/tables/table-features";
+import { ColumnVisibilityMenu } from "@/components/tables/column-visibility-menu";
 import type { RankedTeamMember } from "@/lib/supabase/team";
 import { formatUSD, formatPercent } from "@/lib/format";
 
@@ -21,17 +16,12 @@ const roleLabels: Record<RankedTeamMember["role"], string> = {
   sales_rep: "Sales Representative",
 };
 
-const features = tableFeatures({
-  rowSortingFeature,
-  sortedRowModel: createSortedRowModel(),
-  sortFns,
-});
-
 const columnHelper = createColumnHelper<typeof features, RankedTeamMember>();
 
 const columns = columnHelper.columns([
   columnHelper.accessor("rank", {
     header: "Rank",
+    enableHiding: false,
     cell: (info) => {
       const rank = info.getValue();
       return (
@@ -50,6 +40,7 @@ const columns = columnHelper.columns([
   }),
   columnHelper.accessor("name", {
     header: "Salesperson",
+    enableHiding: false,
     cell: (info) => {
       const person = info.row.original;
       return (
@@ -180,19 +171,24 @@ export function SalespersonRankingTable({
   const [sorting, setSorting] = useState<SortingState>([
     { id: "rank", desc: false },
   ]);
+  const [columnVisibility, setColumnVisibility] = useState<ColumnVisibilityState>({});
 
   const table = useTable({
     features,
     columns,
     data,
-    state: { sorting },
+    state: { sorting, columnVisibility },
     onSortingChange: setSorting,
+    onColumnVisibilityChange: setColumnVisibility,
   });
 
   return (
     <div className="glass-panel overflow-hidden rounded-2xl shadow-sm">
+      <div className="flex justify-end border-b border-glass-border px-4 py-2.5">
+        <ColumnVisibilityMenu table={table} />
+      </div>
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[1320px] text-sm">
+        <table className="w-full text-sm">
           <thead>
             {table.getHeaderGroups().map((headerGroup) => (
               <tr key={headerGroup.id} className="border-b border-glass-border">
@@ -201,7 +197,7 @@ export function SalespersonRankingTable({
                   return (
                     <th
                       key={header.id}
-                      className="px-4 py-3.5 text-left text-xs font-medium tracking-wide text-text-tertiary uppercase first:pl-5 last:pr-5"
+                      className="min-w-[120px] px-4 py-3.5 text-left text-xs font-medium tracking-wide text-text-tertiary uppercase first:pl-5 last:pr-5"
                     >
                       <button
                         type="button"
@@ -236,7 +232,7 @@ export function SalespersonRankingTable({
                   highlightedId === row.original.id && "bg-primary/[0.08]"
                 )}
               >
-                {row.getAllCells().map((cell) => (
+                {row.getVisibleCells().map((cell) => (
                   <td key={cell.id} className="px-4 py-3.5 first:pl-5 last:pr-5">
                     <table.FlexRender cell={cell} />
                   </td>

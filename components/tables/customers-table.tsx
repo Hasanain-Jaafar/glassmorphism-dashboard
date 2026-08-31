@@ -1,15 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import {
-  tableFeatures,
-  useTable,
-  createColumnHelper,
-  createSortedRowModel,
-  rowSortingFeature,
-  sortFns,
-} from "@tanstack/react-table";
-import type { SortingState } from "@tanstack/react-table";
+import { useTable, createColumnHelper } from "@tanstack/react-table";
+import type { SortingState, ColumnVisibilityState } from "@tanstack/react-table";
 import { format } from "date-fns";
 import {
   ArrowDown,
@@ -31,16 +24,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { sortableTableFeatures as features } from "@/components/tables/table-features";
+import { ColumnVisibilityMenu } from "@/components/tables/column-visibility-menu";
 import type { Customer } from "@/lib/customers-data";
 import type { TeamMember } from "@/lib/supabase/team";
 import { customerStatusLabels, customerStatusStyles } from "@/components/customers/customer-styles";
 import { formatUSD } from "@/lib/format";
-
-const features = tableFeatures({
-  rowSortingFeature,
-  sortedRowModel: createSortedRowModel(),
-  sortFns,
-});
 
 const columnHelper = createColumnHelper<typeof features, Customer>();
 
@@ -58,6 +47,7 @@ function buildColumns(
   return columnHelper.columns([
     columnHelper.accessor("company", {
       header: "Customer / Company",
+      enableHiding: false,
       cell: (info) => {
         const customer = info.row.original;
         return (
@@ -159,6 +149,7 @@ function buildColumns(
     columnHelper.display({
       id: "actions",
       header: "",
+      enableHiding: false,
       cell: (info) => {
         const customer = info.row.original;
         return (
@@ -225,6 +216,7 @@ export function CustomersTable({
   const [sorting, setSorting] = useState<SortingState>([
     { id: "totalSales", desc: true },
   ]);
+  const [columnVisibility, setColumnVisibility] = useState<ColumnVisibilityState>({});
 
   const salespeopleById = useMemo(
     () => new Map(salespeople.map((p) => [p.id, p])),
@@ -240,14 +232,18 @@ export function CustomersTable({
     features,
     columns,
     data,
-    state: { sorting },
+    state: { sorting, columnVisibility },
     onSortingChange: setSorting,
+    onColumnVisibilityChange: setColumnVisibility,
   });
 
   return (
     <div className="glass-panel overflow-hidden rounded-md shadow-sm">
+      <div className="flex justify-end border-b border-glass-border px-4 py-2.5">
+        <ColumnVisibilityMenu table={table} />
+      </div>
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[1260px] text-sm">
+        <table className="w-full text-sm">
           <thead>
             {table.getHeaderGroups().map((headerGroup) => (
               <tr key={headerGroup.id} className="border-b border-glass-border">
@@ -257,7 +253,10 @@ export function CustomersTable({
                   return (
                     <th
                       key={header.id}
-                      className="px-4 py-3.5 text-left text-xs font-medium tracking-wide text-text-tertiary uppercase first:pl-5 last:pr-5"
+                      className={cn(
+                        "px-4 py-3.5 text-left text-xs font-medium tracking-wide text-text-tertiary uppercase first:pl-5 last:pr-5",
+                        header.column.id !== "actions" && "min-w-[120px]"
+                      )}
                     >
                       {sortable ? (
                         <button
@@ -292,7 +291,7 @@ export function CustomersTable({
                 key={row.id}
                 className="border-b border-glass-border/60 transition-colors last:border-0 hover:bg-foreground/[0.03]"
               >
-                {row.getAllCells().map((cell) => (
+                {row.getVisibleCells().map((cell) => (
                   <td key={cell.id} className="px-4 py-3.5 first:pl-5 last:pr-5">
                     <table.FlexRender cell={cell} />
                   </td>
