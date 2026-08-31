@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
-import { motion, useReducedMotion } from "framer-motion";
 import {
   Gauge,
   Table2,
@@ -59,7 +58,6 @@ function resolveTeamTab(value: string | null, admin: boolean): TeamTab | null {
 
 export default function TeamPage() {
   const { isAdmin: admin } = useAuth();
-  const reduceMotion = useReducedMotion();
   const [teamMembers, setTeamMembers] = useState<TeamMember[] | null>(null);
   const [individualTargets, setIndividualTargets] = useState<
     Record<string, CompanyTargets>
@@ -184,141 +182,136 @@ export default function TeamPage() {
       </Reveal>
 
       <Reveal delay={0.05}>
-        <motion.div
-          layout={!reduceMotion}
-          transition={{ duration: 0.3, ease: "easeOut" }}
-        >
-          <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList>
-              <TabsTab value="kpi">
-                <Gauge className="size-[15px]" />
-                KPI
-              </TabsTab>
-              <TabsTab value="all">
-                <Table2 className="size-[15px]" />
-                All Salespeople
-              </TabsTab>
-              {admin && (
-                <TabsTab value="settings">
-                  <SettingsIcon className="size-[15px]" />
-                  Settings
-                </TabsTab>
-              )}
-              <TabsIndicator />
-            </TabsList>
-
-            <TabsPanel value="kpi" className="space-y-6">
-              <p className="text-sm text-text-tertiary">
-                Team-wide performance this month
-              </p>
-
-              {teamMembers === null ? (
-                <>
-                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 lg:gap-6">
-                    {[0, 1, 2].map((i) => (
-                      <Skeleton key={i} className="h-[132px] w-full rounded-2xl" />
-                    ))}
-                  </div>
-                  <Skeleton className="h-80 w-full rounded-2xl" />
-                  <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-6">
-                    <Skeleton className="h-72 w-full rounded-2xl" />
-                    <Skeleton className="h-72 w-full rounded-2xl" />
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 lg:gap-6">
-                    <MetricCard
-                      label="Team Sales"
-                      value={formatUSD(stats.monthlySalesTotal)}
-                      footnote={`This month · of ${formatUSD(stats.monthlyTargetTotal)} target`}
-                      icon={Wallet}
-                      tone="primary"
-                    />
-                    <MetricCard
-                      label="Closed Deals"
-                      value={String(stats.closedDealsTotal)}
-                      footnote="This month, across the team"
-                      icon={Handshake}
-                      tone="success"
-                    />
-                    <MetricCard
-                      label="Avg. Deal Size"
-                      value={formatUSD(avgDealSize)}
-                      footnote="This month, per deal"
-                      icon={CircleDollarSign}
-                      tone="cyan"
-                    />
-                  </div>
-
-                  <ChartCard
-                    title="Top Contributors"
-                    description="Top 3 reps compared across sales, deals, conversion, and avg. deal — each axis relative to the leader"
-                  >
-                    {ranking.length === 0 ? (
-                      <p className="py-6 text-center text-sm text-text-tertiary">
-                        Rankings will appear once your team is added.
-                      </p>
-                    ) : (
-                      <RepComparisonRadar reps={ranking} />
-                    )}
-                  </ChartCard>
-
-                  <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-6">
-                    <ChartCard
-                      title="Team Health"
-                      description="Target achievement, win rate, and average conversion"
-                    >
-                      <TeamHealthRadar
-                        data={[
-                          { axis: "Target", value: Math.round(Math.min(stats.monthlyProgressPct, 100)) },
-                          { axis: "Win Rate", value: dealStats.winRate },
-                          { axis: "Conversion", value: Math.round(stats.avgConversionRate) },
-                        ]}
-                      />
-                    </ChartCard>
-                    <ChartCard
-                      title="Deals by Status"
-                      description="Every deal currently in the pipeline"
-                    >
-                      <DonutChart
-                        segments={[
-                          { id: "open", label: "Open", value: dealStats.open, colorVar: "var(--chart-2)" },
-                          { id: "won", label: "Won", value: dealStats.won, colorVar: "var(--success)" },
-                          { id: "lost", label: "Lost", value: dealStats.lost, colorVar: "var(--danger)" },
-                        ]}
-                        centerValue={String(dealStats.won)}
-                        centerLabel="won"
-                      />
-                    </ChartCard>
-                  </div>
-                </>
-              )}
-            </TabsPanel>
-
-            <TabsPanel value="all" className="space-y-4">
-              <div>
-                <h2 className="text-base font-semibold text-foreground">
-                  All Salespeople
-                </h2>
-                <p className="mt-0.5 text-xs text-text-tertiary">
-                  Full performance data · click a column to sort
-                </p>
-              </div>
-              {teamMembers === null ? (
-                <Skeleton className="h-64 rounded-2xl" />
-              ) : (
-                <SalespersonRankingTable data={ranking} highlightedId={flashId} />
-              )}
-            </TabsPanel>
-
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <TabsList>
+            <TabsTab value="kpi">
+              <Gauge className="size-[15px]" />
+              KPI
+            </TabsTab>
+            <TabsTab value="all">
+              <Table2 className="size-[15px]" />
+              All Salespeople
+            </TabsTab>
             {admin && (
-              <TabsPanel value="settings">
-                <TeamAccessSection />
-              </TabsPanel>
+              <TabsTab value="settings">
+                <SettingsIcon className="size-[15px]" />
+                Settings
+              </TabsTab>
             )}
-          </Tabs>
-        </motion.div>
+            <TabsIndicator />
+          </TabsList>
+
+          <TabsPanel value="kpi" className="space-y-6">
+            <p className="text-sm text-text-tertiary">
+              Team-wide performance this month
+            </p>
+
+            {teamMembers === null ? (
+              <>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 lg:gap-6">
+                  {[0, 1, 2].map((i) => (
+                    <Skeleton key={i} className="h-[132px] w-full rounded-2xl" />
+                  ))}
+                </div>
+                <Skeleton className="h-80 w-full rounded-2xl" />
+                <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-6">
+                  <Skeleton className="h-72 w-full rounded-2xl" />
+                  <Skeleton className="h-72 w-full rounded-2xl" />
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 lg:gap-6">
+                  <MetricCard
+                    label="Team Sales"
+                    value={formatUSD(stats.monthlySalesTotal)}
+                    footnote={`This month · of ${formatUSD(stats.monthlyTargetTotal)} target`}
+                    icon={Wallet}
+                    tone="primary"
+                  />
+                  <MetricCard
+                    label="Closed Deals"
+                    value={String(stats.closedDealsTotal)}
+                    footnote="This month, across the team"
+                    icon={Handshake}
+                    tone="success"
+                  />
+                  <MetricCard
+                    label="Avg. Deal Size"
+                    value={formatUSD(avgDealSize)}
+                    footnote="This month, per deal"
+                    icon={CircleDollarSign}
+                    tone="cyan"
+                  />
+                </div>
+
+                <ChartCard
+                  title="Top Contributors"
+                  description="Top 3 reps compared across sales, deals, conversion, and avg. deal — each axis relative to the leader"
+                >
+                  {ranking.length === 0 ? (
+                    <p className="py-6 text-center text-sm text-text-tertiary">
+                      Rankings will appear once your team is added.
+                    </p>
+                  ) : (
+                    <RepComparisonRadar reps={ranking} />
+                  )}
+                </ChartCard>
+
+                <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-6">
+                  <ChartCard
+                    title="Team Health"
+                    description="Target achievement, win rate, and average conversion"
+                  >
+                    <TeamHealthRadar
+                      data={[
+                        { axis: "Target", value: Math.round(Math.min(stats.monthlyProgressPct, 100)) },
+                        { axis: "Win Rate", value: dealStats.winRate },
+                        { axis: "Conversion", value: Math.round(stats.avgConversionRate) },
+                      ]}
+                    />
+                  </ChartCard>
+                  <ChartCard
+                    title="Deals by Status"
+                    description="Every deal currently in the pipeline"
+                  >
+                    <DonutChart
+                      segments={[
+                        { id: "open", label: "Open", value: dealStats.open, colorVar: "var(--chart-2)" },
+                        { id: "won", label: "Won", value: dealStats.won, colorVar: "var(--success)" },
+                        { id: "lost", label: "Lost", value: dealStats.lost, colorVar: "var(--danger)" },
+                      ]}
+                      centerValue={String(dealStats.won)}
+                      centerLabel="won"
+                    />
+                  </ChartCard>
+                </div>
+              </>
+            )}
+          </TabsPanel>
+
+          <TabsPanel value="all" className="space-y-4">
+            <div>
+              <h2 className="text-base font-semibold text-foreground">
+                All Salespeople
+              </h2>
+              <p className="mt-0.5 text-xs text-text-tertiary">
+                Full performance data · click a column to sort
+              </p>
+            </div>
+            {teamMembers === null ? (
+              <Skeleton className="h-64 rounded-2xl" />
+            ) : (
+              <SalespersonRankingTable data={ranking} highlightedId={flashId} />
+            )}
+          </TabsPanel>
+
+          {admin && (
+            <TabsPanel value="settings">
+              <TeamAccessSection />
+            </TabsPanel>
+          )}
+        </Tabs>
       </Reveal>
     </div>
   );
