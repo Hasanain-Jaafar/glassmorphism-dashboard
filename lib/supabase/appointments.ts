@@ -99,6 +99,20 @@ export async function updateAppointment(
   return fromRow(data);
 }
 
+/** Only succeeds while no quotation references this appointment (DB-enforced). */
+export async function deleteAppointment(id: string): Promise<void> {
+  const supabase = createClient();
+  const { error } = await supabase.from("appointments").delete().eq("id", id);
+  if (error) {
+    if (error.code === "23503") {
+      throw new Error(
+        "Can't delete — this appointment already has a quotation linked to it."
+      );
+    }
+    throw error;
+  }
+}
+
 export function computeAppointmentStats(appointments: Appointment[]) {
   const now = new Date();
   const weekFromNow = new Date(now);

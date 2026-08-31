@@ -199,6 +199,20 @@ export async function updateQuotationStatus(
   return fetchQuotationById(id);
 }
 
+/** Only succeeds while no deal references this quotation (DB-enforced). */
+export async function deleteQuotation(id: string): Promise<void> {
+  const supabase = createClient();
+  const { error } = await supabase.from("quotations").delete().eq("id", id);
+  if (error) {
+    if (error.code === "23503") {
+      throw new Error(
+        "Can't delete — this quotation already has a deal linked to it."
+      );
+    }
+    throw error;
+  }
+}
+
 async function fetchQuotationById(id: string): Promise<Quotation> {
   const supabase = createClient();
   const { data, error } = await supabase

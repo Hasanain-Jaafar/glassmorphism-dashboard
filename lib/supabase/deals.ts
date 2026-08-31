@@ -180,3 +180,15 @@ export async function updateDealStatus(
   if (error) throw error;
   return fromRow(data);
 }
+
+/** Only succeeds while no invoice references this deal (DB-enforced). */
+export async function deleteDeal(id: string): Promise<void> {
+  const supabase = createClient();
+  const { error } = await supabase.from("deals").delete().eq("id", id);
+  if (error) {
+    if (error.code === "23503") {
+      throw new Error("Can't delete — this deal already has an invoice linked to it.");
+    }
+    throw error;
+  }
+}

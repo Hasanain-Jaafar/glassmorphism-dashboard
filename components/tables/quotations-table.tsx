@@ -20,6 +20,7 @@ import {
   Handshake,
   MoreHorizontal,
   Send,
+  Trash2,
   XCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -51,10 +52,12 @@ const columnHelper = createColumnHelper<typeof features, Quotation>();
 function buildColumns(
   customersById: Map<string, Customer>,
   salespeopleById: Map<string, TeamMember>,
+  dealQuotationIds: Set<string>,
   actions: {
     onEdit: (quotation: Quotation) => void;
     onStatusChange: (quotation: Quotation, status: QuotationStatus) => void;
     onConvertToDeal: (quotation: Quotation) => void;
+    onDelete: (quotation: Quotation) => void;
   }
 ) {
   return columnHelper.columns([
@@ -124,6 +127,7 @@ function buildColumns(
       header: "",
       cell: (info) => {
         const quotation = info.row.original;
+        const hasDeal = dealQuotationIds.has(quotation.id);
         return (
           <DropdownMenu>
             <DropdownMenuTrigger
@@ -171,6 +175,18 @@ function buildColumns(
                   </DropdownMenuItem>
                 </>
               )}
+              {!hasDeal && (
+                <>
+                  {quotation.status !== "accepted" && <DropdownMenuSeparator />}
+                  <DropdownMenuItem
+                    variant="destructive"
+                    onClick={() => actions.onDelete(quotation)}
+                  >
+                    <Trash2 className="size-3.5" />
+                    Delete Quotation
+                  </DropdownMenuItem>
+                </>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
         );
@@ -183,16 +199,21 @@ export function QuotationsTable({
   data,
   customers,
   salespeople,
+  dealQuotationIds,
   onEdit,
   onStatusChange,
   onConvertToDeal,
+  onDelete,
 }: {
   data: Quotation[];
   customers: Customer[];
   salespeople: TeamMember[];
+  /** Quotation ids that already have a deal — those can't be deleted. */
+  dealQuotationIds: Set<string>;
   onEdit: (quotation: Quotation) => void;
   onStatusChange: (quotation: Quotation, status: QuotationStatus) => void;
   onConvertToDeal: (quotation: Quotation) => void;
+  onDelete: (quotation: Quotation) => void;
 }) {
   const [sorting, setSorting] = useState<SortingState>([
     { id: "total", desc: true },
@@ -209,12 +230,21 @@ export function QuotationsTable({
 
   const columns = useMemo(
     () =>
-      buildColumns(customersById, salespeopleById, {
+      buildColumns(customersById, salespeopleById, dealQuotationIds, {
         onEdit,
         onStatusChange,
         onConvertToDeal,
+        onDelete,
       }),
-    [customersById, salespeopleById, onEdit, onStatusChange, onConvertToDeal]
+    [
+      customersById,
+      salespeopleById,
+      dealQuotationIds,
+      onEdit,
+      onStatusChange,
+      onConvertToDeal,
+      onDelete,
+    ]
   );
 
   const table = useTable({

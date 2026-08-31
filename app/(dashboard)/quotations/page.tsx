@@ -29,7 +29,9 @@ import {
 } from "@/components/ui/select";
 import {
   Dialog,
+  DialogClose,
   DialogContent,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogDescription,
@@ -50,6 +52,7 @@ import {
   createQuotation,
   updateQuotation,
   updateQuotationStatus,
+  deleteQuotation,
   type Quotation,
   type QuotationStatus,
 } from "@/lib/supabase/quotations";
@@ -126,6 +129,11 @@ function QuotationsPageContent() {
     [customers]
   );
 
+  const dealQuotationIds = useMemo(
+    () => new Set(deals.map((d) => d.quotationId)),
+    [deals]
+  );
+
   const stats = useMemo(() => {
     const list = quotations ?? [];
     return {
@@ -165,6 +173,23 @@ function QuotationsPageContent() {
     setEditingQuotation(quotation);
     setFormOpen(true);
   }, []);
+
+  const [deleteTarget, setDeleteTarget] = useState<Quotation | undefined>();
+
+  async function handleDelete() {
+    if (!deleteTarget) return;
+    try {
+      await deleteQuotation(deleteTarget.id);
+      setQuotations((prev) => (prev ?? []).filter((q) => q.id !== deleteTarget.id));
+      toast.success("Quotation was deleted");
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Couldn't delete the quotation"
+      );
+    } finally {
+      setDeleteTarget(undefined);
+    }
+  }
 
   async function handleFormSubmit(values: QuotationFormValues) {
     try {
@@ -344,9 +369,11 @@ function QuotationsPageContent() {
             data={filtered}
             customers={customers}
             salespeople={salespeople}
+            dealQuotationIds={dealQuotationIds}
             onEdit={openEditForm}
             onStatusChange={handleStatusChange}
             onConvertToDeal={handleConvertToDeal}
+            onDelete={setDeleteTarget}
           />
         )}
       </Reveal>
@@ -373,6 +400,28 @@ function QuotationsPageContent() {
             initialCustomerId={initialCustomerId}
             onSubmit={handleFormSubmit}
           />
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={!!deleteTarget}
+        onOpenChange={(open) => !open && setDeleteTarget(undefined)}
+      >
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Delete quotation?</DialogTitle>
+            <DialogDescription>
+              This quotation will be permanently deleted. This can&apos;t be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <DialogClose render={<Button type="button" variant="outline" />}>
+              Cancel
+            </DialogClose>
+            <Button variant="destructive" onClick={handleDelete}>
+              Delete
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

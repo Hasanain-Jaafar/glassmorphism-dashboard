@@ -11,8 +11,9 @@ import {
 } from "@tanstack/react-table";
 import type { SortingState } from "@tanstack/react-table";
 import { format } from "date-fns";
-import { ArrowDown, ArrowUp, ChevronsUpDown } from "lucide-react";
+import { ArrowDown, ArrowUp, ChevronsUpDown, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 import type { Appointment } from "@/lib/supabase/appointments";
 import type { Customer } from "@/lib/customers-data";
 import type { TeamMember } from "@/lib/supabase/team";
@@ -32,8 +33,10 @@ const columnHelper = createColumnHelper<typeof features, Appointment>();
 function buildColumns(
   customersById: Map<string, Customer>,
   salespeopleById: Map<string, TeamMember>,
+  quotationAppointmentIds: Set<string>,
   actions: {
     onEdit: (appointment: Appointment) => void;
+    onDelete: (appointment: Appointment) => void;
   }
 ) {
   return columnHelper.columns([
@@ -97,6 +100,25 @@ function buildColumns(
         );
       },
     }),
+    columnHelper.display({
+      id: "actions",
+      header: "",
+      cell: (info) => {
+        const appointment = info.row.original;
+        if (quotationAppointmentIds.has(appointment.id)) return null;
+        return (
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            aria-label="Delete appointment"
+            className="text-text-tertiary hover:text-danger"
+            onClick={() => actions.onDelete(appointment)}
+          >
+            <Trash2 className="size-3.5" />
+          </Button>
+        );
+      },
+    }),
   ]);
 }
 
@@ -104,13 +126,18 @@ export function AppointmentsTable({
   data,
   customers,
   salespeople,
+  quotationAppointmentIds,
   onEdit,
+  onDelete,
   highlightedId,
 }: {
   data: Appointment[];
   customers: Customer[];
   salespeople: TeamMember[];
+  /** Appointment ids that already have a quotation — those can't be deleted. */
+  quotationAppointmentIds: Set<string>;
   onEdit: (appointment: Appointment) => void;
+  onDelete: (appointment: Appointment) => void;
   /** Row to scroll to and briefly flash — see the `?id=` deep link handled in the page. */
   highlightedId?: string | null;
 }) {
@@ -128,8 +155,12 @@ export function AppointmentsTable({
   );
 
   const columns = useMemo(
-    () => buildColumns(customersById, salespeopleById, { onEdit }),
-    [customersById, salespeopleById, onEdit]
+    () =>
+      buildColumns(customersById, salespeopleById, quotationAppointmentIds, {
+        onEdit,
+        onDelete,
+      }),
+    [customersById, salespeopleById, quotationAppointmentIds, onEdit, onDelete]
   );
 
   const table = useTable({

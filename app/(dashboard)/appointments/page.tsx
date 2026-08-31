@@ -30,7 +30,9 @@ import {
 } from "@/components/ui/select";
 import {
   Dialog,
+  DialogClose,
   DialogContent,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogDescription,
@@ -47,10 +49,12 @@ import {
   fetchAppointments,
   createAppointment,
   updateAppointment,
+  deleteAppointment,
   computeAppointmentStats,
   type Appointment,
   type AppointmentStatus,
 } from "@/lib/supabase/appointments";
+import { fetchQuotations, type Quotation } from "@/lib/supabase/quotations";
 import type { Customer } from "@/lib/customers-data";
 
 const ALL = "all";
@@ -70,6 +74,7 @@ function AppointmentsPageContent() {
   const [appointments, setAppointments] = useState<Appointment[] | null>(null);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [salespeople, setSalespeople] = useState<TeamMember[]>([]);
+  const [quotations, setQuotations] = useState<Quotation[]>([]);
 
   useEffect(() => {
     fetchAppointments()
@@ -88,7 +93,17 @@ function AppointmentsPageContent() {
       .catch(() => {
         // Sales Rep picker just degrades to empty.
       });
+    // Only needed to detect whether an appointment already has a quotation,
+    // to know which rows are safe to delete.
+    fetchQuotations()
+      .then(setQuotations)
+      .catch(() => {});
   }, []);
+
+  const quotationAppointmentIds = useMemo(
+    () => new Set(quotations.map((q) => q.appointmentId)),
+    [quotations]
+  );
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>(ALL);
@@ -172,6 +187,23 @@ function AppointmentsPageContent() {
     setEditingAppointment(appointment);
     setFormOpen(true);
   }, []);
+
+  const [deleteTarget, setDeleteTarget] = useState<Appointment | undefined>();
+
+  async function handleDelete() {
+    if (!deleteTarget) return;
+    try {
+      await deleteAppointment(deleteTarget.id);
+      setAppointments((prev) => (prev ?? []).filter((a) => a.id !== deleteTarget.id));
+      toast.success(`${deleteTarget.title} was deleted`);
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Couldn't delete the appointment"
+      );
+    } finally {
+      setDeleteTarget(undefined);
+    }
+  }
 
   async function handleFormSubmit(values: AppointmentFormValues) {
     try {
@@ -316,7 +348,9 @@ function AppointmentsPageContent() {
             data={filtered}
             customers={customers}
             salespeople={salespeople}
+            quotationAppointmentIds={quotationAppointmentIds}
             onEdit={openEditForm}
+            onDelete={setDeleteTarget}
             highlightedId={flashId}
           />
         )}
@@ -343,6 +377,29 @@ function AppointmentsPageContent() {
             initialCustomerId={initialCustomerId}
             onSubmit={handleFormSubmit}
           />
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={!!deleteTarget}
+        onOpenChange={(open) => !open && setDeleteTarget(undefined)}
+      >
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Delete appointment?</DialogTitle>
+            <DialogDescription>
+              {deleteTarget ? `"${deleteTarget.title}" ` : "This appointment "}
+              will be permanently deleted. This can&apos;t be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <DialogClose render={<Button type="button" variant="outline" />}>
+              Cancel
+            </DialogClose>
+            <Button variant="destructive" onClick={handleDelete}>
+              Delete
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

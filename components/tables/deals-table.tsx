@@ -20,6 +20,7 @@ import {
   Receipt,
   ThumbsDown,
   ThumbsUp,
+  Trash2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -47,10 +48,12 @@ const columnHelper = createColumnHelper<typeof features, Deal>();
 function buildColumns(
   customersById: Map<string, Customer>,
   salespeopleById: Map<string, TeamMember>,
+  invoiceDealIds: Set<string>,
   actions: {
     onEdit: (deal: Deal) => void;
     onStatusChange: (deal: Deal, status: DealStatus) => void;
     onCreateInvoice: (deal: Deal) => void;
+    onDelete: (deal: Deal) => void;
   }
 ) {
   return columnHelper.columns([
@@ -120,6 +123,7 @@ function buildColumns(
       header: "",
       cell: (info) => {
         const deal = info.row.original;
+        const hasInvoice = invoiceDealIds.has(deal.id);
         return (
           <DropdownMenu>
             <DropdownMenuTrigger
@@ -159,6 +163,18 @@ function buildColumns(
                   </DropdownMenuItem>
                 </>
               )}
+              {!hasInvoice && (
+                <>
+                  {deal.status !== "won" && <DropdownMenuSeparator />}
+                  <DropdownMenuItem
+                    variant="destructive"
+                    onClick={() => actions.onDelete(deal)}
+                  >
+                    <Trash2 className="size-3.5" />
+                    Delete Deal
+                  </DropdownMenuItem>
+                </>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
         );
@@ -171,17 +187,22 @@ export function DealsTable({
   data,
   customers,
   salespeople,
+  invoiceDealIds,
   onEdit,
   onStatusChange,
   onCreateInvoice,
+  onDelete,
   highlightedId,
 }: {
   data: Deal[];
   customers: Customer[];
   salespeople: TeamMember[];
+  /** Deal ids that already have an invoice — those can't be deleted. */
+  invoiceDealIds: Set<string>;
   onEdit: (deal: Deal) => void;
   onStatusChange: (deal: Deal, status: DealStatus) => void;
   onCreateInvoice: (deal: Deal) => void;
+  onDelete: (deal: Deal) => void;
   /** Row to scroll to and briefly flash — see the `?id=` deep link handled in the page. */
   highlightedId?: string | null;
 }) {
@@ -200,12 +221,21 @@ export function DealsTable({
 
   const columns = useMemo(
     () =>
-      buildColumns(customersById, salespeopleById, {
+      buildColumns(customersById, salespeopleById, invoiceDealIds, {
         onEdit,
         onStatusChange,
         onCreateInvoice,
+        onDelete,
       }),
-    [customersById, salespeopleById, onEdit, onStatusChange, onCreateInvoice]
+    [
+      customersById,
+      salespeopleById,
+      invoiceDealIds,
+      onEdit,
+      onStatusChange,
+      onCreateInvoice,
+      onDelete,
+    ]
   );
 
   const table = useTable({

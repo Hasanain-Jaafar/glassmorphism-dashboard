@@ -29,7 +29,9 @@ import {
 } from "@/components/ui/select";
 import {
   Dialog,
+  DialogClose,
   DialogContent,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogDescription,
@@ -46,6 +48,7 @@ import {
   createDeal,
   updateDeal,
   updateDealStatus,
+  deleteDeal,
   type Deal,
   type DealStatus,
 } from "@/lib/supabase/deals";
@@ -140,6 +143,11 @@ function DealsPageContent() {
     [quotations, editingDeal]
   );
 
+  const invoiceDealIds = useMemo(
+    () => new Set(invoices.map((i) => i.dealId)),
+    [invoices]
+  );
+
   const stats = useMemo(() => {
     const list = deals ?? [];
     const open = list.filter((d) => d.status === "open");
@@ -180,6 +188,21 @@ function DealsPageContent() {
     setEditingDeal(deal);
     setFormOpen(true);
   }, []);
+
+  const [deleteTarget, setDeleteTarget] = useState<Deal | undefined>();
+
+  async function handleDelete() {
+    if (!deleteTarget) return;
+    try {
+      await deleteDeal(deleteTarget.id);
+      setDeals((prev) => (prev ?? []).filter((d) => d.id !== deleteTarget.id));
+      toast.success("Deal was deleted");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Couldn't delete the deal");
+    } finally {
+      setDeleteTarget(undefined);
+    }
+  }
 
   async function handleFormSubmit(values: DealFormValues) {
     try {
@@ -345,9 +368,11 @@ function DealsPageContent() {
             data={filtered}
             customers={customers}
             salespeople={salespeople}
+            invoiceDealIds={invoiceDealIds}
             onEdit={openEditForm}
             onStatusChange={handleStatusChange}
             onCreateInvoice={handleCreateInvoice}
+            onDelete={setDeleteTarget}
             highlightedId={flashId}
           />
         )}
@@ -371,6 +396,28 @@ function DealsPageContent() {
             invoices={invoices}
             onSubmit={handleFormSubmit}
           />
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={!!deleteTarget}
+        onOpenChange={(open) => !open && setDeleteTarget(undefined)}
+      >
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Delete deal?</DialogTitle>
+            <DialogDescription>
+              This deal will be permanently deleted. This can&apos;t be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <DialogClose render={<Button type="button" variant="outline" />}>
+              Cancel
+            </DialogClose>
+            <Button variant="destructive" onClick={handleDelete}>
+              Delete
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
