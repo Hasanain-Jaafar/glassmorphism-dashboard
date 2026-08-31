@@ -71,7 +71,7 @@ function buildColumns(onEdit: (id: string) => void) {
           <button
             type="button"
             onClick={() => onEdit(row.id)}
-            className="flex min-w-0 items-center gap-3 text-left"
+            className="flex min-w-0 cursor-pointer items-center gap-3 text-left"
           >
             <div className="flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-accent text-xs font-semibold text-accent-foreground">
               {row.avatarUrl ? (
