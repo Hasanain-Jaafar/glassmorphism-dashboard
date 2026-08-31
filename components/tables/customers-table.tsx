@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useTable, createColumnHelper } from "@tanstack/react-table";
-import type { SortingState, ColumnVisibilityState } from "@tanstack/react-table";
+import type { SortingState } from "@tanstack/react-table";
 import { format } from "date-fns";
 import {
   ArrowDown,
@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { sortableTableFeatures as features } from "@/components/tables/table-features";
 import { ColumnVisibilityMenu } from "@/components/tables/column-visibility-menu";
+import { usePersistedColumnVisibility } from "@/components/tables/use-persisted-column-visibility";
 import type { Customer } from "@/lib/customers-data";
 import type { TeamMember } from "@/lib/supabase/team";
 import { customerStatusLabels, customerStatusStyles } from "@/components/customers/customer-styles";
@@ -216,7 +217,9 @@ export function CustomersTable({
   const [sorting, setSorting] = useState<SortingState>([
     { id: "totalSales", desc: true },
   ]);
-  const [columnVisibility, setColumnVisibility] = useState<ColumnVisibilityState>({});
+  const [columnVisibility, setColumnVisibility] = usePersistedColumnVisibility(
+    "customers-table-columns"
+  );
 
   const salespeopleById = useMemo(
     () => new Map(salespeople.map((p) => [p.id, p])),

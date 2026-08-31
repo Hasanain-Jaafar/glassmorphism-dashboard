@@ -2,12 +2,13 @@
 
 import { useState } from "react";
 import { useTable, createColumnHelper } from "@tanstack/react-table";
-import type { SortingState, ColumnVisibilityState } from "@tanstack/react-table";
+import type { SortingState } from "@tanstack/react-table";
 import { format } from "date-fns";
 import { ArrowDown, ArrowUp, Car, ChevronsUpDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { sortableTableFeatures as features } from "@/components/tables/table-features";
 import { ColumnVisibilityMenu } from "@/components/tables/column-visibility-menu";
+import { usePersistedColumnVisibility } from "@/components/tables/use-persisted-column-visibility";
 import type { RankedTeamMember } from "@/lib/supabase/team";
 import { formatUSD, formatPercent } from "@/lib/format";
 
@@ -171,7 +172,9 @@ export function SalespersonRankingTable({
   const [sorting, setSorting] = useState<SortingState>([
     { id: "rank", desc: false },
   ]);
-  const [columnVisibility, setColumnVisibility] = useState<ColumnVisibilityState>({});
+  const [columnVisibility, setColumnVisibility] = usePersistedColumnVisibility(
+    "salesperson-ranking-table-columns"
+  );
 
   const table = useTable({
     features,

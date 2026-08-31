@@ -2,11 +2,12 @@
 
 import { useState } from "react";
 import { useTable, createColumnHelper } from "@tanstack/react-table";
-import type { SortingState, ColumnVisibilityState } from "@tanstack/react-table";
+import type { SortingState } from "@tanstack/react-table";
 import { ArrowDown, ArrowUp, ChevronsUpDown, Package } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { sortableTableFeatures as features } from "@/components/tables/table-features";
 import { ColumnVisibilityMenu } from "@/components/tables/column-visibility-menu";
+import { usePersistedColumnVisibility } from "@/components/tables/use-persisted-column-visibility";
 import type { Product } from "@/lib/mock-data";
 import { formatUSD } from "@/lib/format";
 import {
@@ -108,7 +109,9 @@ export function ProductTable({ data }: { data: Product[] }) {
   const [sorting, setSorting] = useState<SortingState>([
     { id: "name", desc: false },
   ]);
-  const [columnVisibility, setColumnVisibility] = useState<ColumnVisibilityState>({});
+  const [columnVisibility, setColumnVisibility] = usePersistedColumnVisibility(
+    "products-table-columns"
+  );
 
   const table = useTable({
     features,
