@@ -50,6 +50,10 @@ export function KnowledgeBaseSection() {
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [viewingDoc, setViewingDoc] = useState<{ title: string; url: string } | null>(
+    null
+  );
+  const [viewLoadingId, setViewLoadingId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -129,25 +133,21 @@ export function KnowledgeBaseSection() {
   }
 
   async function handleView(doc: KnowledgeBaseDocument) {
-    // Open the tab synchronously, in direct response to the click — most
-    // browsers silently block window.open() once it happens after an
-    // await, since that's no longer "the direct result of a user gesture".
-    // Redirect this already-open tab once the signed URL resolves instead.
-    const tab = window.open("", "_blank", "noopener,noreferrer");
+    // Preview inline via an iframe instead of window.open()'ing a new tab —
+    // some browsers/ad-blockers silently block a script-opened tab (even one
+    // opened synchronously on click) since it matches the "blank tab, then
+    // navigate" pattern they specifically watch for. Nothing here opens a
+    // new window, so there's no popup blocker in the loop at all.
+    setViewLoadingId(doc.id);
     try {
       const url = await getKnowledgeBaseDocumentViewUrl(doc.storagePath);
-      if (tab) {
-        tab.location.href = url;
-      } else {
-        toast.error(
-          "Your browser blocked the popup — allow popups for this site and try again"
-        );
-      }
+      setViewingDoc({ title: doc.title, url });
     } catch (error) {
-      tab?.close();
       toast.error(
         error instanceof Error ? error.message : "Couldn't open that document"
       );
+    } finally {
+      setViewLoadingId(null);
     }
   }
 
@@ -269,8 +269,13 @@ export function KnowledgeBaseSection() {
                   </p>
                 </div>
                 <div className="flex shrink-0 items-center gap-1.5">
-                  <Button variant="outline" size="sm" onClick={() => handleView(doc)}>
-                    View
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={viewLoadingId === doc.id}
+                    onClick={() => handleView(doc)}
+                  >
+                    {viewLoadingId === doc.id ? "Opening…" : "View"}
                   </Button>
                   <Button
                     variant="ghost"
@@ -288,6 +293,26 @@ export function KnowledgeBaseSection() {
           </ul>
         )}
       </div>
+
+      <Dialog
+        open={viewingDoc !== null}
+        onOpenChange={(next) => {
+          if (!next) setViewingDoc(null);
+        }}
+      >
+        <DialogContent className="flex h-[85vh] w-full max-w-4xl flex-col sm:max-w-4xl">
+          <DialogHeader>
+            <DialogTitle className="truncate">{viewingDoc?.title}</DialogTitle>
+          </DialogHeader>
+          {viewingDoc && (
+            <iframe
+              src={viewingDoc.url}
+              title={viewingDoc.title}
+              className="min-h-0 flex-1 rounded-lg border-0"
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

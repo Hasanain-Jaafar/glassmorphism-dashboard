@@ -26,14 +26,14 @@ export async function fetchKnowledgeBaseDocuments(): Promise<KnowledgeBaseDocume
   }));
 }
 
-/** Short-lived (60s) signed URL for viewing the original PDF — generated on demand, never stored. */
+/** Short-lived (5 min — enough for a PDF viewer's range requests while someone reads it) signed URL, generated on demand and never stored. */
 export async function getKnowledgeBaseDocumentViewUrl(
   storagePath: string
 ): Promise<string> {
   const supabase = createClient();
   const { data, error } = await supabase.storage
     .from("knowledge-base")
-    .createSignedUrl(storagePath, 60);
+    .createSignedUrl(storagePath, 300);
   if (error) throw error;
   return data.signedUrl;
 }
