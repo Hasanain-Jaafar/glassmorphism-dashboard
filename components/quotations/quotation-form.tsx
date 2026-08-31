@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { Controller, useFieldArray, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -102,11 +103,20 @@ export function QuotationForm({
     handleSubmit,
     watch,
     setValue,
+    setError,
     formState: { errors, isSubmitting },
   } = useForm<FormInput, unknown, FormOutput>({
     resolver: zodResolver(quotationSchema),
     values: defaultsFor(quotation, initialCustomerId, appointments),
   });
+
+  // Only enforced when creating a new quotation — an existing one may
+  // legitimately already be expired. Computed once, as of when this dialog
+  // opened, via a lazy initializer rather than reading Date.now() during
+  // render.
+  const [minValidUntil] = useState<string | null>(() =>
+    quotation ? null : format(new Date(), "yyyy-MM-dd")
+  );
 
   const { fields, append, remove } = useFieldArray({ control, name: "items" });
 
@@ -132,6 +142,10 @@ export function QuotationForm({
     : false;
 
   async function submit(values: FormOutput) {
+    if (values.validUntil && minValidUntil && values.validUntil < minValidUntil) {
+      setError("validUntil", { message: "Can't be in the past." });
+      return;
+    }
     await onSubmit({
       ...values,
       validUntil: values.validUntil === "" ? null : values.validUntil,
@@ -281,9 +295,17 @@ export function QuotationForm({
             control={control}
             name="validUntil"
             render={({ field }) => (
-              <Input id="q-valid-until" type="date" {...field} />
+              <Input
+                id="q-valid-until"
+                type="date"
+                min={minValidUntil ?? undefined}
+                {...field}
+              />
             )}
           />
+          {errors.validUntil && (
+            <p className="text-xs text-danger">{errors.validUntil.message}</p>
+          )}
         </div>
       )}
 
