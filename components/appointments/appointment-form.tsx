@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -36,10 +37,15 @@ export type AppointmentFormValues = FormOutput;
 
 /** Converts a stored ISO datetime to the local value an <input type="datetime-local"> expects. */
 function toLocalInputValue(iso: string): string {
-  const d = new Date(iso);
+  return toLocalInputValueFromDate(new Date(iso));
+}
+
+function toLocalInputValueFromDate(d: Date): string {
   const pad = (n: number) => String(n).padStart(2, "0");
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
+
+const MIN_LEAD_TIME_MS = 60 * 60 * 1000;
 
 function defaultsFor(
   appointment: Appointment | undefined,
@@ -78,13 +84,35 @@ export function AppointmentForm({
     register,
     control,
     handleSubmit,
+    setError,
     formState: { errors, isSubmitting },
   } = useForm<FormInput, unknown, FormOutput>({
     resolver: zodResolver(appointmentSchema),
     values: defaultsFor(appointment, currentUserId, isAdmin, initialCustomerId),
   });
 
+  // Only enforced when scheduling a new appointment — editing an existing
+  // one (e.g. correcting details, logging a walk-in as completed) shouldn't
+  // retroactively reject a time that's already in the past. Computed once,
+  // as of when this dialog opened (component mount), via a lazy initializer
+  // rather than reading Date.now() during render.
+  const [minScheduledAtDate] = useState<Date | null>(() =>
+    appointment ? null : new Date(Date.now() + MIN_LEAD_TIME_MS)
+  );
+  const minScheduledAt = minScheduledAtDate
+    ? toLocalInputValueFromDate(minScheduledAtDate)
+    : undefined;
+
   async function submit(values: FormOutput) {
+    if (
+      minScheduledAtDate &&
+      new Date(values.scheduledAt).getTime() < minScheduledAtDate.getTime()
+    ) {
+      setError("scheduledAt", {
+        message: "Must be at least 1 hour from now.",
+      });
+      return;
+    }
     await onSubmit({
       ...values,
       scheduledAt: new Date(values.scheduledAt).toISOString(),
@@ -149,7 +177,12 @@ export function AppointmentForm({
 
       <div className="space-y-1.5">
         <Label htmlFor="a-scheduled">Scheduled At</Label>
-        <Input id="a-scheduled" type="datetime-local" {...register("scheduledAt")} />
+        <Input
+          id="a-scheduled"
+          type="datetime-local"
+          min={minScheduledAt}
+          {...register("scheduledAt")}
+        />
         {errors.scheduledAt && (
           <p className="text-xs text-danger">{errors.scheduledAt.message}</p>
         )}
