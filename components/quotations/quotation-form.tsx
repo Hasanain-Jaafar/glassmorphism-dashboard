@@ -110,11 +110,11 @@ export function QuotationForm({
     values: defaultsFor(quotation, initialCustomerId, appointments),
   });
 
-  // Only enforced when creating a new quotation — an existing one may
-  // legitimately already be expired. Computed once, as of when this dialog
-  // opened, via a lazy initializer rather than reading Date.now() during
-  // render.
-  const [minValidUntil] = useState<string | null>(() =>
+  // "Today" floor is only enforced when creating a new quotation — an
+  // existing one may legitimately already be expired. Computed once, as of
+  // when this dialog opened, via a lazy initializer rather than reading
+  // Date.now() during render.
+  const [minCreateDate] = useState<string | null>(() =>
     quotation ? null : format(new Date(), "yyyy-MM-dd")
   );
 
@@ -141,10 +141,29 @@ export function QuotationForm({
     ? deals.some((d) => d.quotationId === quotation.id)
     : false;
 
+  // Unlike the "today" floor, this always applies (create and edit) — the
+  // appointment's date is a fixed historical fact, not a moving target.
+  const appointmentMinDate = selectedAppointment
+    ? format(new Date(selectedAppointment.scheduledAt), "yyyy-MM-dd")
+    : null;
+  const dateFloors = [minCreateDate, appointmentMinDate].filter(
+    (d): d is string => d !== null
+  );
+  const minValidUntil =
+    dateFloors.length > 0 ? dateFloors.reduce((a, b) => (a > b ? a : b)) : null;
+
   async function submit(values: FormOutput) {
-    if (values.validUntil && minValidUntil && values.validUntil < minValidUntil) {
-      setError("validUntil", { message: "Can't be in the past." });
-      return;
+    if (values.validUntil) {
+      if (appointmentMinDate && values.validUntil < appointmentMinDate) {
+        setError("validUntil", {
+          message: "Can't be before the appointment's date.",
+        });
+        return;
+      }
+      if (minCreateDate && values.validUntil < minCreateDate) {
+        setError("validUntil", { message: "Can't be in the past." });
+        return;
+      }
     }
     await onSubmit({
       ...values,
@@ -303,8 +322,14 @@ export function QuotationForm({
               />
             )}
           />
-          {errors.validUntil && (
+          {errors.validUntil ? (
             <p className="text-xs text-danger">{errors.validUntil.message}</p>
+          ) : (
+            appointmentMinDate && (
+              <p className="text-xs text-text-tertiary">
+                Can&apos;t be before the appointment&apos;s date ({appointmentMinDate}).
+              </p>
+            )
           )}
         </div>
       )}
