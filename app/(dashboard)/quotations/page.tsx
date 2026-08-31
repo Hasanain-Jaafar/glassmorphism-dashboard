@@ -43,7 +43,7 @@ import { quotationStatusLabels } from "@/components/quotations/quotation-styles"
 import { fetchTeamMembers, type TeamMember } from "@/lib/supabase/team";
 import { fetchCustomers } from "@/lib/supabase/customers";
 import { fetchAppointments, type Appointment } from "@/lib/supabase/appointments";
-import { createDeal } from "@/lib/supabase/deals";
+import { createDeal, fetchDeals, type Deal } from "@/lib/supabase/deals";
 import { fetchProducts } from "@/lib/supabase/products";
 import {
   fetchQuotations,
@@ -76,6 +76,7 @@ function QuotationsPageContent() {
   const [salespeople, setSalespeople] = useState<TeamMember[]>([]);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
+  const [deals, setDeals] = useState<Deal[]>([]);
 
   useEffect(() => {
     fetchQuotations()
@@ -95,6 +96,11 @@ function QuotationsPageContent() {
       .catch(() => {});
     fetchProducts()
       .then(setProducts)
+      .catch(() => {});
+    // Only needed to detect whether a quotation already has a deal, to lock
+    // its status field in the edit form.
+    fetchDeals()
+      .then(setDeals)
       .catch(() => {});
   }, []);
 
@@ -362,6 +368,7 @@ function QuotationsPageContent() {
             customers={customers}
             salespeople={salespeople}
             appointments={appointments}
+            deals={deals}
             products={products}
             initialCustomerId={initialCustomerId}
             onSubmit={handleFormSubmit}

@@ -16,9 +16,11 @@ import {
 import { DialogClose, DialogFooter } from "@/components/ui/dialog";
 import type { Deal, DealStatus } from "@/lib/supabase/deals";
 import type { Quotation } from "@/lib/supabase/quotations";
+import type { Invoice } from "@/lib/supabase/invoices";
 import type { Customer } from "@/lib/customers-data";
 import type { TeamMember } from "@/lib/supabase/team";
-import { dealStatusLabels } from "@/components/deals/deal-styles";
+import { cn } from "@/lib/utils";
+import { dealStatusLabels, dealStatusStyles } from "@/components/deals/deal-styles";
 import { formatUSD } from "@/lib/format";
 
 const dealSchema = z.object({
@@ -49,6 +51,7 @@ export function DealForm({
   customers,
   salespeople,
   quotations,
+  invoices,
   onSubmit,
 }: {
   deal?: Deal;
@@ -56,6 +59,8 @@ export function DealForm({
   salespeople: TeamMember[];
   /** Should already be filtered to status === "accepted" by the caller. */
   quotations: Quotation[];
+  /** Used only to detect whether this deal already has an invoice, locking its status. */
+  invoices: Invoice[];
   onSubmit: (values: DealFormValues) => void | Promise<void>;
 }) {
   const {
@@ -80,6 +85,7 @@ export function DealForm({
   const selectedRep = selectedQuotation
     ? salespeopleById.get(selectedQuotation.salesRepId)
     : undefined;
+  const hasLinkedInvoice = deal ? invoices.some((i) => i.dealId === deal.id) : false;
 
   async function submit(values: FormOutput) {
     await onSubmit(values);
@@ -164,28 +170,47 @@ export function DealForm({
       <Controller
         control={control}
         name="status"
-        render={({ field }) => (
-          <div className="space-y-1.5">
-            <Label>Status</Label>
-            <Select
-              value={field.value}
-              onValueChange={(value) => value && field.onChange(value as DealStatus)}
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue>
-                  {(value: string) => dealStatusLabels[value as DealStatus] ?? value}
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                {(Object.keys(dealStatusLabels) as DealStatus[]).map((status) => (
-                  <SelectItem key={status} value={status}>
-                    {dealStatusLabels[status]}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        )}
+        render={({ field }) =>
+          hasLinkedInvoice ? (
+            <div className="space-y-1.5">
+              <Label>Status</Label>
+              <span
+                className={cn(
+                  "flex h-8 w-fit items-center rounded-full px-2.5 text-xs font-medium",
+                  dealStatusStyles[field.value as DealStatus]
+                )}
+              >
+                {dealStatusLabels[field.value as DealStatus]}
+              </span>
+              <p className="text-xs text-text-tertiary">
+                Locked — this deal already has an invoice.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-1.5">
+              <Label>Status</Label>
+              <Select
+                value={field.value}
+                onValueChange={(value) =>
+                  value && field.onChange(value as DealStatus)
+                }
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue>
+                    {(value: string) => dealStatusLabels[value as DealStatus] ?? value}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {(Object.keys(dealStatusLabels) as DealStatus[]).map((status) => (
+                    <SelectItem key={status} value={status}>
+                      {dealStatusLabels[status]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )
+        }
       />
 
       <DialogFooter className="sm:col-span-2">

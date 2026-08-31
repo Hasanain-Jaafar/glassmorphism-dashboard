@@ -17,10 +17,15 @@ import {
 import { DialogClose, DialogFooter } from "@/components/ui/dialog";
 import type { Quotation, QuotationStatus } from "@/lib/supabase/quotations";
 import type { Appointment } from "@/lib/supabase/appointments";
+import type { Deal } from "@/lib/supabase/deals";
 import type { Customer } from "@/lib/customers-data";
 import type { TeamMember } from "@/lib/supabase/team";
 import type { Product } from "@/lib/mock-data";
-import { quotationStatusLabels } from "@/components/quotations/quotation-styles";
+import { cn } from "@/lib/utils";
+import {
+  quotationStatusLabels,
+  quotationStatusStyles,
+} from "@/components/quotations/quotation-styles";
 import { formatUSD } from "@/lib/format";
 
 const quotationItemSchema = z.object({
@@ -75,6 +80,7 @@ export function QuotationForm({
   customers,
   salespeople,
   appointments,
+  deals,
   products,
   initialCustomerId,
   onSubmit,
@@ -83,6 +89,8 @@ export function QuotationForm({
   customers: Customer[];
   salespeople: TeamMember[];
   appointments: Appointment[];
+  /** Used only to detect whether this quotation already has a deal, locking its status. */
+  deals: Deal[];
   products: Product[];
   initialCustomerId?: string;
   onSubmit: (values: QuotationFormValues) => void | Promise<void>;
@@ -117,6 +125,9 @@ export function QuotationForm({
   const selectedRep = selectedAppointment
     ? salespeopleById.get(selectedAppointment.salesRepId)
     : undefined;
+  const hasLinkedDeal = quotation
+    ? deals.some((d) => d.quotationId === quotation.id)
+    : false;
 
   async function submit(values: FormOutput) {
     await onSubmit({
@@ -194,34 +205,51 @@ export function QuotationForm({
       <Controller
         control={control}
         name="status"
-        render={({ field }) => (
-          <div className="space-y-1.5">
-            <Label>Status</Label>
-            <Select
-              value={field.value}
-              onValueChange={(value) =>
-                value && field.onChange(value as QuotationStatus)
-              }
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue>
-                  {(value: string) =>
-                    quotationStatusLabels[value as QuotationStatus] ?? value
-                  }
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                {(Object.keys(quotationStatusLabels) as QuotationStatus[]).map(
-                  (status) => (
-                    <SelectItem key={status} value={status}>
-                      {quotationStatusLabels[status]}
-                    </SelectItem>
-                  )
+        render={({ field }) =>
+          hasLinkedDeal ? (
+            <div className="space-y-1.5">
+              <Label>Status</Label>
+              <span
+                className={cn(
+                  "flex h-8 w-fit items-center rounded-full px-2.5 text-xs font-medium",
+                  quotationStatusStyles[field.value as QuotationStatus]
                 )}
-              </SelectContent>
-            </Select>
-          </div>
-        )}
+              >
+                {quotationStatusLabels[field.value as QuotationStatus]}
+              </span>
+              <p className="text-xs text-text-tertiary">
+                Locked — this quotation already has a deal.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-1.5">
+              <Label>Status</Label>
+              <Select
+                value={field.value}
+                onValueChange={(value) =>
+                  value && field.onChange(value as QuotationStatus)
+                }
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue>
+                    {(value: string) =>
+                      quotationStatusLabels[value as QuotationStatus] ?? value
+                    }
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {(Object.keys(quotationStatusLabels) as QuotationStatus[]).map(
+                    (status) => (
+                      <SelectItem key={status} value={status}>
+                        {quotationStatusLabels[status]}
+                      </SelectItem>
+                    )
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
+          )
+        }
       />
 
       <div className="space-y-1.5">

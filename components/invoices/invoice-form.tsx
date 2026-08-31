@@ -18,7 +18,11 @@ import type { Invoice, InvoiceStatus } from "@/lib/supabase/invoices";
 import type { Deal } from "@/lib/supabase/deals";
 import type { Customer } from "@/lib/customers-data";
 import type { TeamMember } from "@/lib/supabase/team";
-import { invoiceStatusLabels } from "@/components/invoices/invoice-styles";
+import { cn } from "@/lib/utils";
+import {
+  invoiceStatusLabels,
+  invoiceStatusStyles,
+} from "@/components/invoices/invoice-styles";
 import { formatUSD } from "@/lib/format";
 
 const invoiceSchema = z.object({
@@ -83,6 +87,7 @@ export function InvoiceForm({
   const selectedRep = selectedDeal
     ? salespeopleById.get(selectedDeal.salesRepId)
     : undefined;
+  const isPaidLocked = invoice?.status === "paid";
 
   async function submit(values: FormOutput) {
     await onSubmit({
@@ -175,34 +180,51 @@ export function InvoiceForm({
       <Controller
         control={control}
         name="status"
-        render={({ field }) => (
-          <div className="space-y-1.5 sm:col-span-2">
-            <Label>Status</Label>
-            <Select
-              value={field.value}
-              onValueChange={(value) =>
-                value && field.onChange(value as InvoiceStatus)
-              }
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue>
-                  {(value: string) =>
-                    invoiceStatusLabels[value as InvoiceStatus] ?? value
-                  }
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                {(Object.keys(invoiceStatusLabels) as InvoiceStatus[]).map(
-                  (status) => (
-                    <SelectItem key={status} value={status}>
-                      {invoiceStatusLabels[status]}
-                    </SelectItem>
-                  )
+        render={({ field }) =>
+          isPaidLocked ? (
+            <div className="space-y-1.5 sm:col-span-2">
+              <Label>Status</Label>
+              <span
+                className={cn(
+                  "flex h-8 w-fit items-center rounded-full px-2.5 text-xs font-medium",
+                  invoiceStatusStyles.paid
                 )}
-              </SelectContent>
-            </Select>
-          </div>
-        )}
+              >
+                {invoiceStatusLabels.paid}
+              </span>
+              <p className="text-xs text-text-tertiary">
+                Locked — paid invoices can&apos;t be changed.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-1.5 sm:col-span-2">
+              <Label>Status</Label>
+              <Select
+                value={field.value}
+                onValueChange={(value) =>
+                  value && field.onChange(value as InvoiceStatus)
+                }
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue>
+                    {(value: string) =>
+                      invoiceStatusLabels[value as InvoiceStatus] ?? value
+                    }
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {(Object.keys(invoiceStatusLabels) as InvoiceStatus[]).map(
+                    (status) => (
+                      <SelectItem key={status} value={status}>
+                        {invoiceStatusLabels[status]}
+                      </SelectItem>
+                    )
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
+          )
+        }
       />
 
       <DialogFooter className="sm:col-span-2">

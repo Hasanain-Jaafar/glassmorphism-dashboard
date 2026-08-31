@@ -40,7 +40,7 @@ import { dealStatusLabels } from "@/components/deals/deal-styles";
 import { fetchTeamMembers, type TeamMember } from "@/lib/supabase/team";
 import { fetchCustomers } from "@/lib/supabase/customers";
 import { fetchQuotations, type Quotation } from "@/lib/supabase/quotations";
-import { createInvoice } from "@/lib/supabase/invoices";
+import { createInvoice, fetchInvoices, type Invoice } from "@/lib/supabase/invoices";
 import {
   fetchDeals,
   createDeal,
@@ -70,6 +70,7 @@ function DealsPageContent() {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [salespeople, setSalespeople] = useState<TeamMember[]>([]);
   const [quotations, setQuotations] = useState<Quotation[]>([]);
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
 
   useEffect(() => {
     fetchDeals()
@@ -86,6 +87,11 @@ function DealsPageContent() {
       .catch(() => {});
     fetchQuotations()
       .then(setQuotations)
+      .catch(() => {});
+    // Only needed to detect whether a deal already has an invoice, to lock
+    // its status field in the edit form.
+    fetchInvoices()
+      .then(setInvoices)
       .catch(() => {});
   }, []);
 
@@ -362,6 +368,7 @@ function DealsPageContent() {
             customers={customers}
             salespeople={salespeople}
             quotations={dealableQuotations}
+            invoices={invoices}
             onSubmit={handleFormSubmit}
           />
         </DialogContent>
