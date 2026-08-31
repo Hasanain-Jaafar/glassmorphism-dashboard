@@ -21,7 +21,6 @@ import {
   MoreHorizontal,
   Send,
   Trash2,
-  XCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -55,7 +54,10 @@ function buildColumns(
   dealQuotationIds: Set<string>,
   actions: {
     onEdit: (quotation: Quotation) => void;
-    onStatusChange: (quotation: Quotation, status: QuotationStatus) => void;
+    onStatusChange: (
+      quotation: Quotation,
+      status: Exclude<QuotationStatus, "rejected">
+    ) => void;
     onConvertToDeal: (quotation: Quotation) => void;
     onDelete: (quotation: Quotation) => void;
   }
@@ -151,20 +153,12 @@ function buildColumns(
                 </DropdownMenuItem>
               )}
               {quotation.status === "sent" && (
-                <>
-                  <DropdownMenuItem
-                    onClick={() => actions.onStatusChange(quotation, "accepted")}
-                  >
-                    <CheckCircle2 className="size-3.5" />
-                    Mark Accepted
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={() => actions.onStatusChange(quotation, "rejected")}
-                  >
-                    <XCircle className="size-3.5" />
-                    Mark Rejected
-                  </DropdownMenuItem>
-                </>
+                <DropdownMenuItem
+                  onClick={() => actions.onStatusChange(quotation, "accepted")}
+                >
+                  <CheckCircle2 className="size-3.5" />
+                  Mark Accepted
+                </DropdownMenuItem>
               )}
               {quotation.status === "accepted" && !hasDeal && (
                 <>
@@ -211,7 +205,10 @@ export function QuotationsTable({
   /** Quotation ids that already have a deal — those can't be deleted. */
   dealQuotationIds: Set<string>;
   onEdit: (quotation: Quotation) => void;
-  onStatusChange: (quotation: Quotation, status: QuotationStatus) => void;
+  onStatusChange: (
+    quotation: Quotation,
+    status: Exclude<QuotationStatus, "rejected">
+  ) => void;
   onConvertToDeal: (quotation: Quotation) => void;
   onDelete: (quotation: Quotation) => void;
 }) {

@@ -2,6 +2,12 @@ import { createClient } from "@/lib/supabase/client";
 
 export type QuotationStatus = "draft" | "sent" | "accepted" | "rejected" | "expired";
 
+export type QuotationRejectionReason =
+  | "high_price"
+  | "delivery_time"
+  | "bonus_limitation"
+  | "quality_issue";
+
 export type QuotationItem = {
   id: string;
   productId: string | null;
@@ -18,6 +24,8 @@ export type Quotation = {
   total: number;
   /** ISO date, or null if not set. */
   validUntil: string | null;
+  /** Set exactly when status is "rejected" (DB-enforced), null otherwise. */
+  rejectionReason: QuotationRejectionReason | null;
   items: QuotationItem[];
   createdAt: string;
 };
@@ -37,12 +45,13 @@ type QuotationRow = {
   status: QuotationStatus;
   total: number | string;
   valid_until: string | null;
+  rejection_reason: QuotationRejectionReason | null;
   created_at: string;
   quotation_items: QuotationItemRow[];
 };
 
 const SELECT_COLUMNS =
-  "id, sales_rep_id, customer_id, appointment_id, status, total, valid_until, created_at, quotation_items(id, product_id, quantity, unit_price)";
+  "id, sales_rep_id, customer_id, appointment_id, status, total, valid_until, rejection_reason, created_at, quotation_items(id, product_id, quantity, unit_price)";
 
 function fromRow(row: QuotationRow): Quotation {
   return {
@@ -53,6 +62,7 @@ function fromRow(row: QuotationRow): Quotation {
     status: row.status,
     total: Number(row.total),
     validUntil: row.valid_until,
+    rejectionReason: row.rejection_reason,
     items: (row.quotation_items ?? []).map((item) => ({
       id: item.id,
       productId: item.product_id,
@@ -83,6 +93,8 @@ export type QuotationInput = {
   appointmentId: string;
   status: QuotationStatus;
   validUntil: string | null;
+  /** Required when status is "rejected", must be null otherwise (DB-enforced). */
+  rejectionReason: QuotationRejectionReason | null;
   items: QuotationItemInput[];
 };
 
@@ -121,6 +133,7 @@ export async function createQuotation(values: QuotationInput): Promise<Quotation
       status: values.status,
       total: quotationTotal(values.items),
       valid_until: values.validUntil,
+      rejection_reason: values.rejectionReason,
     })
     .select("id")
     .single();
@@ -159,6 +172,7 @@ export async function updateQuotation(
       status: values.status,
       total: quotationTotal(values.items),
       valid_until: values.validUntil,
+      rejection_reason: values.rejectionReason,
     })
     .eq("id", id);
   if (error) throw error;
@@ -186,9 +200,12 @@ export async function updateQuotation(
   return fetchQuotationById(id);
 }
 
+// "Rejected" is excluded — it requires a rejectionReason, so that
+// transition only happens through the full form (updateQuotation), not
+// this no-extra-data quick action.
 export async function updateQuotationStatus(
   id: string,
-  status: QuotationStatus
+  status: Exclude<QuotationStatus, "rejected">
 ): Promise<Quotation> {
   const supabase = createClient();
   const { error } = await supabase

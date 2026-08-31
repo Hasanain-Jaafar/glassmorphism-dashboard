@@ -213,7 +213,7 @@ function QuotationsPageContent() {
   }
 
   const handleStatusChange = useCallback(
-    async (quotation: Quotation, status: QuotationStatus) => {
+    async (quotation: Quotation, status: Exclude<QuotationStatus, "rejected">) => {
       try {
         const updated = await updateQuotationStatus(quotation.id, status);
         setQuotations((prev) =>

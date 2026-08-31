@@ -17,7 +17,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { DialogClose, DialogFooter } from "@/components/ui/dialog";
-import type { Quotation, QuotationStatus } from "@/lib/supabase/quotations";
+import type {
+  Quotation,
+  QuotationRejectionReason,
+  QuotationStatus,
+} from "@/lib/supabase/quotations";
 import type { Appointment } from "@/lib/supabase/appointments";
 import type { Deal } from "@/lib/supabase/deals";
 import type { Customer } from "@/lib/customers-data";
@@ -25,6 +29,7 @@ import type { TeamMember } from "@/lib/supabase/team";
 import type { Product } from "@/lib/mock-data";
 import { cn } from "@/lib/utils";
 import {
+  quotationRejectionReasonLabels,
   quotationStatusLabels,
   quotationStatusStyles,
 } from "@/components/quotations/quotation-styles";
@@ -40,6 +45,7 @@ const quotationSchema = z.object({
   appointmentId: z.string().min(1, "Select an appointment"),
   status: z.enum(["draft", "sent", "accepted", "rejected", "expired"]),
   validUntil: z.string(),
+  rejectionReason: z.string(),
   items: z.array(quotationItemSchema).min(1, "Add at least one line item"),
 });
 
@@ -50,6 +56,7 @@ export type QuotationFormValues = {
   appointmentId: string;
   status: QuotationStatus;
   validUntil: string | null;
+  rejectionReason: QuotationRejectionReason | null;
   items: { productId: string | null; quantity: number; unitPrice: number }[];
 };
 
@@ -67,6 +74,7 @@ function defaultsFor(
     appointmentId: defaultAppointmentId,
     status: quotation?.status ?? "draft",
     validUntil: quotation?.validUntil ?? "",
+    rejectionReason: quotation?.rejectionReason ?? "",
     items: quotation?.items.length
       ? quotation.items.map((item) => ({
           productId: item.productId ?? "",
@@ -121,6 +129,7 @@ export function QuotationForm({
   const { fields, append, remove } = useFieldArray({ control, name: "items" });
 
   const watchedAppointmentId = watch("appointmentId");
+  const watchedStatus = watch("status");
   const watchedValidUntil = watch("validUntil");
   const watchedItems = watch("items");
   const total = watchedItems.reduce(
@@ -165,9 +174,17 @@ export function QuotationForm({
         return;
       }
     }
+    if (values.status === "rejected" && !values.rejectionReason) {
+      setError("rejectionReason", { message: "Select a reason" });
+      return;
+    }
     await onSubmit({
       ...values,
       validUntil: values.validUntil === "" ? null : values.validUntil,
+      rejectionReason:
+        values.status === "rejected"
+          ? (values.rejectionReason as QuotationRejectionReason)
+          : null,
       items: values.items.map((item) => ({
         productId: item.productId || null,
         quantity: item.quantity,
@@ -297,6 +314,48 @@ export function QuotationForm({
           )
         }
       />
+
+      {watchedStatus === "rejected" && !hasLinkedDeal && (
+        <Controller
+          control={control}
+          name="rejectionReason"
+          render={({ field }) => (
+            <div className="space-y-1.5">
+              <Label>Rejection Reason</Label>
+              <Select
+                value={field.value}
+                onValueChange={(value) => value && field.onChange(value)}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue>
+                    {(value: string) =>
+                      quotationRejectionReasonLabels[
+                        value as QuotationRejectionReason
+                      ] ?? "Select a reason"
+                    }
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {(
+                    Object.keys(
+                      quotationRejectionReasonLabels
+                    ) as QuotationRejectionReason[]
+                  ).map((reason) => (
+                    <SelectItem key={reason} value={reason}>
+                      {quotationRejectionReasonLabels[reason]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {errors.rejectionReason && (
+                <p className="text-xs text-danger">
+                  {errors.rejectionReason.message}
+                </p>
+              )}
+            </div>
+          )}
+        />
+      )}
 
       {hasLinkedDeal ? (
         <div className="space-y-1.5">

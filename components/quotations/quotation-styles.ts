@@ -1,4 +1,7 @@
-import type { QuotationStatus } from "@/lib/supabase/quotations";
+import type {
+  QuotationRejectionReason,
+  QuotationStatus,
+} from "@/lib/supabase/quotations";
 
 export const quotationStatusStyles: Record<QuotationStatus, string> = {
   draft: "bg-foreground/[0.06] text-text-tertiary",
@@ -14,4 +17,14 @@ export const quotationStatusLabels: Record<QuotationStatus, string> = {
   accepted: "Accepted",
   rejected: "Rejected",
   expired: "Expired",
+};
+
+export const quotationRejectionReasonLabels: Record<
+  QuotationRejectionReason,
+  string
+> = {
+  high_price: "High Prices",
+  delivery_time: "Delivery Time",
+  bonus_limitation: "Bonus Limitation",
+  quality_issue: "Quality Issue",
 };
