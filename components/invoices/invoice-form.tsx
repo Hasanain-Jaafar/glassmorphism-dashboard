@@ -3,6 +3,7 @@
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { format } from "date-fns";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -71,6 +72,7 @@ export function InvoiceForm({
     handleSubmit,
     watch,
     setValue,
+    setError,
     formState: { errors, isSubmitting },
   } = useForm<FormInput, unknown, FormOutput>({
     resolver: zodResolver(invoiceSchema),
@@ -88,8 +90,19 @@ export function InvoiceForm({
     ? salespeopleById.get(selectedDeal.salesRepId)
     : undefined;
   const isPaidLocked = invoice?.status === "paid";
+  // Deals in this dropdown are always won (or already-linked), so
+  // closedAt should be set — the null check is just defensive.
+  const minDueDate = selectedDeal?.closedAt
+    ? format(new Date(selectedDeal.closedAt), "yyyy-MM-dd")
+    : null;
 
   async function submit(values: FormOutput) {
+    if (values.dueDate && minDueDate && values.dueDate < minDueDate) {
+      setError("dueDate", {
+        message: "Due date can't be before the deal's date.",
+      });
+      return;
+    }
     await onSubmit({
       ...values,
       dueDate: values.dueDate === "" ? null : values.dueDate,
@@ -174,7 +187,21 @@ export function InvoiceForm({
 
       <div className="space-y-1.5">
         <Label htmlFor="i-due">Due Date (optional)</Label>
-        <Input id="i-due" type="date" {...register("dueDate")} />
+        <Input
+          id="i-due"
+          type="date"
+          min={minDueDate ?? undefined}
+          {...register("dueDate")}
+        />
+        {errors.dueDate ? (
+          <p className="text-xs text-danger">{errors.dueDate.message}</p>
+        ) : (
+          minDueDate && (
+            <p className="text-xs text-text-tertiary">
+              Can&apos;t be before the deal&apos;s date ({minDueDate}).
+            </p>
+          )
+        )}
       </div>
 
       <Controller
