@@ -11,21 +11,8 @@ import {
 } from "@tanstack/react-table";
 import type { SortingState } from "@tanstack/react-table";
 import { format } from "date-fns";
-import {
-  ArrowDown,
-  ArrowUp,
-  ChevronsUpDown,
-  FilePenLine,
-  MoreHorizontal,
-} from "lucide-react";
+import { ArrowDown, ArrowUp, ChevronsUpDown } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import type { Appointment } from "@/lib/supabase/appointments";
 import type { Customer } from "@/lib/customers-data";
 import type { TeamMember } from "@/lib/supabase/team";
@@ -107,30 +94,6 @@ function buildColumns(
           >
             {appointmentStatusLabels[status]}
           </span>
-        );
-      },
-    }),
-    columnHelper.display({
-      id: "actions",
-      header: "",
-      cell: (info) => {
-        const appointment = info.row.original;
-        return (
-          <DropdownMenu>
-            <DropdownMenuTrigger
-              render={
-                <Button variant="ghost" size="icon-sm" aria-label="Row actions" />
-              }
-            >
-              <MoreHorizontal className="size-4" />
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => actions.onEdit(appointment)}>
-                <FilePenLine className="size-3.5" />
-                Edit Appointment
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
         );
       },
     }),
