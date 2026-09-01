@@ -401,6 +401,12 @@ export function QuotationForm({
               type="button"
               variant="outline"
               size="sm"
+              disabled={watchedItems.some((item) => !item.productId)}
+              title={
+                watchedItems.some((item) => !item.productId)
+                  ? "Select a product on the empty line item first"
+                  : undefined
+              }
               onClick={() => append({ productId: "", quantity: 1, unitPrice: 0 })}
             >
               <Plus className="size-3.5" />
@@ -451,7 +457,13 @@ export function QuotationForm({
                           }
                         }}
                       >
-                        <SelectTrigger className="w-full">
+                        <SelectTrigger
+                          className={cn(
+                            "w-full",
+                            errors.items?.[index]?.productId &&
+                              "border-danger focus-visible:ring-danger/40"
+                          )}
+                        >
                           <SelectValue>
                             {(value: string) =>
                               products.find((p) => p.id === value)?.name ??
