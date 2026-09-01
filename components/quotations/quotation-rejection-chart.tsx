@@ -1,94 +1,124 @@
+"use client";
+
+import { useMemo, useState } from "react";
 import { XCircle } from "lucide-react";
 import { ChartCard } from "@/components/dashboard/chart-card";
-import { formatNumber, formatPercent } from "@/lib/format";
+import { LabeledBarChart } from "@/components/charts/labeled-bar-chart";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { formatPercent } from "@/lib/format";
 import type { Quotation, QuotationRejectionReason } from "@/lib/supabase/quotations";
 import { quotationRejectionReasonLabels } from "@/components/quotations/quotation-styles";
-import { cn } from "@/lib/utils";
 
-const reasonMeta: { key: QuotationRejectionReason; bar: string; dot: string }[] = [
-  { key: "high_price", bar: "bg-chart-1", dot: "bg-chart-1" },
-  { key: "delivery_time", bar: "bg-chart-2", dot: "bg-chart-2" },
-  { key: "bonus_limitation", bar: "bg-chart-3", dot: "bg-chart-3" },
-  { key: "quality_issue", bar: "bg-chart-4", dot: "bg-chart-4" },
+const ALL = "all";
+const MONTHS = [
+  "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
 ];
+
+const reasonColorVar: Record<QuotationRejectionReason, string> = {
+  high_price: "var(--chart-1)",
+  delivery_time: "var(--chart-2)",
+  bonus_limitation: "var(--chart-3)",
+  quality_issue: "var(--chart-4)",
+};
 
 export function QuotationRejectionChart({
   quotations,
 }: {
   quotations: Quotation[];
 }) {
-  const rejected = quotations.filter((q) => q.status === "rejected");
-  const rate = quotations.length > 0 ? (rejected.length / quotations.length) * 100 : 0;
-  const counts = Object.fromEntries(
-    reasonMeta.map((r) => [
-      r.key,
-      rejected.filter((q) => q.rejectionReason === r.key).length,
-    ])
-  ) as Record<QuotationRejectionReason, number>;
+  const [month, setMonth] = useState(ALL);
+  const [year, setYear] = useState(ALL);
+
+  const years = useMemo(() => {
+    const set = new Set(quotations.map((q) => new Date(q.createdAt).getFullYear()));
+    return Array.from(set).sort((a, b) => b - a);
+  }, [quotations]);
+
+  const scoped = useMemo(() => {
+    return quotations.filter((q) => {
+      const date = new Date(q.createdAt);
+      const matchesMonth = month === ALL || date.getMonth() === Number(month);
+      const matchesYear = year === ALL || date.getFullYear() === Number(year);
+      return matchesMonth && matchesYear;
+    });
+  }, [quotations, month, year]);
+
+  const rejected = scoped.filter((q) => q.status === "rejected");
+  const rate = scoped.length > 0 ? (rejected.length / scoped.length) * 100 : 0;
+
+  const bars = (
+    Object.keys(quotationRejectionReasonLabels) as QuotationRejectionReason[]
+  ).map((reason) => ({
+    key: reason,
+    label: quotationRejectionReasonLabels[reason],
+    value: rejected.filter((q) => q.rejectionReason === reason).length,
+    colorVar: reasonColorVar[reason],
+  }));
 
   return (
-    <ChartCard title="Rejection Reasons" description="Why quotations don't convert">
+    <ChartCard
+      title="Rejection Reasons"
+      description={
+        rejected.length > 0
+          ? `${formatPercent(rate, 1)} of quotations rejected`
+          : "Why quotations don't convert"
+      }
+      actions={
+        <div className="flex flex-wrap items-center gap-2">
+          <Select value={month} onValueChange={(value) => value && setMonth(value)}>
+            <SelectTrigger className="glass-panel filter-control h-8 gap-1.5 px-2.5 text-xs">
+              <SelectValue>
+                {(value: string) => (value === ALL ? "All Months" : MONTHS[Number(value)])}
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent align="end">
+              <SelectItem value={ALL}>All Months</SelectItem>
+              {MONTHS.map((label, index) => (
+                <SelectItem key={label} value={String(index)}>
+                  {label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select value={year} onValueChange={(value) => value && setYear(value)}>
+            <SelectTrigger className="glass-panel filter-control h-8 gap-1.5 px-2.5 text-xs">
+              <SelectValue>
+                {(value: string) => (value === ALL ? "All Years" : value)}
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent align="end">
+              <SelectItem value={ALL}>All Years</SelectItem>
+              {years.map((y) => (
+                <SelectItem key={y} value={String(y)}>
+                  {y}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      }
+    >
       {rejected.length === 0 ? (
         <div className="flex flex-col items-center gap-2 py-6 text-center">
           <span className="flex size-10 items-center justify-center rounded-full bg-foreground/[0.06] text-text-tertiary">
             <XCircle className="size-4.5" />
           </span>
           <p className="text-xs text-text-tertiary">
-            No quotations have been rejected yet — reasons will appear here
-            once one is.
+            {scoped.length > 0
+              ? "No quotations were rejected in this period."
+              : "No quotations have been rejected yet — reasons will appear here once one is."}
           </p>
         </div>
       ) : (
-        <>
-          <div className="flex items-baseline gap-2">
-            <span className="text-3xl font-semibold tracking-tight text-foreground">
-              {formatPercent(rate, 1)}
-            </span>
-            <span className="text-xs text-text-tertiary">
-              of quotations rejected · {formatNumber(rejected.length)} of{" "}
-              {formatNumber(quotations.length)}
-            </span>
-          </div>
-
-          <div className="mt-4 flex h-2 w-full overflow-hidden rounded-full bg-foreground/[0.06]">
-            {reasonMeta.map((r) => {
-              const pct = rejected.length ? (counts[r.key] / rejected.length) * 100 : 0;
-              if (pct === 0) return null;
-              return (
-                <div
-                  key={r.key}
-                  className={cn("h-full", r.bar)}
-                  style={{ width: `${pct}%` }}
-                />
-              );
-            })}
-          </div>
-
-          <ul className="mt-4 space-y-2.5">
-            {reasonMeta.map((r) => (
-              <li
-                key={r.key}
-                className="flex items-center justify-between gap-3 text-sm"
-              >
-                <span className="flex min-w-0 items-center gap-2">
-                  <span className={cn("size-2.5 shrink-0 rounded-full", r.dot)} />
-                  <span className="truncate text-text-secondary">
-                    {quotationRejectionReasonLabels[r.key]}
-                  </span>
-                </span>
-                <span className="shrink-0 font-medium text-foreground">
-                  {formatNumber(counts[r.key])}
-                  <span className="ml-1.5 text-text-tertiary">
-                    {formatPercent(
-                      rejected.length ? (counts[r.key] / rejected.length) * 100 : 0,
-                      0
-                    )}
-                  </span>
-                </span>
-              </li>
-            ))}
-          </ul>
-        </>
+        <LabeledBarChart bars={bars} />
       )}
     </ChartCard>
   );
