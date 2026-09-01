@@ -134,7 +134,8 @@ export function DealForm({
                 <SelectContent>
                   {quotations.length === 0 ? (
                     <p className="px-2 py-1.5 text-xs text-text-tertiary">
-                      No accepted quotations yet.
+                      No available quotations — accept one first, or check for
+                      accepted quotations that already have a deal.
                     </p>
                   ) : (
                     quotations.map((quotation) => (

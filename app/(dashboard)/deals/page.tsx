@@ -132,15 +132,30 @@ function DealsPageContent() {
     [customers]
   );
 
-  // Deals can only be created from an accepted quotation — but keep the
+  // A quotation can produce at most one deal, ever — the DB locks a
+  // quotation's status the instant any deal (open/won/lost) references it,
+  // so there's no "retry" flow like re-quoting after a rejection. Exclude
+  // quotations that already have a deal from anyone else's, but keep the
   // deal's own quotation in the list when editing, even if its status has
   // since moved on, so the Select always has a match for the current value.
+  const dealtQuotationIds = useMemo(
+    () =>
+      new Set(
+        (deals ?? [])
+          .filter((d) => d.id !== editingDeal?.id)
+          .map((d) => d.quotationId)
+      ),
+    [deals, editingDeal]
+  );
+
   const dealableQuotations = useMemo(
     () =>
       quotations.filter(
-        (q) => q.status === "accepted" || q.id === editingDeal?.quotationId
+        (q) =>
+          (q.status === "accepted" && !dealtQuotationIds.has(q.id)) ||
+          q.id === editingDeal?.quotationId
       ),
-    [quotations, editingDeal]
+    [quotations, editingDeal, dealtQuotationIds]
   );
 
   const invoiceDealIds = useMemo(
