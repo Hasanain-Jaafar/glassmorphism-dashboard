@@ -31,3 +31,18 @@ export async function insertProduct(
   if (error) throw error;
   return normalize(data);
 }
+
+export async function updateProduct(
+  id: string,
+  input: Omit<Product, "id">
+): Promise<Product> {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("products")
+    .update(input)
+    .eq("id", id)
+    .select(PRODUCT_COLUMNS)
+    .single();
+  if (error) throw error;
+  return normalize(data);
+}

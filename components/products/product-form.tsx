@@ -36,7 +36,7 @@ const formSchema = z.object({
 type FormInput = z.input<typeof formSchema>;
 type FormOutput = z.output<typeof formSchema>;
 
-const defaultValues: FormInput = {
+const emptyDefaults: FormInput = {
   name: "",
   sku: "",
   category: productCategories[0],
@@ -46,10 +46,25 @@ const defaultValues: FormInput = {
   description: "",
 };
 
-export function AddProductForm({
-  onAdd,
+function defaultsFor(product: Product | undefined): FormInput {
+  if (!product) return emptyDefaults;
+  return {
+    name: product.name,
+    sku: product.sku,
+    category: product.category,
+    brand: product.brand,
+    price: product.price,
+    status: product.status,
+    description: product.description,
+  };
+}
+
+export function ProductForm({
+  product,
+  onSubmit,
 }: {
-  onAdd: (product: Omit<Product, "id">) => Promise<void>;
+  product?: Product;
+  onSubmit: (product: Omit<Product, "id">) => Promise<void>;
 }) {
   const {
     register,
@@ -59,12 +74,12 @@ export function AddProductForm({
     formState: { errors, isSubmitting },
   } = useForm<FormInput, unknown, FormOutput>({
     resolver: zodResolver(formSchema),
-    defaultValues,
+    values: defaultsFor(product),
   });
 
-  async function onSubmit(values: FormOutput) {
+  async function submit(values: FormOutput) {
     try {
-      await onAdd({
+      await onSubmit({
         name: values.name,
         sku: values.sku,
         category: values.category,
@@ -73,7 +88,7 @@ export function AddProductForm({
         status: values.status as ProductStatus,
         description: values.description,
       });
-      reset(defaultValues);
+      if (!product) reset(emptyDefaults);
     } catch {
       // The parent already surfaced an error toast; keep the form filled
       // in so nothing the user typed is lost.
@@ -82,7 +97,7 @@ export function AddProductForm({
 
   return (
     <form
-      onSubmit={handleSubmit(onSubmit)}
+      onSubmit={handleSubmit(submit)}
       className="grid grid-cols-1 gap-4 sm:grid-cols-2"
     >
       <div className="space-y-1.5 sm:col-span-2">
@@ -209,7 +224,7 @@ export function AddProductForm({
           Cancel
         </DialogClose>
         <Button type="submit" disabled={isSubmitting}>
-          Add Product
+          {product ? "Save Changes" : "Add Product"}
         </Button>
       </DialogFooter>
     </form>

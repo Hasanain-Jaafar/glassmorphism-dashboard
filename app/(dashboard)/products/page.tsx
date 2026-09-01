@@ -17,7 +17,7 @@ import { toast } from "sonner";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { MetricCard } from "@/components/dashboard/metric-card";
 import { ProductCard } from "@/components/products/product-card";
-import { AddProductForm } from "@/components/products/add-product-form";
+import { ProductForm } from "@/components/products/product-form";
 import { ProductTable } from "@/components/tables/product-table";
 import { Reveal } from "@/components/motion/reveal";
 import { Button } from "@/components/ui/button";
@@ -54,7 +54,7 @@ import {
   productCategories,
   type Product,
 } from "@/lib/mock-data";
-import { fetchProducts, insertProduct } from "@/lib/supabase/products";
+import { fetchProducts, insertProduct, updateProduct } from "@/lib/supabase/products";
 import { formatUSD } from "@/lib/format";
 import { useAuth } from "@/components/providers/auth-provider";
 
@@ -89,6 +89,7 @@ export default function ProductsPage() {
     isProductTab(requestedTab) ? requestedTab : "catalog"
   );
   const [formOpen, setFormOpen] = useState(requestedTab === "add" && admin);
+  const [editingProduct, setEditingProduct] = useState<Product | undefined>();
   const [search, setSearch] = useState(requestedQuery ?? "");
   const [categoryFilter, setCategoryFilter] = useState<string>(
     requestedCategory && productCategories.includes(requestedCategory as (typeof productCategories)[number])
@@ -109,6 +110,7 @@ export default function ProductsPage() {
       setActiveTab(requestedTab);
     }
     if (requestedTab === "add" && admin) {
+      setEditingProduct(undefined);
       setFormOpen(true);
     }
     if (requestedQuery) {
@@ -183,14 +185,34 @@ export default function ProductsPage() {
     setBrandFilter(ALL_BRANDS);
   }
 
-  async function handleAdd(product: Omit<Product, "id">) {
+  function openAddForm() {
+    setEditingProduct(undefined);
+    setFormOpen(true);
+  }
+
+  function openEditForm(product: Product) {
+    setEditingProduct(product);
+    setFormOpen(true);
+  }
+
+  async function handleFormSubmit(product: Omit<Product, "id">) {
     try {
-      const created = await insertProduct(product);
-      setProducts((prev) => [created, ...prev]);
-      toast.success(`${created.name} was added to the catalog`);
+      if (editingProduct) {
+        const updated = await updateProduct(editingProduct.id, product);
+        setProducts((prev) =>
+          prev.map((p) => (p.id === editingProduct.id ? updated : p))
+        );
+        toast.success(`${updated.name} was updated`);
+      } else {
+        const created = await insertProduct(product);
+        setProducts((prev) => [created, ...prev]);
+        toast.success(`${created.name} was added to the catalog`);
+      }
       setFormOpen(false);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Couldn't add product");
+      toast.error(
+        error instanceof Error ? error.message : "Couldn't save the product"
+      );
       throw error;
     }
   }
@@ -203,7 +225,7 @@ export default function ProductsPage() {
           description="Manage the product catalog available for quotations"
           actions={
             admin && (
-              <Button onClick={() => setFormOpen(true)}>
+              <Button onClick={openAddForm}>
                 <PackagePlus className="size-4" />
                 Add Product
               </Button>
@@ -371,7 +393,7 @@ export default function ProductsPage() {
             {loading ? (
               <Skeleton className="h-96 w-full rounded-2xl" />
             ) : filtered.length ? (
-              <ProductTable data={filtered} />
+              <ProductTable data={filtered} admin={admin} onEdit={openEditForm} />
             ) : (
               <EmptyProductsState
                 hasFilters={hasActiveFilters}
@@ -386,13 +408,16 @@ export default function ProductsPage() {
         <Dialog open={formOpen} onOpenChange={setFormOpen}>
           <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
             <DialogHeader>
-              <DialogTitle>Add Product</DialogTitle>
+              <DialogTitle>
+                {editingProduct ? "Edit Product" : "Add Product"}
+              </DialogTitle>
               <DialogDescription>
-                New products can be added as a Draft until they&apos;re ready to
-                sell.
+                {editingProduct
+                  ? "Update this product's catalog details."
+                  : "New products can be added as a Draft until they're ready to sell."}
               </DialogDescription>
             </DialogHeader>
-            <AddProductForm onAdd={handleAdd} />
+            <ProductForm product={editingProduct} onSubmit={handleFormSubmit} />
           </DialogContent>
         </Dialog>
       )}

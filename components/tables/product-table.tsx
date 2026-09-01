@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useTable, createColumnHelper } from "@tanstack/react-table";
 import type { SortingState } from "@tanstack/react-table";
 import { ArrowDown, ArrowUp, ChevronsUpDown, Package } from "lucide-react";
@@ -19,99 +19,123 @@ import {
 
 const columnHelper = createColumnHelper<typeof features, Product>();
 
-const columns = columnHelper.columns([
-  columnHelper.accessor("name", {
-    header: "Product",
-    enableHiding: false,
-    cell: (info) => {
-      const product = info.row.original;
-      const categoryStyle = categoryStyles[product.category] ?? fallbackCategoryStyle;
-      return (
-        <div className="flex items-center gap-3">
-          <div
-            className={cn(
-              "flex size-8 shrink-0 items-center justify-center rounded-lg",
-              categoryStyle
-            )}
-          >
-            <Package className="size-4" />
-          </div>
+function buildColumns(admin: boolean, onEdit: (product: Product) => void) {
+  return columnHelper.columns([
+    columnHelper.accessor("name", {
+      header: "Product",
+      enableHiding: false,
+      cell: (info) => {
+        const product = info.row.original;
+        const categoryStyle = categoryStyles[product.category] ?? fallbackCategoryStyle;
+        const label = (
           <div className="min-w-0">
             <p className="truncate text-sm font-medium text-foreground">
               {product.name}
             </p>
             <p className="truncate text-xs text-text-tertiary">{product.sku}</p>
           </div>
-        </div>
-      );
-    },
-  }),
-  columnHelper.accessor("category", {
-    header: "Category",
-    cell: (info) => {
-      const category = info.getValue();
-      return (
-        <span
-          className={cn(
-            "rounded-full px-2 py-0.5 text-xs font-medium whitespace-nowrap",
-            categoryStyles[category] ?? fallbackCategoryStyle
-          )}
-        >
-          {category}
+        );
+        return (
+          <div className="flex items-center gap-3">
+            <div
+              className={cn(
+                "flex size-8 shrink-0 items-center justify-center rounded-lg",
+                categoryStyle
+              )}
+            >
+              <Package className="size-4" />
+            </div>
+            {admin ? (
+              <button
+                type="button"
+                onClick={() => onEdit(product)}
+                className="min-w-0 cursor-pointer text-left hover:[&_p:first-child]:text-primary"
+              >
+                {label}
+              </button>
+            ) : (
+              label
+            )}
+          </div>
+        );
+      },
+    }),
+    columnHelper.accessor("category", {
+      header: "Category",
+      cell: (info) => {
+        const category = info.getValue();
+        return (
+          <span
+            className={cn(
+              "rounded-full px-2 py-0.5 text-xs font-medium whitespace-nowrap",
+              categoryStyles[category] ?? fallbackCategoryStyle
+            )}
+          >
+            {category}
+          </span>
+        );
+      },
+    }),
+    columnHelper.accessor("brand", {
+      header: "Brand",
+      cell: (info) => (
+        <span className="whitespace-nowrap text-text-secondary">
+          {info.getValue()}
         </span>
-      );
-    },
-  }),
-  columnHelper.accessor("brand", {
-    header: "Brand",
-    cell: (info) => (
-      <span className="whitespace-nowrap text-text-secondary">
-        {info.getValue()}
-      </span>
-    ),
-  }),
-  columnHelper.accessor("price", {
-    header: "Price",
-    cell: (info) => (
-      <span className="tabular-nums">{formatUSD(info.getValue())}</span>
-    ),
-  }),
-  columnHelper.accessor("status", {
-    header: "Status",
-    cell: (info) => {
-      const status = info.getValue();
-      return (
+      ),
+    }),
+    columnHelper.accessor("price", {
+      header: "Price",
+      cell: (info) => (
+        <span className="tabular-nums">{formatUSD(info.getValue())}</span>
+      ),
+    }),
+    columnHelper.accessor("status", {
+      header: "Status",
+      cell: (info) => {
+        const status = info.getValue();
+        return (
+          <span
+            className={cn(
+              "rounded-full px-2 py-0.5 text-xs font-medium whitespace-nowrap",
+              statusStyles[status]
+            )}
+          >
+            {statusLabels[status]}
+          </span>
+        );
+      },
+    }),
+    columnHelper.accessor("description", {
+      header: "Description",
+      cell: (info) => (
         <span
-          className={cn(
-            "rounded-full px-2 py-0.5 text-xs font-medium whitespace-nowrap",
-            statusStyles[status]
-          )}
+          title={info.getValue()}
+          className="block max-w-[320px] truncate text-text-secondary"
         >
-          {statusLabels[status]}
+          {info.getValue()}
         </span>
-      );
-    },
-  }),
-  columnHelper.accessor("description", {
-    header: "Description",
-    cell: (info) => (
-      <span
-        title={info.getValue()}
-        className="block max-w-[320px] truncate text-text-secondary"
-      >
-        {info.getValue()}
-      </span>
-    ),
-  }),
-]);
+      ),
+    }),
+  ]);
+}
 
-export function ProductTable({ data }: { data: Product[] }) {
+export function ProductTable({
+  data,
+  admin,
+  onEdit,
+}: {
+  data: Product[];
+  admin: boolean;
+  onEdit: (product: Product) => void;
+}) {
   const [sorting, setSorting] = useState<SortingState>([
     { id: "name", desc: false },
   ]);
   const [columnVisibility, setColumnVisibility] = usePersistedColumnVisibility(
     "products-table-columns"
   );
+  const columns = useMemo(() => buildColumns(admin, onEdit), [admin, onEdit]);
 
   const table = useTable({
     features,
