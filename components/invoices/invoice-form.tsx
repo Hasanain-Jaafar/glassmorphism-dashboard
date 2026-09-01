@@ -153,7 +153,8 @@ export function InvoiceForm({
                 <SelectContent>
                   {deals.length === 0 ? (
                     <p className="px-2 py-1.5 text-xs text-text-tertiary">
-                      No won deals yet.
+                      No available deals — win one first, or check for won
+                      deals that already have an invoice.
                     </p>
                   ) : (
                     deals.map((deal) => (

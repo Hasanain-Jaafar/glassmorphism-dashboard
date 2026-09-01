@@ -84,12 +84,30 @@ export default function InvoicesPage() {
     [customers]
   );
 
-  // Invoices can only be created from a won deal — but keep the invoice's
-  // own deal in the list when editing, even if its status has since moved
-  // on, so the Select always has a match for the current value.
+  // A deal can produce at most one invoice, ever — the DB locks a deal's
+  // status the instant any invoice references it (migration 27), so there's
+  // no "retry" flow. Exclude deals that already have an invoice from anyone
+  // else's, but keep the invoice's own deal in the list when editing, even
+  // if its status has since moved on, so the Select always has a match for
+  // the current value.
+  const invoicedDealIds = useMemo(
+    () =>
+      new Set(
+        (invoices ?? [])
+          .filter((i) => i.id !== editingInvoice?.id)
+          .map((i) => i.dealId)
+      ),
+    [invoices, editingInvoice]
+  );
+
   const invoiceableDeals = useMemo(
-    () => deals.filter((d) => d.status === "won" || d.id === editingInvoice?.dealId),
-    [deals, editingInvoice]
+    () =>
+      deals.filter(
+        (d) =>
+          (d.status === "won" && !invoicedDealIds.has(d.id)) ||
+          d.id === editingInvoice?.dealId
+      ),
+    [deals, editingInvoice, invoicedDealIds]
   );
 
   const stats = useMemo(() => {
