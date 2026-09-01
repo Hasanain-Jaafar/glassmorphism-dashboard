@@ -282,10 +282,9 @@ export function computeRanking(people: Salesperson[]): RankedSalesperson[] {
 export const salespersonRanking: RankedSalesperson[] =
   computeRanking(salespeople);
 
-export const currentYear = 2026;
-export const previousYear = 2025;
+export const currentYear = new Date().getFullYear();
+export const previousYear = currentYear - 1;
 export const rankingYears = [currentYear, previousYear] as const;
-export const rankingMonths = revenueSeries.map((point) => point.month);
 
 export type ProductStatus = "active" | "draft" | "archived";
 

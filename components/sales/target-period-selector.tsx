@@ -7,8 +7,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { rankingMonths } from "@/lib/mock-data";
 import {
+  rankingMonths,
   targetPeriodTypeOptions,
   quarterOptions,
   defaultSelectionFor,

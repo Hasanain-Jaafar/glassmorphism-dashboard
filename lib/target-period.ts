@@ -1,5 +1,3 @@
-import { rankingMonths } from "@/lib/mock-data";
-
 /**
  * "Target Period" logic for the /targets page's Individual tab — the
  * month/quarter/year/custom-range period picker and target-lookup helpers.
@@ -54,9 +52,13 @@ export const MONTH_NUMBERS: Record<string, number> = {
 
 const fullYearMonths = Object.keys(MONTH_NUMBERS);
 
-/** The most recent month the mock company timeline has data for — stands in for "today" across the app (see lib/mock-data.ts's currentYear). */
-export const currentMonthLabel = rankingMonths[rankingMonths.length - 1];
-export const currentMonthNumber = MONTH_NUMBERS[currentMonthLabel];
+/** The real current month/year, from the system clock — the single "today" the whole app agrees on for period calculations (see lib/mock-data.ts's currentYear). */
+const now = new Date();
+export const currentMonthNumber = now.getMonth() + 1;
+export const currentMonthLabel = fullYearMonths[currentMonthNumber - 1];
+
+/** Month labels from Jan through the current month (YTD) — what's selectable in the Targets page's period pickers. */
+export const rankingMonths = fullYearMonths.slice(0, currentMonthNumber);
 
 export type QuarterValue = "Q1" | "Q2" | "Q3" | "Q4";
 
