@@ -41,6 +41,7 @@ import {
   QuotationForm,
   type QuotationFormValues,
 } from "@/components/quotations/quotation-form";
+import { QuotationRejectionChart } from "@/components/quotations/quotation-rejection-chart";
 import { quotationStatusLabels } from "@/components/quotations/quotation-styles";
 import { fetchTeamMembers, type TeamMember } from "@/lib/supabase/team";
 import { fetchCustomers } from "@/lib/supabase/customers";
@@ -294,6 +295,12 @@ function QuotationsPageContent() {
           />
         </div>
       </Reveal>
+
+      {quotations !== null && quotations.length > 0 && (
+        <Reveal delay={0.075}>
+          <QuotationRejectionChart quotations={quotations} />
+        </Reveal>
+      )}
 
       <Reveal delay={0.1}>
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

@@ -35,6 +35,7 @@ import type { Quotation, QuotationStatus } from "@/lib/supabase/quotations";
 import type { Customer } from "@/lib/customers-data";
 import type { TeamMember } from "@/lib/supabase/team";
 import {
+  quotationRejectionReasonLabels,
   quotationStatusLabels,
   quotationStatusStyles,
 } from "@/components/quotations/quotation-styles";
@@ -120,6 +121,20 @@ function buildColumns(
             )}
           >
             {quotationStatusLabels[status]}
+          </span>
+        );
+      },
+    }),
+    columnHelper.accessor("rejectionReason", {
+      header: "Rejection Reason",
+      cell: (info) => {
+        const reason = info.getValue();
+        if (!reason) {
+          return <span className="text-text-tertiary">—</span>;
+        }
+        return (
+          <span className="whitespace-nowrap text-text-secondary">
+            {quotationRejectionReasonLabels[reason]}
           </span>
         );
       },
