@@ -231,7 +231,8 @@ export function QuotationForm({
                 <SelectContent>
                   {appointments.length === 0 ? (
                     <p className="px-2 py-1.5 text-xs text-text-tertiary">
-                      No appointments yet — create one first.
+                      No available appointments — create one, or check for
+                      appointments that already have an active quotation.
                     </p>
                   ) : (
                     appointments.map((appointment) => (

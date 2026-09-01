@@ -135,6 +135,20 @@ function QuotationsPageContent() {
     [deals]
   );
 
+  // An appointment already carries a fixed customer + date, so "no duplicate
+  // quotation for the same customer and date" means: no more than one
+  // active (draft/sent/accepted) quotation per appointment. A rejected or
+  // expired quotation doesn't block a re-quote of the same appointment.
+  const availableAppointments = useMemo(() => {
+    const blockedAppointmentIds = new Set(
+      (quotations ?? [])
+        .filter((q) => q.id !== editingQuotation?.id)
+        .filter((q) => q.status !== "rejected" && q.status !== "expired")
+        .map((q) => q.appointmentId)
+    );
+    return appointments.filter((a) => !blockedAppointmentIds.has(a.id));
+  }, [appointments, quotations, editingQuotation]);
+
   const stats = useMemo(() => {
     const list = quotations ?? [];
     return {
@@ -401,7 +415,7 @@ function QuotationsPageContent() {
             quotation={editingQuotation}
             customers={customers}
             salespeople={salespeople}
-            appointments={appointments}
+            appointments={availableAppointments}
             deals={deals}
             products={products}
             initialCustomerId={initialCustomerId}
