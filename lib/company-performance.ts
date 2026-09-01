@@ -195,13 +195,14 @@ export function computePipelineCounts(
     { key: "invoices", label: "Paid Invoices", value: invoiceCount },
   ];
 
-  // Capped at 100% — these compare two independently-counted monthly
+  // Not capped at 100% — these compare two independently-counted monthly
   // snapshots (e.g. a deal closed this month may trace back to a quotation
   // from an earlier month), not a true same-cohort funnel, so the raw ratio
-  // can mathematically exceed 100% on a small/uneven dataset. A "conversion
-  // rate" reading over 100% looks broken regardless of why.
+  // can mathematically exceed 100% on a small/uneven dataset. Showing the
+  // real ratio (even over 100%) is more honest than silently capping it,
+  // which would hide the mismatch behind a falsely-perfect "100%".
   const pct = (num: number, den: number) =>
-    den ? Math.min(Math.round((num / den) * 100), 100) : 0;
+    den ? Math.round((num / den) * 100) : 0;
 
   return {
     stages,
