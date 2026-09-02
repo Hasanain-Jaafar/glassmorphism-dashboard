@@ -23,7 +23,7 @@ export function AppearanceSection() {
         <li className="flex items-center justify-between gap-4 py-3.5">
           <div className="min-w-0">
             <p className="text-sm font-medium text-foreground">
-              Animated KPI cards
+              Animations on metric cards
             </p>
             <p className="mt-0.5 text-xs text-text-tertiary">
               The subtle wave motion on metric cards across Dashboard, Team,
