@@ -140,7 +140,7 @@ function buildColumns(onEdit: (id: string) => void) {
         );
       },
     }),
-    columnHelper.display({
+    columnHelper.accessor((row) => row.appointmentsActual, {
       id: "appointments",
       header: "Appointments",
       cell: (info) => {
@@ -152,7 +152,7 @@ function buildColumns(onEdit: (id: string) => void) {
         );
       },
     }),
-    columnHelper.display({
+    columnHelper.accessor((row) => row.dealsActual, {
       id: "deals",
       header: "Deals",
       cell: (info) => {
@@ -164,11 +164,11 @@ function buildColumns(onEdit: (id: string) => void) {
         );
       },
     }),
-    columnHelper.display({
+    columnHelper.accessor((row) => row.achievementPct, {
       id: "status",
       header: "Status",
       cell: (info) => {
-        const status = getTargetStatus(info.row.original.achievementPct);
+        const status = getTargetStatus(info.getValue());
         return (
           <span
             className={cn(
