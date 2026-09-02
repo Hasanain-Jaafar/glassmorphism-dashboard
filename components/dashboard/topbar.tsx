@@ -52,7 +52,7 @@ export function Topbar() {
           type="button"
           onClick={() => router.push("/assistant")}
           aria-label="AI Brain"
-          className="flex size-9 items-center justify-center rounded-xl text-warning transition-colors hover:bg-warning/10"
+          className="flex size-9 items-center justify-center rounded-xl text-primary transition-colors hover:bg-primary/10"
         >
           <Brain className="size-[23px]" />
         </button>
