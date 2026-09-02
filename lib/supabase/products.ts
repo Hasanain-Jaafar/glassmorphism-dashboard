@@ -1,12 +1,49 @@
 import { createClient } from "@/lib/supabase/client";
 import type { Product } from "@/lib/mock-data";
 
-const PRODUCT_COLUMNS = "id, name, sku, category, brand, price, status, description";
+const PRODUCT_COLUMNS =
+  "id, name, sku, category, brand, price, status, description, delivery_time, made_in";
 
-type ProductRow = Omit<Product, "price"> & { price: number | string };
+type ProductRow = {
+  id: string;
+  name: string;
+  sku: string;
+  category: string;
+  brand: string;
+  price: number | string;
+  status: Product["status"];
+  description: string;
+  delivery_time: string | null;
+  made_in: string | null;
+};
 
 function normalize(row: ProductRow): Product {
-  return { ...row, price: Number(row.price) };
+  return {
+    id: row.id,
+    name: row.name,
+    sku: row.sku,
+    category: row.category,
+    brand: row.brand,
+    price: Number(row.price),
+    status: row.status,
+    description: row.description,
+    deliveryTime: row.delivery_time,
+    madeIn: row.made_in,
+  };
+}
+
+function toRow(input: Omit<Product, "id">) {
+  return {
+    name: input.name,
+    sku: input.sku,
+    category: input.category,
+    brand: input.brand,
+    price: input.price,
+    status: input.status,
+    description: input.description,
+    delivery_time: input.deliveryTime || null,
+    made_in: input.madeIn || null,
+  };
 }
 
 export async function fetchProducts(): Promise<Product[]> {
@@ -25,7 +62,7 @@ export async function insertProduct(
   const supabase = createClient();
   const { data, error } = await supabase
     .from("products")
-    .insert(input)
+    .insert(toRow(input))
     .select(PRODUCT_COLUMNS)
     .single();
   if (error) throw error;
@@ -39,7 +76,7 @@ export async function updateProduct(
   const supabase = createClient();
   const { data, error } = await supabase
     .from("products")
-    .update(input)
+    .update(toRow(input))
     .eq("id", id)
     .select(PRODUCT_COLUMNS)
     .single();

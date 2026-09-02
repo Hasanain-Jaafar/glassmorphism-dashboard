@@ -11,6 +11,12 @@ import {
 
 export function ProductCard({ product }: { product: Product }) {
   const categoryStyle = categoryStyles[product.category] ?? fallbackCategoryStyle;
+  const metaLine = [
+    product.madeIn && `Made in ${product.madeIn}`,
+    product.deliveryTime && `Delivery: ${product.deliveryTime}`,
+  ]
+    .filter(Boolean)
+    .join(" · ");
 
   return (
     <div className="glass-panel flex h-full flex-col rounded-2xl p-5 shadow-sm sm:p-6">
@@ -38,6 +44,11 @@ export function ProductCard({ product }: { product: Product }) {
         <p className="mt-0.5 truncate text-xs text-text-tertiary">
           {product.sku} · {product.brand}
         </p>
+        {metaLine && (
+          <p className="mt-0.5 truncate text-[11px] text-text-tertiary">
+            {metaLine}
+          </p>
+        )}
       </div>
 
       <p className="mt-3 line-clamp-2 flex-1 text-xs text-text-secondary">

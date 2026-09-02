@@ -31,6 +31,8 @@ const formSchema = z.object({
   price: z.coerce.number().min(0, "Must be 0 or more"),
   status: z.enum(["active", "draft", "archived"]),
   description: z.string().min(2, "Enter a short description"),
+  deliveryTime: z.string().trim().optional(),
+  madeIn: z.string().trim().optional(),
 });
 
 type FormInput = z.input<typeof formSchema>;
@@ -44,6 +46,8 @@ const emptyDefaults: FormInput = {
   price: 0,
   status: "active",
   description: "",
+  deliveryTime: "",
+  madeIn: "",
 };
 
 function defaultsFor(product: Product | undefined): FormInput {
@@ -56,6 +60,8 @@ function defaultsFor(product: Product | undefined): FormInput {
     price: product.price,
     status: product.status,
     description: product.description,
+    deliveryTime: product.deliveryTime ?? "",
+    madeIn: product.madeIn ?? "",
   };
 }
 
@@ -87,6 +93,8 @@ export function ProductForm({
         price: values.price,
         status: values.status as ProductStatus,
         description: values.description,
+        deliveryTime: values.deliveryTime || null,
+        madeIn: values.madeIn || null,
       });
       if (!product) reset(emptyDefaults);
     } catch {
@@ -126,6 +134,20 @@ export function ProductForm({
         {errors.price && (
           <p className="text-xs text-danger">{errors.price.message}</p>
         )}
+      </div>
+
+      <div className="space-y-1.5">
+        <Label htmlFor="p-delivery-time">Delivery Time</Label>
+        <Input
+          id="p-delivery-time"
+          placeholder="2-3 weeks"
+          {...register("deliveryTime")}
+        />
+      </div>
+
+      <div className="space-y-1.5">
+        <Label htmlFor="p-made-in">Made In</Label>
+        <Input id="p-made-in" placeholder="Turkey" {...register("madeIn")} />
       </div>
 
       <Controller

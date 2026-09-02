@@ -11,6 +11,15 @@ export type DisplayMessage = {
   content: string;
 };
 
+// Arabic, Arabic Supplement, Arabic Extended-A, and Arabic Presentation
+// Forms A/B — covers standard Arabic text without matching Latin/punctuation.
+const ARABIC_PATTERN =
+  /[؀-ۿݐ-ݿࢠ-ࣿﭐ-﷿ﹰ-﻿]/;
+
+function containsArabic(text: string): boolean {
+  return ARABIC_PATTERN.test(text);
+}
+
 const EXAMPLE_PROMPTS = [
   "How am I doing against my target this month?",
   "Who's my top performer this month?",
@@ -100,6 +109,11 @@ export function ChatThread({
         >
           <div
             dir="auto"
+            style={
+              containsArabic(message.content)
+                ? { fontFamily: "var(--font-zain)" }
+                : undefined
+            }
             className={cn(
               "max-w-[80%] whitespace-pre-wrap rounded-2xl px-4 py-2.5 text-sm",
               message.role === "user"

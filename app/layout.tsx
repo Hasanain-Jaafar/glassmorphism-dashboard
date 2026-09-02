@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist, Geist_Mono, Zain } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -15,6 +15,14 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+// Arabic-script font for AI Brain replies (components/assistant/chat-thread.tsx)
+// — Geist has no Arabic glyphs, so Arabic falls back to the OS default there.
+const zain = Zain({
+  variable: "--font-zain",
+  subsets: ["arabic"],
+  weight: ["400", "700"],
+});
+
 export const metadata: Metadata = {
   title: "Sales Dashboard",
   description: "Internal sales management dashboard.",
@@ -25,7 +33,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html
       lang="en"
       suppressHydrationWarning
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} ${zain.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
         <ThemeProvider

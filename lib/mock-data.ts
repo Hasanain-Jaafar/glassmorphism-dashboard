@@ -297,6 +297,10 @@ export type Product = {
   price: number;
   status: ProductStatus;
   description: string;
+  /** Free text, e.g. "2-3 weeks". Optional — not every product has one set. */
+  deliveryTime?: string | null;
+  /** Country of origin, e.g. "Turkey". Optional — not every product has one set. */
+  madeIn?: string | null;
 };
 
 export const productCategories = [

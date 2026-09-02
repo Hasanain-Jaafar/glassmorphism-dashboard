@@ -106,6 +106,22 @@ function buildColumns(admin: boolean, onEdit: (product: Product) => void) {
         );
       },
     }),
+    columnHelper.accessor("deliveryTime", {
+      header: "Delivery Time",
+      cell: (info) => (
+        <span className="whitespace-nowrap text-text-secondary">
+          {info.getValue() || "—"}
+        </span>
+      ),
+    }),
+    columnHelper.accessor("madeIn", {
+      header: "Made In",
+      cell: (info) => (
+        <span className="whitespace-nowrap text-text-secondary">
+          {info.getValue() || "—"}
+        </span>
+      ),
+    }),
     columnHelper.accessor("description", {
       header: "Description",
       cell: (info) => (
