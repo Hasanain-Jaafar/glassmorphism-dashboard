@@ -70,24 +70,18 @@ export function Sidebar() {
       </span>
     );
 
-    if (!item.enabled) {
-      return (
-        <li key={item.href}>
-          <Tooltip>
-            <TooltipTrigger render={<div aria-disabled />}>
-              {content}
-            </TooltipTrigger>
-            <TooltipContent side="right">
-              {item.label} — coming soon
-            </TooltipContent>
-          </Tooltip>
-        </li>
-      );
-    }
-
     return (
       <li key={item.href}>
-        <Link href={item.href}>{content}</Link>
+        <Tooltip>
+          <TooltipTrigger
+            render={item.enabled ? <Link href={item.href} /> : <div aria-disabled />}
+          >
+            {content}
+          </TooltipTrigger>
+          <TooltipContent side="right">
+            {item.enabled ? item.label : `${item.label} — coming soon`}
+          </TooltipContent>
+        </Tooltip>
       </li>
     );
   }
