@@ -6,7 +6,6 @@ import type { SortingState } from "@tanstack/react-table";
 import { ArrowDown, ArrowUp, ChevronsUpDown, Package } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { sortableTableFeatures as features } from "@/components/tables/table-features";
-import { ColumnVisibilityMenu } from "@/components/tables/column-visibility-menu";
 import { usePersistedColumnVisibility } from "@/components/tables/use-persisted-column-visibility";
 import type { Product } from "@/lib/mock-data";
 import { formatUSD } from "@/lib/format";
@@ -136,7 +135,9 @@ function buildColumns(admin: boolean, onEdit: (product: Product) => void) {
   ]);
 }
 
-export function ProductTable({
+/** Builds the table instance so the page can render `ColumnVisibilityMenu`
+ * inline in its filter bar instead of the table owning that control. */
+export function useProductTable({
   data,
   admin,
   onEdit,
@@ -153,7 +154,7 @@ export function ProductTable({
   );
   const columns = useMemo(() => buildColumns(admin, onEdit), [admin, onEdit]);
 
-  const table = useTable({
+  return useTable({
     features,
     columns,
     data,
@@ -161,12 +162,15 @@ export function ProductTable({
     onSortingChange: setSorting,
     onColumnVisibilityChange: setColumnVisibility,
   });
+}
 
+export function ProductTable({
+  table,
+}: {
+  table: ReturnType<typeof useProductTable>;
+}) {
   return (
     <div className="glass-panel overflow-hidden rounded-2xl shadow-sm">
-      <div className="flex justify-end border-b border-glass-border px-4 py-2.5">
-        <ColumnVisibilityMenu table={table} />
-      </div>
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>

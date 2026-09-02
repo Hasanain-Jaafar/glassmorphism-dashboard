@@ -18,7 +18,8 @@ import { PageHeader } from "@/components/dashboard/page-header";
 import { MetricCard } from "@/components/dashboard/metric-card";
 import { ProductCard } from "@/components/products/product-card";
 import { ProductForm } from "@/components/products/product-form";
-import { ProductTable } from "@/components/tables/product-table";
+import { ProductTable, useProductTable } from "@/components/tables/product-table";
+import { ColumnVisibilityMenu } from "@/components/tables/column-visibility-menu";
 import { Reveal } from "@/components/motion/reveal";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -217,6 +218,8 @@ export default function ProductsPage() {
     }
   }
 
+  const productTable = useProductTable({ data: filtered, admin, onEdit: openEditForm });
+
   return (
     <div className="space-y-6">
       <Reveal>
@@ -350,6 +353,13 @@ export default function ProductsPage() {
                 ))}
               </SelectContent>
             </Select>
+
+            {activeTab === "all" && (
+              <ColumnVisibilityMenu
+                table={productTable}
+                className="glass-panel filter-control h-8 px-2.5 text-xs"
+              />
+            )}
           </div>
         </div>
       </Reveal>
@@ -393,7 +403,7 @@ export default function ProductsPage() {
             {loading ? (
               <Skeleton className="h-96 w-full rounded-2xl" />
             ) : filtered.length ? (
-              <ProductTable data={filtered} admin={admin} onEdit={openEditForm} />
+              <ProductTable table={productTable} />
             ) : (
               <EmptyProductsState
                 hasFilters={hasActiveFilters}

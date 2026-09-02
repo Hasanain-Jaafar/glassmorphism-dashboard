@@ -38,7 +38,8 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { CustomersTable } from "@/components/tables/customers-table";
+import { CustomersTable, useCustomersTable } from "@/components/tables/customers-table";
+import { ColumnVisibilityMenu } from "@/components/tables/column-visibility-menu";
 import { CustomerDetailSheet } from "@/components/customers/customer-detail-sheet";
 import {
   CustomerForm,
@@ -235,6 +236,14 @@ export default function CustomersPage() {
     }
   }, [router]);
 
+  const customersTable = useCustomersTable({
+    data: filtered,
+    salespeople,
+    onView: openDetails,
+    onEdit: openEditForm,
+    onQuickAction: handleQuickAction,
+  });
+
   async function handleFormSubmit(values: CustomerFormValues) {
     try {
       if (editingCustomer) {
@@ -417,6 +426,11 @@ export default function CustomersPage() {
                 ))}
               </SelectContent>
             </Select>
+
+            <ColumnVisibilityMenu
+              table={customersTable}
+              className="glass-panel filter-control h-8 px-2.5 text-xs"
+            />
           </div>
         </div>
       </Reveal>
@@ -451,13 +465,7 @@ export default function CustomersPage() {
             )}
           </div>
         ) : (
-          <CustomersTable
-            data={filtered}
-            salespeople={salespeople}
-            onView={openDetails}
-            onEdit={openEditForm}
-            onQuickAction={handleQuickAction}
-          />
+          <CustomersTable table={customersTable} />
         )}
       </Reveal>
 

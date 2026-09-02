@@ -25,7 +25,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { sortableTableFeatures as features } from "@/components/tables/table-features";
-import { ColumnVisibilityMenu } from "@/components/tables/column-visibility-menu";
 import { usePersistedColumnVisibility } from "@/components/tables/use-persisted-column-visibility";
 import type { Customer } from "@/lib/customers-data";
 import type { TeamMember } from "@/lib/supabase/team";
@@ -198,7 +197,9 @@ function buildColumns(
   ]);
 }
 
-export function CustomersTable({
+/** Builds the table instance so the page can render `ColumnVisibilityMenu`
+ * inline in its filter bar instead of the table owning that control. */
+export function useCustomersTable({
   data,
   salespeople,
   onView,
@@ -231,7 +232,7 @@ export function CustomersTable({
     [salespeopleById, onView, onEdit, onQuickAction]
   );
 
-  const table = useTable({
+  return useTable({
     features,
     columns,
     data,
@@ -239,12 +240,15 @@ export function CustomersTable({
     onSortingChange: setSorting,
     onColumnVisibilityChange: setColumnVisibility,
   });
+}
 
+export function CustomersTable({
+  table,
+}: {
+  table: ReturnType<typeof useCustomersTable>;
+}) {
   return (
     <div className="glass-panel overflow-hidden rounded-md shadow-sm">
-      <div className="flex justify-end border-b border-glass-border px-4 py-2.5">
-        <ColumnVisibilityMenu table={table} />
-      </div>
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
