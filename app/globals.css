@@ -264,4 +264,61 @@
   .filter-control:has([data-slot="input-group-control"]:focus-visible) {
     border-color: var(--warning);
   }
+
+  /* KPI card wave (components/dashboard/kpi-wave.tsx) — a slow tide-like
+     breathe on the fill/line, plus a soft sheen that drifts across the
+     water, clipped to the wave's own silhouette. Kept to opacity/transform
+     only so it stays cheap across many cards on one screen. */
+  .kpi-wave-rise {
+    transform-box: fill-box;
+    transform-origin: 50% 100%;
+    animation: kpi-wave-rise 7s ease-in-out infinite;
+  }
+  .kpi-wave-area {
+    animation: kpi-wave-breathe 5s ease-in-out infinite;
+  }
+  .kpi-wave-line {
+    animation: kpi-wave-breathe 6.5s ease-in-out infinite;
+  }
+  .kpi-wave-sheen {
+    animation: kpi-wave-sheen 9s ease-in-out infinite;
+  }
+}
+
+@keyframes kpi-wave-rise {
+  0%,
+  100% {
+    transform: scaleY(1);
+  }
+  50% {
+    transform: scaleY(1.035);
+  }
+}
+
+@keyframes kpi-wave-breathe {
+  0%,
+  100% {
+    opacity: 0.8;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes kpi-wave-sheen {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(510px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kpi-wave-rise,
+  .kpi-wave-area,
+  .kpi-wave-line,
+  .kpi-wave-sheen {
+    animation: none !important;
+  }
 }

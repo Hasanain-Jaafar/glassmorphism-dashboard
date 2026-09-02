@@ -1,6 +1,16 @@
 "use client";
 
-import { useId } from "react";
+import { useId, useMemo } from "react";
+import type { MetricTone } from "@/components/dashboard/metric-card";
+
+const toneVar: Record<MetricTone, string> = {
+  primary: "var(--primary)",
+  success: "var(--success)",
+  warning: "var(--warning)",
+  danger: "var(--danger)",
+  cyan: "var(--chart-2)",
+  neutral: "var(--foreground)",
+};
 
 function buildSmoothPath(points: { x: number; y: number }[]): string {
   if (points.length < 2) return "";
@@ -20,8 +30,26 @@ function buildSmoothPath(points: { x: number; y: number }[]): string {
 }
 
 /** Faint decorative trend wave for KPI cards — Apple Card-style, not a data chart. */
-export function KpiWave({ data }: { data: number[] }) {
-  const gradientId = `kpi-wave-${useId().replace(/:/g, "")}`;
+export function KpiWave({
+  data,
+  tone = "primary",
+}: {
+  data: number[];
+  /** Tints the wave to match the card's icon chip. Defaults to "primary" (the original violet look). */
+  tone?: MetricTone;
+}) {
+  const rawId = useId().replace(/:/g, "");
+  const gradientId = `kpi-wave-fill-${rawId}`;
+  const sheenId = `kpi-wave-sheen-${rawId}`;
+  const clipId = `kpi-wave-clip-${rawId}`;
+  const color = toneVar[tone];
+
+  // Deterministic per-card phase offset so cards on the same screen don't
+  // all breathe/shimmer in lockstep — derived from the data itself.
+  const phase = useMemo(() => {
+    const sum = data.reduce((total, value, index) => total + value * (index + 1), 0);
+    return Number((sum % 5).toFixed(2));
+  }, [data]);
 
   if (data.length < 2) return null;
 
@@ -43,23 +71,55 @@ export function KpiWave({ data }: { data: number[] }) {
     <svg
       viewBox={`0 0 ${width} ${height}`}
       preserveAspectRatio="none"
-      className="pointer-events-none absolute inset-x-0 bottom-0 h-[68%] w-full"
+      className="pointer-events-none absolute inset-x-0 bottom-0 h-[68%] w-full overflow-visible"
       aria-hidden="true"
     >
       <defs>
         <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="var(--chart-1)" stopOpacity={0.18} />
-          <stop offset="100%" stopColor="var(--chart-1)" stopOpacity={0} />
+          <stop offset="0%" stopColor={color} stopOpacity={0.22} />
+          <stop offset="100%" stopColor={color} stopOpacity={0} />
         </linearGradient>
+        <linearGradient id={sheenId} x1="0" y1="0" x2="1" y2="0.35">
+          <stop offset="0%" stopColor={color} stopOpacity={0} />
+          <stop offset="50%" stopColor={color} stopOpacity={0.35} />
+          <stop offset="100%" stopColor={color} stopOpacity={0} />
+        </linearGradient>
+        <clipPath id={clipId}>
+          <path d={areaPath} />
+        </clipPath>
       </defs>
-      <path d={areaPath} fill={`url(#${gradientId})`} />
-      <path
-        d={linePath}
-        fill="none"
-        stroke="var(--chart-1)"
-        strokeOpacity={0.28}
-        strokeWidth={1.5}
-      />
+
+      <g
+        className="kpi-wave-rise"
+        style={{ animationDelay: `-${phase}s` }}
+      >
+        <path
+          className="kpi-wave-area"
+          d={areaPath}
+          fill={`url(#${gradientId})`}
+          style={{ animationDelay: `-${phase}s` }}
+        />
+        <path
+          className="kpi-wave-line"
+          d={linePath}
+          fill="none"
+          stroke={color}
+          strokeOpacity={0.32}
+          strokeWidth={1.5}
+          style={{ animationDelay: `-${(phase * 1.3) % 6.5}s` }}
+        />
+        <g clipPath={`url(#${clipId})`}>
+          <rect
+            className="kpi-wave-sheen"
+            x={-width * 0.7}
+            y="0"
+            width={width * 0.7}
+            height={height}
+            fill={`url(#${sheenId})`}
+            style={{ animationDelay: `-${phase * 1.6}s` }}
+          />
+        </g>
+      </g>
     </svg>
   );
 }

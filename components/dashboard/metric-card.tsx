@@ -36,7 +36,7 @@ export function MetricCard({
 
   return (
     <div className="glass-panel relative h-full overflow-hidden rounded-2xl p-5 shadow-sm sm:p-6">
-      {wave && wave.length > 1 && <KpiWave data={wave} />}
+      {wave && wave.length > 1 && <KpiWave data={wave} tone={tone} />}
       <div className="relative">
         <div className="flex items-center justify-between">
           <p className="text-sm font-medium text-text-secondary">{label}</p>

@@ -46,6 +46,7 @@ import {
 } from "@/lib/supabase/invoices";
 import type { Customer } from "@/lib/customers-data";
 import { formatUSD } from "@/lib/format";
+import { monthlyCountWave, monthlySumWave } from "@/lib/kpi-wave";
 
 const ALL = "all";
 
@@ -122,6 +123,32 @@ export default function InvoicesPage() {
       outstandingTotal: outstanding.reduce((sum, i) => sum + i.amount, 0),
       overdueCount: overdue.length,
       paidCount: paid.length,
+    };
+  }, [invoices]);
+
+  const invoiceKpiWaves = useMemo(() => {
+    const list = invoices ?? [];
+    const outstanding = list.filter(
+      (i) => i.status === "sent" || i.status === "overdue"
+    );
+    return {
+      paidWave: monthlySumWave(
+        list
+          .filter((i) => i.status === "paid")
+          .map((i) => ({ date: i.paidAt, amount: i.amount }))
+      ),
+      outstandingWave: monthlySumWave(
+        outstanding.map((i) => ({
+          date: i.dueDate ?? i.createdAt,
+          amount: i.amount,
+        }))
+      ),
+      overdueWave: monthlyCountWave(
+        list
+          .filter((i) => i.status === "overdue")
+          .map((i) => i.dueDate ?? i.createdAt)
+      ),
+      totalWave: monthlyCountWave(list.map((i) => i.createdAt)),
     };
   }, [invoices]);
 
@@ -211,6 +238,7 @@ export default function InvoicesPage() {
             label="Paid"
             value={formatUSD(stats.paidTotal)}
             footnote={`${stats.paidCount} invoices`}
+            wave={invoiceKpiWaves.paidWave}
             icon={CircleDollarSign}
             tone="success"
           />
@@ -218,6 +246,7 @@ export default function InvoicesPage() {
             label="Outstanding"
             value={formatUSD(stats.outstandingTotal)}
             footnote="Sent or overdue"
+            wave={invoiceKpiWaves.outstandingWave}
             icon={Wallet}
             tone="warning"
           />
@@ -225,6 +254,7 @@ export default function InvoicesPage() {
             label="Overdue"
             value={String(stats.overdueCount)}
             footnote="Needs follow-up"
+            wave={invoiceKpiWaves.overdueWave}
             icon={AlertTriangle}
             tone="danger"
           />
@@ -232,6 +262,7 @@ export default function InvoicesPage() {
             label="Total Invoices"
             value={String((invoices ?? []).length)}
             footnote="All time"
+            wave={invoiceKpiWaves.totalWave}
             icon={Receipt}
             tone="neutral"
           />

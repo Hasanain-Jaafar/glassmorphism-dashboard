@@ -60,6 +60,7 @@ import {
 import type { Customer } from "@/lib/customers-data";
 import type { Product } from "@/lib/mock-data";
 import { formatUSD } from "@/lib/format";
+import { monthlyCountWave, monthlySumWave } from "@/lib/kpi-wave";
 
 const ALL = "all";
 
@@ -158,6 +159,24 @@ function QuotationsPageContent() {
       acceptedValue: list
         .filter((q) => q.status === "accepted")
         .reduce((sum, q) => sum + q.total, 0),
+    };
+  }, [quotations]);
+
+  const quotationKpiWaves = useMemo(() => {
+    const list = quotations ?? [];
+    return {
+      totalWave: monthlyCountWave(list.map((q) => q.createdAt)),
+      draftWave: monthlyCountWave(
+        list.filter((q) => q.status === "draft").map((q) => q.createdAt)
+      ),
+      sentWave: monthlyCountWave(
+        list.filter((q) => q.status === "sent").map((q) => q.createdAt)
+      ),
+      acceptedValueWave: monthlySumWave(
+        list
+          .filter((q) => q.status === "accepted")
+          .map((q) => ({ date: q.createdAt, amount: q.total }))
+      ),
     };
   }, [quotations]);
 
@@ -283,6 +302,7 @@ function QuotationsPageContent() {
             label="Total"
             value={String(stats.total)}
             footnote="All quotations"
+            wave={quotationKpiWaves.totalWave}
             icon={FileText}
             tone="neutral"
           />
@@ -290,6 +310,7 @@ function QuotationsPageContent() {
             label="Draft"
             value={String(stats.draft)}
             footnote="Not sent yet"
+            wave={quotationKpiWaves.draftWave}
             icon={FilePenLine}
             tone="neutral"
           />
@@ -297,6 +318,7 @@ function QuotationsPageContent() {
             label="Sent"
             value={String(stats.sent)}
             footnote="Awaiting response"
+            wave={quotationKpiWaves.sentWave}
             icon={Send}
             tone="cyan"
           />
@@ -304,6 +326,7 @@ function QuotationsPageContent() {
             label="Accepted Value"
             value={formatUSD(stats.acceptedValue)}
             footnote="Ready to convert"
+            wave={quotationKpiWaves.acceptedValueWave}
             icon={CheckCircle2}
             tone="success"
           />

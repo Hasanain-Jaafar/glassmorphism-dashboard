@@ -56,6 +56,7 @@ import {
 } from "@/lib/supabase/appointments";
 import { fetchQuotations, type Quotation } from "@/lib/supabase/quotations";
 import type { Customer } from "@/lib/customers-data";
+import { monthlyCountWave, weeklyCountWave } from "@/lib/kpi-wave";
 
 const ALL = "all";
 
@@ -152,6 +153,22 @@ function AppointmentsPageContent() {
     [appointments]
   );
 
+  const appointmentKpiWaves = useMemo(() => {
+    const list = appointments ?? [];
+    return {
+      totalWave: monthlyCountWave(list.map((a) => a.scheduledAt)),
+      thisWeekWave: weeklyCountWave(list.map((a) => a.scheduledAt)),
+      completedWave: monthlyCountWave(
+        list.filter((a) => a.status === "completed").map((a) => a.scheduledAt)
+      ),
+      cancelledWave: monthlyCountWave(
+        list
+          .filter((a) => a.status === "cancelled" || a.status === "no_show")
+          .map((a) => a.scheduledAt)
+      ),
+    };
+  }, [appointments]);
+
   const customersById = useMemo(
     () => new Map(customers.map((c) => [c.id, c])),
     [customers]
@@ -247,6 +264,7 @@ function AppointmentsPageContent() {
             label="Total"
             value={String(stats.total)}
             footnote="All appointments"
+            wave={appointmentKpiWaves.totalWave}
             icon={CalendarDays}
             tone="neutral"
           />
@@ -254,6 +272,7 @@ function AppointmentsPageContent() {
             label="This Week"
             value={String(stats.thisWeek)}
             footnote="Scheduled, next 7 days"
+            wave={appointmentKpiWaves.thisWeekWave}
             icon={CalendarClock}
             tone="primary"
           />
@@ -261,6 +280,7 @@ function AppointmentsPageContent() {
             label="Completed"
             value={String(stats.completed)}
             footnote="All time"
+            wave={appointmentKpiWaves.completedWave}
             icon={CheckCircle2}
             tone="success"
           />
@@ -268,6 +288,7 @@ function AppointmentsPageContent() {
             label="Cancelled / No Show"
             value={String(stats.cancelled)}
             footnote="All time"
+            wave={appointmentKpiWaves.cancelledWave}
             icon={XCircle}
             tone="danger"
           />

@@ -44,6 +44,7 @@ import {
 import { currentYear } from "@/lib/mock-data";
 import { currentMonthNumber } from "@/lib/target-period";
 import { formatUSD } from "@/lib/format";
+import { monthlyCountWave, monthlySumWave } from "@/lib/kpi-wave";
 import { TeamAccessSection } from "@/components/settings/team-access-section";
 import { useAuth } from "@/components/providers/auth-provider";
 
@@ -175,6 +176,25 @@ export default function TeamPage() {
     return { open, won, lost, winRate };
   }, [pipelineData]);
 
+  const teamKpiWaves = useMemo(() => {
+    const wonDeals = pipelineData.deals.filter((d) => d.status === "won");
+    const salesWave = monthlySumWave(
+      pipelineData.invoices
+        .filter((i) => i.status === "paid")
+        .map((i) => ({ date: i.paidAt, amount: i.amount }))
+    );
+    const closedDealsWave = monthlyCountWave(
+      wonDeals.map((d) => d.closedAt ?? d.createdAt)
+    );
+    const wonValueWave = monthlySumWave(
+      wonDeals.map((d) => ({ date: d.closedAt ?? d.createdAt, amount: d.amount }))
+    );
+    const avgDealSizeWave = wonValueWave.map((sum, i) =>
+      closedDealsWave[i] ? sum / closedDealsWave[i] : 0
+    );
+    return { salesWave, closedDealsWave, avgDealSizeWave };
+  }, [pipelineData]);
+
   return (
     <div className="space-y-6">
       <Reveal>
@@ -226,6 +246,7 @@ export default function TeamPage() {
                     label="Team Sales"
                     value={formatUSD(stats.monthlySalesTotal)}
                     footnote={`This month · of ${formatUSD(stats.monthlyTargetTotal)} target`}
+                    wave={teamKpiWaves.salesWave}
                     icon={Wallet}
                     tone="primary"
                   />
@@ -233,6 +254,7 @@ export default function TeamPage() {
                     label="Closed Deals"
                     value={String(stats.closedDealsTotal)}
                     footnote="This month, across the team"
+                    wave={teamKpiWaves.closedDealsWave}
                     icon={Handshake}
                     tone="success"
                   />
@@ -240,6 +262,7 @@ export default function TeamPage() {
                     label="Avg. Deal Size"
                     value={formatUSD(avgDealSize)}
                     footnote="This month, per deal"
+                    wave={teamKpiWaves.avgDealSizeWave}
                     icon={CircleDollarSign}
                     tone="cyan"
                   />

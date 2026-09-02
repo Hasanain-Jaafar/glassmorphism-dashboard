@@ -65,6 +65,7 @@ import {
   type DateRangeFilter,
 } from "@/lib/customers-data";
 import { formatUSD } from "@/lib/format";
+import { cumulativeCountWave, monthlyCountWave, monthlySumWave } from "@/lib/kpi-wave";
 
 const ALL = "all";
 
@@ -159,6 +160,20 @@ export default function CustomersPage() {
     () => computeCustomerStats(customersWithAggregates ?? []),
     [customersWithAggregates]
   );
+
+  const customerKpiWaves = useMemo(() => {
+    const list = customersWithAggregates ?? [];
+    return {
+      totalWave: cumulativeCountWave(list.map((c) => c.createdAt)),
+      newWave: monthlyCountWave(list.map((c) => c.createdAt)),
+      activeWave: monthlyCountWave(list.map((c) => c.lastPurchaseDate)),
+      revenueWave: monthlySumWave(
+        invoices
+          .filter((i) => i.status === "paid")
+          .map((i) => ({ date: i.paidAt, amount: i.amount }))
+      ),
+    };
+  }, [customersWithAggregates, invoices]);
 
   const filtered = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -287,6 +302,7 @@ export default function CustomersPage() {
             label="Total Customers"
             value={String(stats.total)}
             footnote="All accounts"
+            wave={customerKpiWaves.totalWave}
             icon={Users}
             tone="neutral"
           />
@@ -294,6 +310,7 @@ export default function CustomersPage() {
             label="New Customers"
             value={String(stats.newThisMonth)}
             footnote="Added this month"
+            wave={customerKpiWaves.newWave}
             icon={UserPlus}
             tone="cyan"
           />
@@ -301,6 +318,7 @@ export default function CustomersPage() {
             label="Active Customers"
             value={String(stats.active)}
             footnote="Currently active"
+            wave={customerKpiWaves.activeWave}
             icon={UserCheck}
             tone="success"
           />
@@ -308,6 +326,7 @@ export default function CustomersPage() {
             label="Total Customer Revenue"
             value={formatUSD(stats.totalRevenue)}
             footnote="Lifetime, all customers"
+            wave={customerKpiWaves.revenueWave}
             icon={Wallet}
             tone="primary"
           />

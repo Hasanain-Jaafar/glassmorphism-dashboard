@@ -54,6 +54,7 @@ import {
 } from "@/lib/supabase/deals";
 import type { Customer } from "@/lib/customers-data";
 import { formatUSD } from "@/lib/format";
+import { monthlyCountWave, monthlySumWave } from "@/lib/kpi-wave";
 
 const ALL = "all";
 
@@ -177,6 +178,33 @@ function DealsPageContent() {
     };
   }, [deals]);
 
+  const dealKpiWaves = useMemo(() => {
+    const list = deals ?? [];
+    const open = list.filter((d) => d.status === "open");
+    const won = list.filter((d) => d.status === "won");
+    const lost = list.filter((d) => d.status === "lost");
+    const wonMonthlyWave = monthlyCountWave(
+      won.map((d) => d.closedAt ?? d.createdAt)
+    );
+    const lostMonthlyWave = monthlyCountWave(
+      lost.map((d) => d.closedAt ?? d.createdAt)
+    );
+    const winRateWave = wonMonthlyWave.map((wonCount, i) => {
+      const closedCount = wonCount + lostMonthlyWave[i];
+      return closedCount ? Math.round((wonCount / closedCount) * 100) : 0;
+    });
+    return {
+      openValueWave: monthlySumWave(
+        open.map((d) => ({ date: d.createdAt, amount: d.amount }))
+      ),
+      wonValueWave: monthlySumWave(
+        won.map((d) => ({ date: d.closedAt ?? d.createdAt, amount: d.amount }))
+      ),
+      winRateWave,
+      wonCountWave: wonMonthlyWave,
+    };
+  }, [deals]);
+
   const filtered = useMemo(() => {
     const query = search.trim().toLowerCase();
     return (deals ?? []).filter((d) => {
@@ -286,6 +314,7 @@ function DealsPageContent() {
             label="Open Value"
             value={formatUSD(stats.openValue)}
             footnote="Still in play"
+            wave={dealKpiWaves.openValueWave}
             icon={Wallet}
             tone="neutral"
           />
@@ -293,6 +322,7 @@ function DealsPageContent() {
             label="Won Value"
             value={formatUSD(stats.wonValue)}
             footnote={`${stats.wonCount} deals`}
+            wave={dealKpiWaves.wonValueWave}
             icon={CircleDollarSign}
             tone="success"
           />
@@ -300,6 +330,7 @@ function DealsPageContent() {
             label="Win Rate"
             value={`${stats.winRate}%`}
             footnote="Of closed deals"
+            wave={dealKpiWaves.winRateWave}
             icon={TrendingUp}
             tone="primary"
           />
@@ -307,6 +338,7 @@ function DealsPageContent() {
             label="Won Deals"
             value={String(stats.wonCount)}
             footnote="All time"
+            wave={dealKpiWaves.wonCountWave}
             icon={Handshake}
             tone="cyan"
           />
