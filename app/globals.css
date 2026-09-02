@@ -30,8 +30,6 @@
   --color-sidebar-primary: var(--sidebar-primary);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar: var(--sidebar);
-  --color-chart-7: var(--chart-7);
-  --color-chart-6: var(--chart-6);
   --color-chart-5: var(--chart-5);
   --color-chart-4: var(--chart-4);
   --color-chart-3: var(--chart-3);
@@ -125,12 +123,6 @@
   --chart-3: #1a9c6e;
   --chart-4: #d97a29;
   --chart-5: #d64545;
-  /* 6th/7th categorical slots — only used where >5 series are unavoidable
-     (e.g. the product network graph's 7 catalog categories). Order and hues
-     validated together for CVD/contrast via the dataviz skill's palette
-     checker; don't reorder without re-running it. */
-  --chart-6: #b45cbf;
-  --chart-7: #c9a227;
 
   --elevation-sm: 0 1px 2px rgba(20, 19, 40, 0.05);
   --elevation-md: 0 4px 16px rgba(20, 19, 40, 0.07);
@@ -197,8 +189,6 @@
   --chart-3: #34d399;
   --chart-4: #fb923c;
   --chart-5: #f87171;
-  --chart-6: #d17ddb;
-  --chart-7: #e0b23a;
 
   --elevation-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
   --elevation-md: 0 8px 24px rgba(0, 0, 0, 0.35);
