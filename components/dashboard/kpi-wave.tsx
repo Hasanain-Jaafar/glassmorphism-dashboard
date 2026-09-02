@@ -42,6 +42,8 @@ export function KpiWave({
   const gradientId = `kpi-wave-fill-${rawId}`;
   const sheenId = `kpi-wave-sheen-${rawId}`;
   const clipId = `kpi-wave-clip-${rawId}`;
+  const edgeFadeId = `kpi-wave-edge-fade-${rawId}`;
+  const edgeMaskId = `kpi-wave-edge-mask-${rawId}`;
   const color = toneVar[tone];
 
   // Deterministic per-card phase offset so cards on the same screen don't
@@ -79,7 +81,7 @@ export function KpiWave({
           <stop offset="0%" stopColor={color} stopOpacity={0.22} />
           <stop offset="100%" stopColor={color} stopOpacity={0} />
         </linearGradient>
-        <linearGradient id={sheenId} x1="0" y1="0" x2="1" y2="0.35">
+        <linearGradient id={sheenId} x1="0" y1="0" x2="1" y2="0">
           <stop offset="0%" stopColor={color} stopOpacity={0} />
           <stop offset="50%" stopColor={color} stopOpacity={0.35} />
           <stop offset="100%" stopColor={color} stopOpacity={0} />
@@ -87,10 +89,22 @@ export function KpiWave({
         <clipPath id={clipId}>
           <path d={areaPath} />
         </clipPath>
+        {/* Fades the fill/line/sheen out at both edges instead of letting the
+            area shape's straight drop to the baseline read as a hard cut. */}
+        <linearGradient id={edgeFadeId} x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stopColor="white" stopOpacity={0} />
+          <stop offset="16%" stopColor="white" stopOpacity={1} />
+          <stop offset="84%" stopColor="white" stopOpacity={1} />
+          <stop offset="100%" stopColor="white" stopOpacity={0} />
+        </linearGradient>
+        <mask id={edgeMaskId} maskUnits="userSpaceOnUse" x="0" y="0" width={width} height={height}>
+          <rect x="0" y="0" width={width} height={height} fill={`url(#${edgeFadeId})`} />
+        </mask>
       </defs>
 
       <g
         className="kpi-wave-rise"
+        mask={`url(#${edgeMaskId})`}
         style={{ animationDelay: `-${phase}s` }}
       >
         <path
