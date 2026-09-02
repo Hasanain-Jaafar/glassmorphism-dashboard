@@ -95,9 +95,9 @@ export function CoachingPanel({
   }
 
   async function handleDelete(id: string) {
-    onNoteDeleted(id);
     try {
       await deleteCoachingNote(id);
+      onNoteDeleted(id);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Couldn't delete the note");
     }
