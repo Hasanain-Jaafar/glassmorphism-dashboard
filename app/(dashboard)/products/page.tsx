@@ -6,6 +6,7 @@ import {
   CheckCircle2,
   CircleDollarSign,
   LayoutGrid,
+  Network,
   Package,
   PackagePlus,
   PackageSearch,
@@ -18,6 +19,7 @@ import { PageHeader } from "@/components/dashboard/page-header";
 import { MetricCard } from "@/components/dashboard/metric-card";
 import { ProductCard } from "@/components/products/product-card";
 import { ProductForm } from "@/components/products/product-form";
+import { ProductNetworkGraph } from "@/components/products/product-network-graph";
 import { ProductTable } from "@/components/tables/product-table";
 import { Reveal } from "@/components/motion/reveal";
 import { Button } from "@/components/ui/button";
@@ -55,6 +57,8 @@ import {
   type Product,
 } from "@/lib/mock-data";
 import { fetchProducts, insertProduct, updateProduct } from "@/lib/supabase/products";
+import { fetchQuotations, type Quotation } from "@/lib/supabase/quotations";
+import { buildProductNetwork } from "@/lib/product-network";
 import { formatUSD } from "@/lib/format";
 import { useAuth } from "@/components/providers/auth-provider";
 
@@ -68,7 +72,7 @@ const statusOptions = [
   { value: "archived", label: "Archived" },
 ];
 
-const productTabs = ["catalog", "all"] as const;
+const productTabs = ["catalog", "all", "network"] as const;
 type ProductTab = (typeof productTabs)[number];
 
 function isProductTab(value: string | null): value is ProductTab {
@@ -78,6 +82,7 @@ function isProductTab(value: string | null): value is ProductTab {
 export default function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const [quotations, setQuotations] = useState<Quotation[]>([]);
   const { isAdmin: admin } = useAuth();
 
   const searchParams = useSearchParams();
@@ -130,9 +135,18 @@ export default function ProductsPage() {
       .then(setProducts)
       .catch((error: Error) => toast.error(error.message))
       .finally(() => setLoading(false));
+    // Only needed to build the "frequently quoted together" network below.
+    fetchQuotations()
+      .then(setQuotations)
+      .catch(() => {});
   }, []);
 
   const stats = useMemo(() => computeProductStats(products), [products]);
+
+  const productNetwork = useMemo(
+    () => buildProductNetwork(products, quotations),
+    [products, quotations]
+  );
 
   const kpiWaves = useMemo(() => {
     const countByCategory = productCategories.map(
@@ -183,6 +197,11 @@ export default function ProductsPage() {
     setCategoryFilter(ALL_CATEGORIES);
     setStatusFilter(ALL_STATUSES);
     setBrandFilter(ALL_BRANDS);
+  }
+
+  function handleSelectNetworkProduct(name: string) {
+    setSearch(name);
+    setActiveTab("all");
   }
 
   function openAddForm() {
@@ -365,6 +384,10 @@ export default function ProductsPage() {
               <Table2 className="size-[15px]" />
               All Products
             </TabsTab>
+            <TabsTab value="network">
+              <Network className="size-[15px]" />
+              Network
+            </TabsTab>
             <TabsIndicator />
           </TabsList>
 
@@ -399,6 +422,41 @@ export default function ProductsPage() {
                 hasFilters={hasActiveFilters}
                 onClear={clearFilters}
               />
+            )}
+          </TabsPanel>
+
+          <TabsPanel value="network">
+            {loading ? (
+              <Skeleton className="h-[420px] w-full rounded-2xl" />
+            ) : productNetwork.nodes.length ? (
+              <div className="space-y-2">
+                <p className="text-sm text-text-tertiary">
+                  Products frequently quoted together — drag a node, scroll to
+                  zoom, hover to trace connections, click to find it below.
+                </p>
+                <div className="glass-panel rounded-2xl p-2 shadow-sm">
+                  <ProductNetworkGraph
+                    nodes={productNetwork.nodes}
+                    edges={productNetwork.edges}
+                    onSelectProduct={handleSelectNetworkProduct}
+                  />
+                </div>
+              </div>
+            ) : (
+              <div className="glass-panel flex flex-col items-center gap-3 rounded-2xl p-10 text-center">
+                <span className="flex size-11 items-center justify-center rounded-full bg-foreground/[0.06] text-text-tertiary">
+                  <Network className="size-5" />
+                </span>
+                <div>
+                  <p className="text-sm font-medium text-foreground">
+                    No product network yet
+                  </p>
+                  <p className="mt-1 text-xs text-text-tertiary">
+                    This view fills in once products start appearing together
+                    on quotations.
+                  </p>
+                </div>
+              </div>
             )}
           </TabsPanel>
         </Tabs>
