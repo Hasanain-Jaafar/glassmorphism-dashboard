@@ -55,7 +55,13 @@ export function LabeledBarChart({ bars }: { bars: LabeledBar[] }) {
             content={<ChartTooltip />}
             cursor={{ fill: "var(--foreground)", fillOpacity: 0.04 }}
           />
-          <Bar dataKey="value" radius={6} isAnimationActive animationDuration={600}>
+          <Bar
+            dataKey="value"
+            radius={6}
+            isAnimationActive
+            animationDuration={600}
+            background={{ fill: "var(--muted)", radius: 6 }}
+          >
             {bars.map((bar) => (
               <Cell key={bar.key} fill={bar.colorVar} />
             ))}
@@ -63,7 +69,7 @@ export function LabeledBarChart({ bars }: { bars: LabeledBar[] }) {
               dataKey="label"
               position="insideLeft"
               offset={10}
-              fill="#ffffff"
+              fill="var(--foreground)"
               fontSize={12}
               fontWeight={500}
             />

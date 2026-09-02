@@ -51,7 +51,13 @@ export function PipelineBarChart({ stages }: { stages: PipelineStage[] }) {
             content={<ChartTooltip />}
             cursor={{ fill: "var(--foreground)", fillOpacity: 0.04 }}
           />
-          <Bar dataKey="value" radius={6} isAnimationActive animationDuration={600}>
+          <Bar
+            dataKey="value"
+            radius={6}
+            isAnimationActive
+            animationDuration={600}
+            background={{ fill: "var(--muted)", radius: 6 }}
+          >
             {stages.map((stage, index) => (
               <Cell key={stage.key} fill={STAGE_COLORS[index % STAGE_COLORS.length]} />
             ))}
@@ -59,7 +65,7 @@ export function PipelineBarChart({ stages }: { stages: PipelineStage[] }) {
               dataKey="label"
               position="insideLeft"
               offset={10}
-              fill="#ffffff"
+              fill="var(--foreground)"
               fontSize={12}
               fontWeight={500}
             />
