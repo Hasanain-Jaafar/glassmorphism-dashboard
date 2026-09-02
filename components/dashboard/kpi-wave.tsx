@@ -14,6 +14,14 @@ const toneVar: Record<MetricTone, string> = {
   neutral: "var(--foreground)",
 };
 
+function hashString(value: string): number {
+  let hash = 0;
+  for (let i = 0; i < value.length; i++) {
+    hash = (hash * 31 + value.charCodeAt(i)) >>> 0;
+  }
+  return hash;
+}
+
 function buildSmoothPath(points: { x: number; y: number }[]): string {
   if (points.length < 2) return "";
   let d = `M ${points[0].x} ${points[0].y}`;
@@ -49,12 +57,12 @@ export function KpiWave({
   const color = toneVar[tone];
   const [animated] = useLocalStorageBoolean(KPI_WAVE_ANIMATIONS_STORAGE_KEY, true);
 
-  // Deterministic per-card phase offset so cards on the same screen don't
-  // all breathe/shimmer in lockstep — derived from the data itself.
-  const phase = useMemo(() => {
-    const sum = data.reduce((total, value, index) => total + value * (index + 1), 0);
-    return Number((sum % 5).toFixed(2));
-  }, [data]);
+  // Per-card phase offset so cards on the same screen don't all
+  // breathe/shimmer in lockstep. Derived from useId (unique per rendered
+  // card) rather than the data — sibling cards often carry similarly-shaped
+  // trends (e.g. small monthly counts), which used to hash to the same
+  // offset and animate in sync.
+  const phase = useMemo(() => (hashString(rawId) % 900) / 100, [rawId]);
 
   if (data.length < 2) return null;
 
