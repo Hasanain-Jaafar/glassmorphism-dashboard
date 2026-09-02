@@ -13,6 +13,7 @@ import {
   TabsTab,
 } from "@/components/ui/tabs";
 import { ProfileSection } from "@/components/settings/profile-section";
+import { AppearanceSection } from "@/components/settings/appearance-section";
 import { NotificationsSection } from "@/components/settings/notifications-section";
 import { AiAssistantSection } from "@/components/settings/ai-assistant-section";
 import { KnowledgeBaseSection } from "@/components/settings/knowledge-base-section";
@@ -84,8 +85,9 @@ export default function SettingsPage() {
             <TabsIndicator />
           </TabsList>
 
-          <TabsPanel value="profile">
+          <TabsPanel value="profile" className="space-y-6">
             <ProfileSection />
+            <AppearanceSection />
           </TabsPanel>
 
           <TabsPanel value="notifications">

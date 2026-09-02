@@ -5,6 +5,10 @@
  * activity instead of being random noise.
  */
 
+/** localStorage key for the "Animated KPI cards" appearance preference —
+ * shared between the wave component and its Settings > Profile toggle. */
+export const KPI_WAVE_ANIMATIONS_STORAGE_KEY = "dashboard:kpi-wave-animations";
+
 function monthKey(date: Date): number {
   return date.getFullYear() * 12 + date.getMonth();
 }

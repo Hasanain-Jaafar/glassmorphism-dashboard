@@ -2,6 +2,8 @@
 
 import { useId, useMemo } from "react";
 import type { MetricTone } from "@/components/dashboard/metric-card";
+import { useLocalStorageBoolean } from "@/lib/use-local-storage-boolean";
+import { KPI_WAVE_ANIMATIONS_STORAGE_KEY } from "@/lib/kpi-wave";
 
 const toneVar: Record<MetricTone, string> = {
   primary: "var(--primary)",
@@ -45,6 +47,7 @@ export function KpiWave({
   const edgeFadeId = `kpi-wave-edge-fade-${rawId}`;
   const edgeMaskId = `kpi-wave-edge-mask-${rawId}`;
   const color = toneVar[tone];
+  const [animated] = useLocalStorageBoolean(KPI_WAVE_ANIMATIONS_STORAGE_KEY, true);
 
   // Deterministic per-card phase offset so cards on the same screen don't
   // all breathe/shimmer in lockstep — derived from the data itself.
@@ -103,36 +106,40 @@ export function KpiWave({
       </defs>
 
       <g
-        className="kpi-wave-rise"
+        className={animated ? "kpi-wave-rise" : undefined}
         mask={`url(#${edgeMaskId})`}
-        style={{ animationDelay: `-${phase}s` }}
+        style={animated ? { animationDelay: `-${phase}s` } : undefined}
       >
         <path
-          className="kpi-wave-area"
+          className={animated ? "kpi-wave-area" : undefined}
           d={areaPath}
           fill={`url(#${gradientId})`}
-          style={{ animationDelay: `-${phase}s` }}
+          style={animated ? { animationDelay: `-${phase}s` } : undefined}
         />
         <path
-          className="kpi-wave-line"
+          className={animated ? "kpi-wave-line" : undefined}
           d={linePath}
           fill="none"
           stroke={color}
           strokeOpacity={0.32}
           strokeWidth={1.5}
-          style={{ animationDelay: `-${(phase * 1.3) % 6.5}s` }}
+          style={
+            animated ? { animationDelay: `-${(phase * 1.3) % 6.5}s` } : undefined
+          }
         />
-        <g clipPath={`url(#${clipId})`}>
-          <rect
-            className="kpi-wave-sheen"
-            x={-width * 0.7}
-            y="0"
-            width={width * 0.7}
-            height={height}
-            fill={`url(#${sheenId})`}
-            style={{ animationDelay: `-${phase * 1.6}s` }}
-          />
-        </g>
+        {animated && (
+          <g clipPath={`url(#${clipId})`}>
+            <rect
+              className="kpi-wave-sheen"
+              x={-width * 0.7}
+              y="0"
+              width={width * 0.7}
+              height={height}
+              fill={`url(#${sheenId})`}
+              style={{ animationDelay: `-${phase * 1.6}s` }}
+            />
+          </g>
+        )}
       </g>
     </svg>
   );
