@@ -10,11 +10,13 @@ export function ChatInput({
   onChange,
   onSend,
   disabled,
+  placeholder = "Ask about your pipeline, targets, or team...",
 }: {
   value: string;
   onChange: (value: string) => void;
   onSend: () => void;
   disabled?: boolean;
+  placeholder?: string;
 }) {
   function handleKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
     if (event.key === "Enter" && !event.shiftKey) {
@@ -29,7 +31,7 @@ export function ChatInput({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         onKeyDown={handleKeyDown}
-        placeholder="Ask about your pipeline, targets, or team..."
+        placeholder={placeholder}
         rows={1}
         className="max-h-32 min-h-10 resize-none border-0 bg-foreground/[0.04] focus-visible:ring-1"
         disabled={disabled}

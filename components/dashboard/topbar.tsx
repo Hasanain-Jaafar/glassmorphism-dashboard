@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { Brain, LogOut, Settings } from "lucide-react";
 import { CommandPalette } from "@/components/dashboard/command-palette";
+import { InboxButton } from "@/components/dashboard/inbox-button";
 import { NotificationBell } from "@/components/dashboard/notification-bell";
 import { ThemeToggle } from "@/components/theme-toggle";
 import {
@@ -60,6 +61,13 @@ export function Topbar() {
       <div className="flex-1">
         <CommandPalette compact={scrolled} />
       </div>
+
+      {isAdmin && (
+        <InboxButton
+          className={iconButtonSize}
+          iconClassName={cn("transition-all duration-200 ease-out", iconSize)}
+        />
+      )}
 
       {isAdmin && (
         <Tooltip>

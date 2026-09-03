@@ -97,6 +97,12 @@ In `supabase/migrations/`, run each file in filename order:
     extracts text once at upload time (via the `unpdf` package) and caches it
     in `content` — a scanned/image-only PDF with no text layer will upload
     fine but contribute nothing usable to AI Brain (no OCR).
+24. `20260101000034_admin_inbox.sql` — `dm_threads`/`dm_messages` backing the
+    Admin Inbox (`/inbox`): 1:1 direct messages between admins, with Realtime
+    enabled for live sync and a `SECURITY DEFINER` trigger that keeps each
+    thread's `last_message_at`/preview in sync. RLS scopes every row to the
+    two participants and requires both to be admins, so a sales rep's own
+    session can't read or write inbox rows even directly.
 
 ## 2. Seed baseline data (optional)
 
@@ -150,7 +156,9 @@ latter two), and **AI Brain** (`/assistant`, admin-only — Settings → AI Brai
 for its per-user custom instructions and its knowledge base), which calls 5
 read-only tools (`lib/ai/tools.ts`) — 4 backed by the same real aggregates
 the rest of the dashboard uses, plus a 5th reading admin-uploaded knowledge
-base PDFs — via the Claude API (requires `ANTHROPIC_API_KEY`).
+base PDFs — via the Claude API (requires `ANTHROPIC_API_KEY`), and the
+**Admin Inbox** (`/inbox`, admin-only) — 1:1 direct messages between admins,
+live-synced via Realtime.
 
 The Dashboard, Team (KPI + All Salespeople tabs), Targets (Company tab and
 the Individual tab's monthlySales/yearlySales columns), and Customers pages
