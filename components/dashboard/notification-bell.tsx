@@ -9,6 +9,7 @@ import {
   DropdownMenuContent,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useAuth } from "@/components/providers/auth-provider";
 import {
   fetchNotifications,
@@ -84,21 +85,28 @@ export function NotificationBell() {
 
   return (
     <DropdownMenu open={open} onOpenChange={setOpen}>
-      <DropdownMenuTrigger
-        render={
-          <button
-            type="button"
-            className="relative flex size-9 items-center justify-center rounded-xl text-text-secondary transition-colors hover:bg-foreground/[0.04]"
-          />
-        }
-      >
-        <Bell className="size-[23px]" />
-        {unreadCount > 0 && (
-          <span className="absolute top-1.5 right-1.5 flex size-4 items-center justify-center rounded-full bg-primary text-[10px] font-semibold text-primary-foreground">
-            {unreadCount > 9 ? "9+" : unreadCount}
-          </span>
-        )}
-      </DropdownMenuTrigger>
+      <Tooltip>
+        <TooltipTrigger
+          render={
+            <DropdownMenuTrigger
+              render={
+                <button
+                  type="button"
+                  className="relative flex size-9 items-center justify-center rounded-xl text-text-secondary transition-colors hover:bg-foreground/[0.04]"
+                />
+              }
+            />
+          }
+        >
+          <Bell className="size-[23px]" />
+          {unreadCount > 0 && (
+            <span className="absolute top-1.5 right-1.5 flex size-4 items-center justify-center rounded-full bg-primary text-[10px] font-semibold text-primary-foreground">
+              {unreadCount > 9 ? "9+" : unreadCount}
+            </span>
+          )}
+        </TooltipTrigger>
+        <TooltipContent side="bottom">Notifications</TooltipContent>
+      </Tooltip>
       <DropdownMenuContent align="end" sideOffset={10} className="w-80 p-0">
         <div className="flex items-center justify-between gap-2 border-b border-glass-border px-3.5 py-2.5">
           <p className="text-sm font-semibold text-foreground">Notifications</p>

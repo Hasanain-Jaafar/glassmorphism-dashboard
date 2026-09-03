@@ -12,6 +12,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useAuth } from "@/components/providers/auth-provider";
 
 function initials(name: string) {
@@ -48,14 +49,21 @@ export function Topbar() {
       </div>
 
       {isAdmin && (
-        <button
-          type="button"
-          onClick={() => router.push("/assistant")}
-          aria-label="AI Brain"
-          className="flex size-9 items-center justify-center rounded-xl text-primary transition-colors hover:bg-primary/10"
-        >
-          <Brain className="size-[23px]" />
-        </button>
+        <Tooltip>
+          <TooltipTrigger
+            render={
+              <button
+                type="button"
+                onClick={() => router.push("/assistant")}
+                aria-label="AI Brain"
+                className="flex size-9 items-center justify-center rounded-xl text-primary transition-colors hover:bg-primary/10"
+              />
+            }
+          >
+            <Brain className="size-[23px]" />
+          </TooltipTrigger>
+          <TooltipContent side="bottom">AI Brain</TooltipContent>
+        </Tooltip>
       )}
 
       <NotificationBell />
@@ -66,25 +74,34 @@ export function Topbar() {
       />
 
       <DropdownMenu>
-        <DropdownMenuTrigger
-          render={
-            <button
-              type="button"
-              className="flex size-9 items-center justify-center overflow-hidden rounded-full bg-accent text-xs font-semibold text-accent-foreground ring-1 ring-glass-border transition-opacity hover:opacity-80"
-            />
-          }
-        >
-          {profile?.avatar_url ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={profile.avatar_url}
-              alt=""
-              className="size-full object-cover"
-            />
-          ) : (
-            initials(profile?.full_name ?? "?")
-          )}
-        </DropdownMenuTrigger>
+        <Tooltip>
+          <TooltipTrigger
+            render={
+              <DropdownMenuTrigger
+                render={
+                  <button
+                    type="button"
+                    className="flex size-9 items-center justify-center overflow-hidden rounded-full bg-accent text-xs font-semibold text-accent-foreground ring-1 ring-glass-border transition-opacity hover:opacity-80"
+                  />
+                }
+              />
+            }
+          >
+            {profile?.avatar_url ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={profile.avatar_url}
+                alt=""
+                className="size-full object-cover"
+              />
+            ) : (
+              initials(profile?.full_name ?? "?")
+            )}
+          </TooltipTrigger>
+          <TooltipContent side="bottom">
+            {profile?.full_name ?? "Account"}
+          </TooltipContent>
+        </Tooltip>
         <DropdownMenuContent align="end" sideOffset={10} className="w-56">
           <div className="flex flex-col gap-0.5 px-1.5 py-1.5">
             <span className="text-sm font-medium text-foreground">
