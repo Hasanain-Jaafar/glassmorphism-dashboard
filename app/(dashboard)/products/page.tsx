@@ -275,96 +275,6 @@ export default function ProductsPage() {
       </Reveal>
 
       <Reveal delay={0.1}>
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <InputGroup className="glass-panel filter-control sm:max-w-xs">
-            <InputGroupAddon>
-              <Search className="size-4" />
-            </InputGroupAddon>
-            <InputGroupInput
-              placeholder="Search by name, SKU, or brand..."
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-            />
-          </InputGroup>
-
-          <div className="flex flex-wrap items-center gap-2">
-            <Select
-              value={categoryFilter}
-              onValueChange={(value) => value && setCategoryFilter(value)}
-            >
-              <SelectTrigger className="glass-panel filter-control h-8 gap-1.5 px-2.5 text-xs">
-                <SelectValue>
-                  {(value: string) =>
-                    value === ALL_CATEGORIES ? "All Categories" : value
-                  }
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent align="end" className="w-auto min-w-[240px]">
-                <SelectItem value={ALL_CATEGORIES}>All Categories</SelectItem>
-                {productCategories.map((category) => (
-                  <SelectItem key={category} value={category}>
-                    {category}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <Select
-              value={brandFilter}
-              onValueChange={(value) => value && setBrandFilter(value)}
-            >
-              <SelectTrigger className="glass-panel filter-control h-8 gap-1.5 px-2.5 text-xs">
-                <SelectValue>
-                  {(value: string) =>
-                    value === ALL_BRANDS ? "All Brands" : value
-                  }
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent align="end" className="w-auto min-w-[220px]">
-                <SelectItem value={ALL_BRANDS}>All Brands</SelectItem>
-                {productBrands.map((brand) => (
-                  <SelectItem key={brand} value={brand}>
-                    {brand}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <Select
-              value={statusFilter}
-              onValueChange={(value) => value && setStatusFilter(value)}
-            >
-              <SelectTrigger className="glass-panel filter-control h-8 gap-1.5 px-2.5 text-xs">
-                <SelectValue>
-                  {(value: string) =>
-                    value === ALL_STATUSES
-                      ? "All Statuses"
-                      : (statusOptions.find((option) => option.value === value)
-                          ?.label ?? value)
-                  }
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent align="end">
-                <SelectItem value={ALL_STATUSES}>All Statuses</SelectItem>
-                {statusOptions.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            {activeTab === "all" && (
-              <ColumnVisibilityMenu
-                table={productTable}
-                className="glass-panel filter-control h-8 px-2.5 text-xs"
-              />
-            )}
-          </div>
-        </div>
-      </Reveal>
-
-      <Reveal delay={0.15}>
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList>
             <TabsTab value="catalog">
@@ -378,7 +288,95 @@ export default function ProductsPage() {
             <TabsIndicator />
           </TabsList>
 
-          <TabsPanel value="catalog">
+          <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <InputGroup className="glass-panel filter-control sm:max-w-xs">
+              <InputGroupAddon>
+                <Search className="size-4" />
+              </InputGroupAddon>
+              <InputGroupInput
+                placeholder="Search by name, SKU, or brand..."
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+              />
+            </InputGroup>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <Select
+                value={categoryFilter}
+                onValueChange={(value) => value && setCategoryFilter(value)}
+              >
+                <SelectTrigger className="glass-panel filter-control h-8 gap-1.5 px-2.5 text-xs">
+                  <SelectValue>
+                    {(value: string) =>
+                      value === ALL_CATEGORIES ? "All Categories" : value
+                    }
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent align="end" className="w-auto min-w-[240px]">
+                  <SelectItem value={ALL_CATEGORIES}>All Categories</SelectItem>
+                  {productCategories.map((category) => (
+                    <SelectItem key={category} value={category}>
+                      {category}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Select
+                value={brandFilter}
+                onValueChange={(value) => value && setBrandFilter(value)}
+              >
+                <SelectTrigger className="glass-panel filter-control h-8 gap-1.5 px-2.5 text-xs">
+                  <SelectValue>
+                    {(value: string) =>
+                      value === ALL_BRANDS ? "All Brands" : value
+                    }
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent align="end" className="w-auto min-w-[220px]">
+                  <SelectItem value={ALL_BRANDS}>All Brands</SelectItem>
+                  {productBrands.map((brand) => (
+                    <SelectItem key={brand} value={brand}>
+                      {brand}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Select
+                value={statusFilter}
+                onValueChange={(value) => value && setStatusFilter(value)}
+              >
+                <SelectTrigger className="glass-panel filter-control h-8 gap-1.5 px-2.5 text-xs">
+                  <SelectValue>
+                    {(value: string) =>
+                      value === ALL_STATUSES
+                        ? "All Statuses"
+                        : (statusOptions.find((option) => option.value === value)
+                            ?.label ?? value)
+                    }
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent align="end">
+                  <SelectItem value={ALL_STATUSES}>All Statuses</SelectItem>
+                  {statusOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              {activeTab === "all" && (
+                <ColumnVisibilityMenu
+                  table={productTable}
+                  className="glass-panel filter-control h-8 px-2.5 text-xs"
+                />
+              )}
+            </div>
+          </div>
+
+          <TabsPanel value="catalog" className="mt-4">
             {loading ? (
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:gap-6 xl:grid-cols-3">
                 {[0, 1, 2, 3, 4, 5].map((i) => (
@@ -399,7 +397,7 @@ export default function ProductsPage() {
             )}
           </TabsPanel>
 
-          <TabsPanel value="all">
+          <TabsPanel value="all" className="mt-4">
             {loading ? (
               <Skeleton className="h-96 w-full rounded-2xl" />
             ) : filtered.length ? (
