@@ -44,8 +44,10 @@ export function Topbar() {
   return (
     <header
       className={cn(
-        "glass-panel sticky top-6 lg:top-8 z-30 flex items-center rounded-2xl shadow-sm transition-all duration-200 ease-out md:w-full md:max-w-xl md:ml-auto",
-        scrolled ? "h-11 gap-2 px-2.5 md:px-3" : "h-14 gap-3 px-3 md:px-4"
+        "glass-panel sticky top-6 lg:top-8 z-30 flex items-center rounded-2xl shadow-sm transition-all duration-200 ease-out",
+        scrolled
+          ? "h-11 w-auto self-end gap-2 px-2.5 md:px-3"
+          : "h-14 w-full gap-3 px-3 md:max-w-xl md:ml-auto md:px-4"
       )}
     >
       <div className="flex items-center gap-2 md:hidden">
