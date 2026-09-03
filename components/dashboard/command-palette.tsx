@@ -26,6 +26,7 @@ import { products, productCategories } from "@/lib/mock-data";
 import { fetchTeamMembers, type TeamMember } from "@/lib/supabase/team";
 import { fetchCustomers } from "@/lib/supabase/customers";
 import { useAuth } from "@/components/providers/auth-provider";
+import { cn } from "@/lib/utils";
 import {
   Command,
   CommandDialog,
@@ -43,7 +44,7 @@ const roleLabels: Record<TeamMember["role"], string> = {
   sales_rep: "Sales Representative",
 };
 
-export function CommandPalette() {
+export function CommandPalette({ compact = false }: { compact?: boolean }) {
   const [open, setOpen] = useState(false);
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -90,11 +91,27 @@ export function CommandPalette() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="glass-panel flex h-9 w-full max-w-xs items-center gap-2 rounded-xl px-3 text-sm text-text-tertiary transition-colors hover:text-text-secondary"
+        aria-label="Search or jump to..."
+        className={cn(
+          "glass-panel flex w-full max-w-xs items-center gap-2 rounded-xl text-sm text-text-tertiary transition-all duration-200 ease-out hover:text-text-secondary",
+          compact ? "h-8 px-2.5" : "h-9 px-3"
+        )}
       >
         <Search className="size-[15px] shrink-0" />
-        <span className="truncate">Search or jump to...</span>
-        <kbd className="ml-auto hidden items-center gap-0.5 rounded-md border border-glass-border px-1.5 py-0.5 text-[10px] font-medium text-text-tertiary sm:flex">
+        <span
+          className={cn(
+            "truncate transition-all duration-200",
+            compact && "sr-only"
+          )}
+        >
+          Search or jump to...
+        </span>
+        <kbd
+          className={cn(
+            "ml-auto hidden items-center gap-0.5 rounded-md border border-glass-border px-1.5 py-0.5 text-[10px] font-medium text-text-tertiary sm:flex",
+            compact && "sr-only sm:hidden"
+          )}
+        >
           Ctrl K
         </kbd>
       </button>

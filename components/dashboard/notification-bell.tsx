@@ -21,7 +21,13 @@ import { cn } from "@/lib/utils";
 
 const POLL_INTERVAL_MS = 60_000;
 
-export function NotificationBell() {
+export function NotificationBell({
+  className,
+  iconClassName = "size-[23px]",
+}: {
+  className?: string;
+  iconClassName?: string;
+} = {}) {
   const { user } = useAuth();
   const router = useRouter();
   const [notifications, setNotifications] = useState<AppNotification[] | null>(null);
@@ -92,13 +98,16 @@ export function NotificationBell() {
               render={
                 <button
                   type="button"
-                  className="relative flex size-9 items-center justify-center rounded-xl text-text-secondary transition-colors hover:bg-foreground/[0.04]"
+                  className={cn(
+                    "relative flex size-9 items-center justify-center rounded-xl text-text-secondary transition-colors hover:bg-foreground/[0.04]",
+                    className
+                  )}
                 />
               }
             />
           }
         >
-          <Bell className="size-[23px]" />
+          <Bell className={iconClassName} />
           {unreadCount > 0 && (
             <span className="absolute top-1.5 right-1.5 flex size-4 items-center justify-center rounded-full bg-primary text-[10px] font-semibold text-primary-foreground">
               {unreadCount > 9 ? "9+" : unreadCount}

@@ -14,6 +14,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useAuth } from "@/components/providers/auth-provider";
+import { useScrolled } from "@/lib/use-scrolled";
+import { cn } from "@/lib/utils";
 
 function initials(name: string) {
   return (
@@ -29,14 +31,23 @@ function initials(name: string) {
 export function Topbar() {
   const router = useRouter();
   const { profile, isAdmin, signOut } = useAuth();
+  const scrolled = useScrolled();
 
   async function handleSignOut() {
     await signOut();
     router.push("/sign-in");
   }
 
+  const iconButtonSize = scrolled ? "size-8" : "size-9";
+  const iconSize = scrolled ? "size-[19px]" : "size-[23px]";
+
   return (
-    <header className="glass-panel sticky top-6 lg:top-8 z-30 flex h-14 items-center gap-3 rounded-2xl px-3 shadow-sm md:w-full md:max-w-xl md:ml-auto md:px-4">
+    <header
+      className={cn(
+        "glass-panel sticky top-6 lg:top-8 z-30 flex items-center rounded-2xl shadow-sm transition-all duration-200 ease-out md:w-full md:max-w-xl md:ml-auto",
+        scrolled ? "h-11 gap-2 px-2.5 md:px-3" : "h-14 gap-3 px-3 md:px-4"
+      )}
+    >
       <div className="flex items-center gap-2 md:hidden">
         <div className="flex size-8 items-center justify-center rounded-lg bg-foreground/[0.04]">
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -45,7 +56,7 @@ export function Topbar() {
       </div>
 
       <div className="flex-1">
-        <CommandPalette />
+        <CommandPalette compact={scrolled} />
       </div>
 
       {isAdmin && (
@@ -56,21 +67,30 @@ export function Topbar() {
                 type="button"
                 onClick={() => router.push("/assistant")}
                 aria-label="AI Brain"
-                className="flex size-9 items-center justify-center rounded-xl text-primary transition-colors hover:bg-primary/10"
+                className={cn(
+                  "flex items-center justify-center rounded-xl text-primary transition-all duration-200 ease-out hover:bg-primary/10",
+                  iconButtonSize
+                )}
               />
             }
           >
-            <Brain className="size-[23px]" />
+            <Brain className={cn("transition-all duration-200 ease-out", iconSize)} />
           </TooltipTrigger>
           <TooltipContent side="bottom">AI Brain</TooltipContent>
         </Tooltip>
       )}
 
-      <NotificationBell />
+      <NotificationBell
+        className={iconButtonSize}
+        iconClassName={cn("transition-all duration-200 ease-out", iconSize)}
+      />
 
       <ThemeToggle
-        className="flex size-9 items-center justify-center rounded-xl text-text-secondary hover:bg-foreground/[0.04]"
-        iconClassName="size-[23px]"
+        className={cn(
+          "flex items-center justify-center rounded-xl text-text-secondary hover:bg-foreground/[0.04]",
+          iconButtonSize
+        )}
+        iconClassName={cn("transition-all duration-200 ease-out", iconSize)}
       />
 
       <DropdownMenu>
@@ -81,7 +101,10 @@ export function Topbar() {
                 render={
                   <button
                     type="button"
-                    className="flex size-9 items-center justify-center overflow-hidden rounded-full bg-accent text-xs font-semibold text-accent-foreground ring-1 ring-glass-border transition-opacity hover:opacity-80"
+                    className={cn(
+                      "flex items-center justify-center overflow-hidden rounded-full bg-accent text-xs font-semibold text-accent-foreground ring-1 ring-glass-border transition-all duration-200 ease-out hover:opacity-80",
+                      iconButtonSize
+                    )}
                   />
                 }
               />
