@@ -12,7 +12,6 @@ import {
   FileText,
   Handshake,
   Receipt,
-  Inbox,
 } from "lucide-react";
 
 export type NavItem = {
@@ -33,7 +32,6 @@ export const navGroups: NavGroup[] = [
     label: "Overview",
     items: [
       { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard, enabled: true },
-      { label: "Inbox", href: "/inbox", icon: Inbox, enabled: true, adminOnly: true },
     ],
   },
   {
