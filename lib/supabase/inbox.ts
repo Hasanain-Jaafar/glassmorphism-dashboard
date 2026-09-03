@@ -206,8 +206,13 @@ export function subscribeToInbox(
   }
 ): () => void {
   const supabase = createClient();
+  // Unique per call, not just per user — the topbar's unread badge and an
+  // open /inbox page both subscribe independently, and Supabase reuses a
+  // channel instance by topic name, so a shared name here means the second
+  // subscriber's .on() calls land on a channel the first already subscribed
+  // ("cannot add postgres_changes callbacks ... after subscribe()").
   const channel = supabase
-    .channel(`inbox-${currentUserId}`)
+    .channel(`inbox-${currentUserId}-${crypto.randomUUID()}`)
     .on(
       "postgres_changes",
       { event: "INSERT", schema: "public", table: "dm_messages" },
