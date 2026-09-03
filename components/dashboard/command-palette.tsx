@@ -93,8 +93,10 @@ export function CommandPalette({ compact = false }: { compact?: boolean }) {
         onClick={() => setOpen(true)}
         aria-label="Search or jump to..."
         className={cn(
-          "glass-panel flex w-full max-w-xs items-center gap-2 rounded-xl text-sm text-text-tertiary transition-all duration-200 ease-out hover:text-text-secondary",
-          compact ? "h-8 px-2.5" : "h-9 px-3"
+          "glass-panel flex items-center rounded-xl text-sm text-text-tertiary transition-all duration-200 ease-out hover:text-text-secondary",
+          compact
+            ? "ml-auto size-8 shrink-0 justify-center gap-0 px-0"
+            : "h-9 w-full max-w-xs gap-2 px-3"
         )}
       >
         <Search className="size-[15px] shrink-0" />
