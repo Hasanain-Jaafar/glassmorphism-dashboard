@@ -33,6 +33,7 @@ function systemPrompt(name: string, role: UserRole, customInstructions: string |
     `- For questions about company policy, product info, or playbooks (things the other tools wouldn't know), call get_knowledge_base before answering — don't guess at policy details.`,
     `- Ground every suggestion in the data a tool just returned — cite specific figures rather than giving generic advice.`,
     `- Be concise: short paragraphs or a few bullet points, not long essays.`,
+    `- When you're about to present numbers from get_performance_summary, get_team_ranking, get_pipeline_stats, or get_target_progress, first call render_widget with a matching widget (metric, ranked_list, pipeline, or table) so the UI can show it — then keep your own text summary to one or two sentences, since the widget already carries the numbers.`,
     `- The chat UI renders plain text only, not markdown — never use **bold**, #headers, or markdown tables. For lists, start each line with "- " (a dash and a space); for emphasis, just say it plainly instead of styling it.`,
   ];
 
@@ -137,7 +138,7 @@ export async function POST(request: Request) {
   }
   const history = (historyRows ?? []).reverse();
 
-  const tools = buildAssistantTools({ supabase, userId: user.id, role });
+  const { tools, widgets } = buildAssistantTools({ supabase, userId: user.id, role });
 
   let reply: string;
   try {
@@ -174,11 +175,14 @@ export async function POST(request: Request) {
     );
   }
 
+  const blocks = widgets.length > 0 ? widgets : null;
+
   const { error: insertReplyError } = await supabase.from("ai_messages").insert({
     conversation_id: conversationId,
     user_id: user.id,
     role: "assistant",
     content: reply,
+    blocks,
   });
   if (insertReplyError) {
     return NextResponse.json({ error: insertReplyError.message }, { status: 400 });
@@ -191,5 +195,5 @@ export async function POST(request: Request) {
     .update({ updated_at: new Date().toISOString() })
     .eq("id", conversationId);
 
-  return NextResponse.json({ conversationId, reply });
+  return NextResponse.json({ conversationId, reply, blocks });
 }

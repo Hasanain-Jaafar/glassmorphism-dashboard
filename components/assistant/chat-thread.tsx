@@ -4,11 +4,14 @@ import { useEffect, useRef } from "react";
 import { Sparkles } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
+import type { AssistantWidget } from "@/lib/ai/widgets";
+import { WidgetBlock } from "@/components/assistant/widgets/widget-block";
 
 export type DisplayMessage = {
   id: string;
   role: "user" | "assistant";
   content: string;
+  blocks?: AssistantWidget[] | null;
 };
 
 // Arabic, Arabic Supplement, Arabic Extended-A, and Arabic Presentation
@@ -103,8 +106,8 @@ export function ChatThread({
         <div
           key={message.id}
           className={cn(
-            "flex",
-            message.role === "user" ? "justify-end" : "justify-start"
+            "flex flex-col gap-2",
+            message.role === "user" ? "items-end" : "items-start"
           )}
         >
           <div
@@ -123,6 +126,13 @@ export function ChatThread({
           >
             {message.content}
           </div>
+          {message.role === "assistant" && message.blocks && message.blocks.length > 0 && (
+            <div className="flex w-full max-w-[80%] flex-col gap-2">
+              {message.blocks.map((block, index) => (
+                <WidgetBlock key={index} block={block} />
+              ))}
+            </div>
+          )}
         </div>
       ))}
       {isThinking && (

@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/client";
+import type { AssistantWidget } from "@/lib/ai/widgets";
 
 export type ChatRole = "user" | "assistant";
 
@@ -14,6 +15,7 @@ export type ChatMessage = {
   conversationId: string;
   role: ChatRole;
   content: string;
+  blocks: AssistantWidget[] | null;
   createdAt: string;
 };
 
@@ -36,6 +38,7 @@ function mapMessage(row: {
   conversation_id: string;
   role: string;
   content: string;
+  blocks: AssistantWidget[] | null;
   created_at: string;
 }): ChatMessage {
   return {
@@ -43,6 +46,7 @@ function mapMessage(row: {
     conversationId: row.conversation_id,
     role: row.role as ChatRole,
     content: row.content,
+    blocks: row.blocks ?? null,
     createdAt: row.created_at,
   };
 }
@@ -62,7 +66,7 @@ export async function fetchMessages(conversationId: string): Promise<ChatMessage
   const supabase = createClient();
   const { data, error } = await supabase
     .from("ai_messages")
-    .select("id, conversation_id, role, content, created_at")
+    .select("id, conversation_id, role, content, blocks, created_at")
     .eq("conversation_id", conversationId)
     .order("created_at", { ascending: true });
   if (error) throw error;

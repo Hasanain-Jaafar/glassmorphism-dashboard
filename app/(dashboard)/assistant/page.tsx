@@ -47,7 +47,9 @@ export default function AssistantPage() {
     setMessagesLoading(true);
     try {
       const rows = await fetchMessages(id);
-      setMessages(rows.map((m) => ({ id: m.id, role: m.role, content: m.content })));
+      setMessages(
+        rows.map((m) => ({ id: m.id, role: m.role, content: m.content, blocks: m.blocks }))
+      );
     } catch (error) {
       toast.error(
         error instanceof Error ? error.message : "Couldn't load that conversation"
@@ -97,7 +99,12 @@ export default function AssistantPage() {
 
       setMessages((prev) => [
         ...prev,
-        { id: `reply-${Date.now()}`, role: "assistant", content: data.reply },
+        {
+          id: `reply-${Date.now()}`,
+          role: "assistant",
+          content: data.reply,
+          blocks: data.blocks ?? null,
+        },
       ]);
 
       if (!activeId) {

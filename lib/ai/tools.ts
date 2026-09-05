@@ -21,6 +21,7 @@ import {
   fetchKnowledgeBaseServer,
   type ServerSupabase,
 } from "@/lib/ai/data";
+import { assistantWidgetSchema, type AssistantWidget } from "@/lib/ai/widgets";
 
 export type AssistantToolContext = {
   supabase: ServerSupabase;
@@ -29,18 +30,21 @@ export type AssistantToolContext = {
 };
 
 /**
- * 5 read-only tools the assistant can call, each scoped by Postgres RLS via
- * the request's own Supabase server client — a sales rep's tool calls only
- * ever see their own rows, an admin's see everyone's, exactly like the rest
- * of the dashboard. `year`/`month` follow the same "current period" the rest
- * of the app agrees on (lib/mock-data.ts's currentYear, lib/target-period.ts's
+ * 5 read-only data tools, each scoped by Postgres RLS via the request's own
+ * Supabase server client — a sales rep's tool calls only ever see their own
+ * rows, an admin's see everyone's, exactly like the rest of the dashboard.
+ * `year`/`month` follow the same "current period" the rest of the app agrees
+ * on (lib/mock-data.ts's currentYear, lib/target-period.ts's
  * currentMonthNumber) so the assistant's numbers always match what's on
- * screen elsewhere.
+ * screen elsewhere. A 6th tool, render_widget, does no data fetching — it
+ * just captures the structured visual the model wants shown alongside its
+ * text reply (see `widgets` below).
  */
 export function buildAssistantTools(ctx: AssistantToolContext) {
   const { supabase, userId, role } = ctx;
   const year = currentYear;
   const month = currentMonthNumber;
+  const widgets: AssistantWidget[] = [];
 
   const getPerformanceSummary = betaZodTool({
     name: "get_performance_summary",
@@ -256,11 +260,26 @@ export function buildAssistantTools(ctx: AssistantToolContext) {
     },
   });
 
-  return [
-    getPerformanceSummary,
-    getTeamRanking,
-    getPipelineStats,
-    getTargetProgress,
-    getKnowledgeBase,
-  ];
+  const renderWidget = betaZodTool({
+    name: "render_widget",
+    description:
+      "Show a small structured visual — a metric card, ranked list, pipeline funnel, or table — in the chat UI. Call this whenever you're about to present numeric or tabular results from one of the other tools, then keep your own text summary to a sentence or two, since the widget carries the numbers. All values must be display-ready strings you've already formatted (e.g. \"$248,000\", \"64%\") — this tool only renders what you give it, it doesn't compute anything.",
+    inputSchema: assistantWidgetSchema,
+    run: async (input) => {
+      widgets.push(input);
+      return "Shown to user.";
+    },
+  });
+
+  return {
+    tools: [
+      getPerformanceSummary,
+      getTeamRanking,
+      getPipelineStats,
+      getTargetProgress,
+      getKnowledgeBase,
+      renderWidget,
+    ],
+    widgets,
+  };
 }
