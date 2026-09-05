@@ -21,7 +21,7 @@ import {
   fetchKnowledgeBaseServer,
   type ServerSupabase,
 } from "@/lib/ai/data";
-import { assistantWidgetSchema, type AssistantWidget } from "@/lib/ai/widgets";
+import { widgetInputSchemas, type AssistantWidget } from "@/lib/ai/widgets";
 
 export type AssistantToolContext = {
   supabase: ServerSupabase;
@@ -36,9 +36,9 @@ export type AssistantToolContext = {
  * `year`/`month` follow the same "current period" the rest of the app agrees
  * on (lib/mock-data.ts's currentYear, lib/target-period.ts's
  * currentMonthNumber) so the assistant's numbers always match what's on
- * screen elsewhere. A 6th tool, render_widget, does no data fetching — it
- * just captures the structured visual the model wants shown alongside its
- * text reply (see `widgets` below).
+ * screen elsewhere. 4 more tools (show_metric/show_ranked_list/show_pipeline/
+ * show_table) do no data fetching — each just captures the structured visual
+ * the model wants shown alongside its text reply (see `widgets` below).
  */
 export function buildAssistantTools(ctx: AssistantToolContext) {
   const { supabase, userId, role } = ctx;
@@ -260,13 +260,46 @@ export function buildAssistantTools(ctx: AssistantToolContext) {
     },
   });
 
-  const renderWidget = betaZodTool({
-    name: "render_widget",
+  const showMetric = betaZodTool({
+    name: "show_metric",
     description:
-      "Show a small structured visual — a metric card, ranked list, pipeline funnel, or table — in the chat UI. Call this whenever you're about to present numeric or tabular results from one of the other tools, then keep your own text summary to a sentence or two, since the widget carries the numbers. All values must be display-ready strings you've already formatted (e.g. \"$248,000\", \"64%\") — this tool only renders what you give it, it doesn't compute anything.",
-    inputSchema: assistantWidgetSchema,
+      "Display a single KPI/metric card in the chat UI — a label, a value you've already formatted (e.g. \"$248,000\"), and an optional % delta. Call this right before summarizing a single-number result from get_performance_summary or get_target_progress, then keep your own text summary to a sentence or two.",
+    inputSchema: widgetInputSchemas.metric,
     run: async (input) => {
-      widgets.push(input);
+      widgets.push({ type: "metric", ...input });
+      return "Shown to user.";
+    },
+  });
+
+  const showRankedList = betaZodTool({
+    name: "show_ranked_list",
+    description:
+      "Display a ranked list with progress bars in the chat UI — e.g. salesperson ranking or contribution. Call this right before summarizing get_team_ranking results, then keep your own text summary to a sentence or two. `pct` (0-100) sets each bar's fill width.",
+    inputSchema: widgetInputSchemas.ranked_list,
+    run: async (input) => {
+      widgets.push({ type: "ranked_list", ...input });
+      return "Shown to user.";
+    },
+  });
+
+  const showPipeline = betaZodTool({
+    name: "show_pipeline",
+    description:
+      "Display the sales pipeline funnel in the chat UI. Call this right before summarizing get_pipeline_stats results, then keep your own text summary to a sentence or two. `conversions[i]` is the % conversion from stages[i] to stages[i + 1].",
+    inputSchema: widgetInputSchemas.pipeline,
+    run: async (input) => {
+      widgets.push({ type: "pipeline", ...input });
+      return "Shown to user.";
+    },
+  });
+
+  const showTable = betaZodTool({
+    name: "show_table",
+    description:
+      "Display a small table in the chat UI for tabular data that doesn't fit a metric, ranked list, or pipeline widget.",
+    inputSchema: widgetInputSchemas.table,
+    run: async (input) => {
+      widgets.push({ type: "table", ...input });
       return "Shown to user.";
     },
   });
@@ -278,7 +311,10 @@ export function buildAssistantTools(ctx: AssistantToolContext) {
       getPipelineStats,
       getTargetProgress,
       getKnowledgeBase,
-      renderWidget,
+      showMetric,
+      showRankedList,
+      showPipeline,
+      showTable,
     ],
     widgets,
   };

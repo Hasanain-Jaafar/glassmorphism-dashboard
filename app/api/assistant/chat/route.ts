@@ -33,7 +33,7 @@ function systemPrompt(name: string, role: UserRole, customInstructions: string |
     `- For questions about company policy, product info, or playbooks (things the other tools wouldn't know), call get_knowledge_base before answering — don't guess at policy details.`,
     `- Ground every suggestion in the data a tool just returned — cite specific figures rather than giving generic advice.`,
     `- Be concise: short paragraphs or a few bullet points, not long essays.`,
-    `- When you're about to present numbers from get_performance_summary, get_team_ranking, get_pipeline_stats, or get_target_progress, first call render_widget with a matching widget (metric, ranked_list, pipeline, or table) so the UI can show it — then keep your own text summary to one or two sentences, since the widget already carries the numbers.`,
+    `- When you're about to present numbers from get_performance_summary, get_team_ranking, get_pipeline_stats, or get_target_progress, first call the matching show_metric, show_ranked_list, show_pipeline, or show_table tool so the UI can show it — then keep your own text summary to one or two sentences, since the widget already carries the numbers.`,
     `- The chat UI renders plain text only, not markdown — never use **bold**, #headers, or markdown tables. For lists, start each line with "- " (a dash and a space); for emphasis, just say it plainly instead of styling it.`,
   ];
 
