@@ -18,6 +18,8 @@ import {
   type Conversation,
 } from "@/lib/supabase/ai-assistant";
 
+const DRAFT_STORAGE_KEY = "ai-brain-draft";
+
 export default function AssistantPage() {
   const { isAdmin } = useAuth();
   const [conversations, setConversations] = useState<Conversation[] | null>(null);
@@ -27,6 +29,28 @@ export default function AssistantPage() {
   const [input, setInput] = useState("");
   const [isThinking, setIsThinking] = useState(false);
   const [mobileListOpen, setMobileListOpen] = useState(false);
+
+  // Restore any in-progress draft after mount (avoids SSR hydration mismatch).
+  useEffect(() => {
+    try {
+      const draft = sessionStorage.getItem(DRAFT_STORAGE_KEY);
+      if (draft) setInput(draft);
+    } catch {
+      // sessionStorage unavailable (private mode, etc.) — draft just won't persist.
+    }
+  }, []);
+
+  useEffect(() => {
+    try {
+      if (input) {
+        sessionStorage.setItem(DRAFT_STORAGE_KEY, input);
+      } else {
+        sessionStorage.removeItem(DRAFT_STORAGE_KEY);
+      }
+    } catch {
+      // ignore
+    }
+  }, [input]);
 
   const loadConversations = useCallback(() => {
     fetchConversations()
