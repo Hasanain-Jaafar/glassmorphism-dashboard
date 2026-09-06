@@ -15,6 +15,7 @@ import {
   fetchConversations,
   fetchMessages,
   deleteConversation,
+  renameConversation,
   type Conversation,
 } from "@/lib/supabase/ai-assistant";
 
@@ -101,6 +102,21 @@ export default function AssistantPage() {
     }
   }
 
+  async function handleRename(id: string, title: string) {
+    const previous = conversations;
+    setConversations(
+      (prev) => prev?.map((c) => (c.id === id ? { ...c, title } : c)) ?? prev
+    );
+    try {
+      await renameConversation(id, title);
+    } catch (error) {
+      setConversations(previous);
+      toast.error(
+        error instanceof Error ? error.message : "Couldn't rename that conversation"
+      );
+    }
+  }
+
   async function send(text: string) {
     const trimmed = text.trim();
     if (!trimmed || isThinking) return;
@@ -152,6 +168,7 @@ export default function AssistantPage() {
     onSelect: openConversation,
     onNew: startNewChat,
     onDelete: handleDelete,
+    onRename: handleRename,
   };
 
   if (!isAdmin) {
