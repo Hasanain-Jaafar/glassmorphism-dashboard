@@ -5,6 +5,15 @@ import { SendHorizontal } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 
+// Arabic, Arabic Supplement, Arabic Extended-A, and Arabic Presentation
+// Forms A/B — covers standard Arabic text without matching Latin/punctuation.
+const ARABIC_PATTERN =
+  /[؀-ۿݐ-ݿࢠ-ࣿﭐ-﷿ﹰ-﻿]/;
+
+function containsArabic(text: string): boolean {
+  return ARABIC_PATTERN.test(text);
+}
+
 export function ChatInput({
   value,
   onChange,
@@ -33,6 +42,8 @@ export function ChatInput({
         onKeyDown={handleKeyDown}
         placeholder={placeholder}
         rows={1}
+        dir="auto"
+        style={containsArabic(value) ? { fontFamily: "var(--font-zain)" } : undefined}
         className="max-h-32 min-h-10 resize-none border-0 bg-foreground/[0.04] focus-visible:ring-1"
         disabled={disabled}
       />

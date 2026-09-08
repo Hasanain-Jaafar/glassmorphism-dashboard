@@ -6,6 +6,15 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import type { InboxMessage } from "@/lib/supabase/inbox";
 
+// Arabic, Arabic Supplement, Arabic Extended-A, and Arabic Presentation
+// Forms A/B — covers standard Arabic text without matching Latin/punctuation.
+const ARABIC_PATTERN =
+  /[؀-ۿݐ-ݿࢠ-ࣿﭐ-﷿ﹰ-﻿]/;
+
+function containsArabic(text: string): boolean {
+  return ARABIC_PATTERN.test(text);
+}
+
 export function MessageThread({
   messages,
   currentUserId,
@@ -62,6 +71,12 @@ export function MessageThread({
         return (
           <div key={message.id} className={cn("flex", isMine ? "justify-end" : "justify-start")}>
             <div
+              dir="auto"
+              style={
+                containsArabic(message.body)
+                  ? { fontFamily: "var(--font-zain)" }
+                  : undefined
+              }
               className={cn(
                 "max-w-[80%] whitespace-pre-wrap rounded-2xl px-4 py-2.5 text-sm",
                 isMine
