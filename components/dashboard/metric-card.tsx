@@ -75,7 +75,7 @@ export function MetricCard({
           </div>
         )}
         {footnote && !delta && (
-          <p className="mt-2 text-xs text-text-tertiary">{footnote}</p>
+          <p className="mt-3 text-xs text-text-tertiary">{footnote}</p>
         )}
       </div>
     </div>

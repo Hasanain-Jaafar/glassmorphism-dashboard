@@ -72,9 +72,13 @@ export function KpiWave({
   const max = Math.max(...data);
   const range = max - min || 1;
 
+  // Top inset keeps even a peak (max-value) point from ever reaching the
+  // very top of the wave's own box — otherwise a trending-up sparkline
+  // rises right into the footnote text sitting above it.
+  const topInset = 32;
   const points = data.map((value, index) => ({
     x: (index / (data.length - 1)) * width,
-    y: 12 + (height - 12) * (1 - (value - min) / range) * 0.72,
+    y: topInset + (height - topInset) * (1 - (value - min) / range) * 0.72,
   }));
 
   const linePath = buildSmoothPath(points);
@@ -84,7 +88,7 @@ export function KpiWave({
     <svg
       viewBox={`0 0 ${width} ${height}`}
       preserveAspectRatio="none"
-      className="pointer-events-none absolute inset-x-0 bottom-0 h-[68%] w-full overflow-visible"
+      className="pointer-events-none absolute inset-x-0 bottom-0 h-1/2 w-full overflow-visible"
       aria-hidden="true"
     >
       <defs>
