@@ -28,6 +28,7 @@ export const metadata: Metadata = {
   description: "Internal sales management dashboard.",
   icons: {
     icon: [
+      { url: "/new.svg", type: "image/svg+xml" },
       { url: "/favicon48x48.png", sizes: "48x48", type: "image/png" },
       { url: "/favicon128x128.png", sizes: "128x128", type: "image/png" },
     ],
