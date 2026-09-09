@@ -63,8 +63,10 @@ export function RepRoster({
                   type="button"
                   onClick={() => onSelect(person.id)}
                   className={cn(
-                    "flex w-full items-center gap-3 rounded-xl p-2.5 text-left transition-colors",
-                    isSelected ? "bg-primary/10" : "hover:bg-foreground/[0.04]"
+                    "flex w-full items-center gap-3 rounded-md p-2.5 text-left transition-colors",
+                    isSelected
+                      ? "bg-primary/10 text-foreground ring-1 ring-primary/25"
+                      : "text-text-secondary hover:bg-foreground/[0.04]"
                   )}
                 >
                   <div className="flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-accent text-xs font-semibold text-accent-foreground">
