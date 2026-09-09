@@ -164,12 +164,12 @@ function QuotationsPageContent() {
   // active (draft/sent/accepted) quotation per appointment. A rejected or
   // expired quotation doesn't block a re-quote of the same appointment.
   //
-  // A cancelled or no-show appointment never happened, so it has nothing to
-  // quote — only scheduled (pre-meeting draft) or completed appointments are
-  // eligible. The exception is an appointment already linked to the
-  // quotation being edited: it must stay selectable even if it was
-  // cancelled after the fact, so an existing quotation never loses its
-  // appointment out from under it.
+  // Only a completed appointment has anything to quote — the meeting
+  // actually happened. A still-scheduled appointment hasn't happened yet,
+  // and a cancelled/no-show one never will. The exception is an appointment
+  // already linked to the quotation being edited: it must stay selectable
+  // even if its status has since moved on, so an existing quotation never
+  // loses its appointment out from under it.
   const availableAppointments = useMemo(() => {
     const blockedAppointmentIds = new Set(
       (quotations ?? [])
@@ -180,9 +180,7 @@ function QuotationsPageContent() {
     return appointments.filter(
       (a) =>
         !blockedAppointmentIds.has(a.id) &&
-        (a.status === "scheduled" ||
-          a.status === "completed" ||
-          a.id === editingQuotation?.appointmentId)
+        (a.status === "completed" || a.id === editingQuotation?.appointmentId)
     );
   }, [appointments, quotations, editingQuotation]);
 
