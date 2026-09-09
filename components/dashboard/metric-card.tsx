@@ -1,4 +1,5 @@
 import type { LucideIcon } from "lucide-react";
+import type { ReactNode } from "react";
 import { ArrowDownRight, ArrowUpRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { KpiWave } from "@/components/dashboard/kpi-wave";
@@ -22,6 +23,7 @@ export function MetricCard({
   icon: Icon,
   tone = "primary",
   wave,
+  badge,
 }: {
   label: string;
   value: string;
@@ -31,6 +33,8 @@ export function MetricCard({
   /** Icon chip color — only visible when `icon` is set. Defaults to "primary" (the original hardcoded look). */
   tone?: MetricTone;
   wave?: number[];
+  /** Small pill in the header, e.g. the active year/month for a filterable card — same slot MonthlyTargetCard/RadialTarget use for period context. */
+  badge?: ReactNode;
 }) {
   const isPositive = delta ? delta.value >= 0 : undefined;
 
@@ -38,18 +42,21 @@ export function MetricCard({
     <div className="glass-panel relative h-full overflow-hidden rounded-2xl p-5 shadow-sm sm:p-6">
       {wave && wave.length > 1 && <KpiWave data={wave} tone={tone} />}
       <div className="relative">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-2">
           <p className="text-sm font-medium text-text-secondary">{label}</p>
-          {Icon && (
-            <span
-              className={cn(
-                "flex size-8 items-center justify-center rounded-lg",
-                toneStyles[tone]
-              )}
-            >
-              <Icon className="size-4" />
-            </span>
-          )}
+          <div className="flex shrink-0 items-center gap-1.5">
+            {badge}
+            {Icon && (
+              <span
+                className={cn(
+                  "flex size-8 items-center justify-center rounded-lg",
+                  toneStyles[tone]
+                )}
+              >
+                <Icon className="size-4" />
+              </span>
+            )}
+          </div>
         </div>
         <p className="mt-3 text-[28px] font-semibold tracking-tight text-foreground sm:text-[32px]">
           {value}

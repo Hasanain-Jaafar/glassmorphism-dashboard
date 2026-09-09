@@ -141,6 +141,23 @@ export function computeYearToDateTotals(
   return { currentYearTotal, previousYearToDateTotal };
 }
 
+/**
+ * Full calendar-year sum of paid invoices — for a dashboard year filter
+ * pointed at a non-current year, where computeYearToDateTotals's
+ * today's-day-of-month cutoff doesn't apply (that cutoff exists only to
+ * keep the in-progress current year's total comparable to the same
+ * partial period last year; a fully-elapsed past year has no such
+ * asymmetry, so both it and the year before it are summed in full).
+ */
+export function sumPaidInYear(invoices: InvoiceLike[], year: number): number {
+  return invoices
+    .filter(
+      (inv) =>
+        inv.status === "paid" && inv.paidAt && new Date(inv.paidAt).getFullYear() === year
+    )
+    .reduce((sum, inv) => sum + inv.amount, 0);
+}
+
 /** Jan..`month` of `year`, that year vs. the same months the year before. */
 export function computeCompanyRevenueSeries(
   invoices: InvoiceLike[],
