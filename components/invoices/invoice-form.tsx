@@ -152,7 +152,7 @@ export function InvoiceForm({
                 </SelectTrigger>
                 <SelectContent>
                   {deals.length === 0 ? (
-                    <p className="px-2 py-1.5 text-xs text-text-tertiary">
+                    <p className="max-w-[280px] px-2 py-1.5 text-xs text-text-tertiary">
                       No available deals — win one first, or check for won
                       deals that already have an invoice.
                     </p>

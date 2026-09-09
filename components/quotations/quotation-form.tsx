@@ -247,7 +247,7 @@ export function QuotationForm({
                 </SelectTrigger>
                 <SelectContent>
                   {appointments.length === 0 ? (
-                    <p className="px-2 py-1.5 text-xs text-text-tertiary">
+                    <p className="max-w-[280px] px-2 py-1.5 text-xs text-text-tertiary">
                       No available appointments. Only completed appointments
                       can be quoted — an appointment won&apos;t appear here
                       if it&apos;s still scheduled, cancelled, marked

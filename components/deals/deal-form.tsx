@@ -133,7 +133,7 @@ export function DealForm({
                 </SelectTrigger>
                 <SelectContent>
                   {quotations.length === 0 ? (
-                    <p className="px-2 py-1.5 text-xs text-text-tertiary">
+                    <p className="max-w-[280px] px-2 py-1.5 text-xs text-text-tertiary">
                       No available quotations — accept one first, or check for
                       accepted quotations that already have a deal.
                     </p>
