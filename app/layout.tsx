@@ -51,7 +51,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             next-themes does internally for the dark/light class below. */}
         <script
           dangerouslySetInnerHTML={{
-            __html: `try{var a=localStorage.getItem("accent-color");if(a==="blue"||a==="rose"||a==="amber")document.documentElement.dataset.accent=a}catch(e){}`,
+            __html: `try{var a=localStorage.getItem("accent-color");if(a==="blue"||a==="indigo"||a==="amber")document.documentElement.dataset.accent=a}catch(e){}`,
           }}
         />
         <ThemeProvider

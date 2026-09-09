@@ -2,12 +2,12 @@
 
 import { useCallback, useEffect, useSyncExternalStore } from "react";
 
-export type AccentColor = "violet" | "blue" | "rose" | "amber";
+export type AccentColor = "violet" | "blue" | "indigo" | "amber";
 
 export const ACCENT_COLORS: { value: AccentColor; label: string; swatch: string }[] = [
   { value: "violet", label: "Violet", swatch: "#6d5dfb" },
   { value: "blue", label: "Blue", swatch: "#3763e0" },
-  { value: "rose", label: "Rose", swatch: "#d43f7c" },
+  { value: "indigo", label: "Indigo", swatch: "#4f46e5" },
   { value: "amber", label: "Amber", swatch: "#a8790a" },
 ];
 
