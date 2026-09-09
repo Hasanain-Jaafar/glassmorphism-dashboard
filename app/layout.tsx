@@ -45,6 +45,15 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`${geistSans.variable} ${geistMono.variable} ${zain.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
+        {/* Blocking, runs before hydration — applies the saved accent color
+            (Settings > Appearance, lib/use-accent-color.ts) immediately so
+            there's no flash of the default violet on load. Mirrors what
+            next-themes does internally for the dark/light class below. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `try{var a=localStorage.getItem("accent-color");if(a==="blue"||a==="rose"||a==="amber")document.documentElement.dataset.accent=a}catch(e){}`,
+          }}
+        />
         <ThemeProvider
           attribute="class"
           defaultTheme="dark"

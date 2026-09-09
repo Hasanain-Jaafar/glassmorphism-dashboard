@@ -115,7 +115,7 @@ function buildColumns(onEdit: (id: string) => void) {
           <div className="flex items-center gap-2">
             <div className="h-1.5 w-16 overflow-hidden rounded-full bg-foreground/[0.07]">
               <div
-                className="h-full rounded-full bg-gradient-to-r from-primary to-[#8f7fff]"
+                className="h-full rounded-full bg-gradient-to-r from-primary to-primary-light"
                 style={{ width: `${Math.min(pct, 100)}%` }}
               />
             </div>

@@ -46,6 +46,7 @@
   --color-secondary-foreground: var(--secondary-foreground);
   --color-secondary: var(--secondary);
   --color-primary-hover: var(--primary-hover);
+  --color-primary-light: var(--primary-light);
   --color-primary-foreground: var(--primary-foreground);
   --color-primary: var(--primary);
   --color-popover-foreground: var(--popover-foreground);
@@ -98,6 +99,10 @@
 
   --primary: #6d5dfb;
   --primary-hover: #5d4de8;
+  /* A lighter, theme-invariant tint used only for gradient endpoints/glow
+     accents (progress bars, ambient background) — not for hover/focus
+     states, which stay theme-aware via --primary-hover. */
+  --primary-light: #8f7fff;
   --primary-foreground: #ffffff;
 
   --secondary: #ecebf3;
@@ -164,6 +169,7 @@
 
   --primary: #7c67ff;
   --primary-hover: #8f7fff;
+  --primary-light: #8f7fff;
   --primary-foreground: #ffffff;
 
   --secondary: #1a1a2c;
@@ -202,6 +208,97 @@
   --sidebar-accent-foreground: #c4b8ff;
   --sidebar-border: rgba(255, 255, 255, 0.08);
   --sidebar-ring: #8b7bff;
+}
+
+/* Accent color presets (Settings > Appearance) — override only the
+   brand-accent tokens (primary/accent/ring/chart-1/sidebar-*), each tuned to
+   the same lightness/saturation shape as the default violet in both light
+   and dark, so choosing one never changes surfaces, borders, semantic
+   colors (success/warning/danger), or the other chart colors. Absent or
+   "violet" falls through to the unprefixed :root/.dark values above —
+   violet needs no preset block of its own. Set via lib/use-accent-color.ts,
+   which also stamps a blocking inline script in <head> (app/layout.tsx) to
+   avoid a flash of the wrong accent before hydration. */
+
+[data-accent="blue"] {
+  --primary: #3763e0;
+  --primary-hover: #2c50c2;
+  --primary-light: #5c85ff;
+  --accent: #e7edfc;
+  --accent-foreground: #24399e;
+  --ring: #3763e0;
+  --chart-1: #4d7dff;
+  --sidebar-primary: #3763e0;
+  --sidebar-accent: #e7edfc;
+  --sidebar-accent-foreground: #24399e;
+  --sidebar-ring: #3763e0;
+}
+.dark[data-accent="blue"] {
+  --primary: #5c85ff;
+  --primary-hover: #7396ff;
+  --primary-light: #7396ff;
+  --accent: rgba(92, 133, 255, 0.14);
+  --accent-foreground: #bccdff;
+  --ring: #7396ff;
+  --chart-1: #60a5fa;
+  --sidebar-primary: #5c85ff;
+  --sidebar-accent: rgba(92, 133, 255, 0.14);
+  --sidebar-accent-foreground: #bccdff;
+  --sidebar-ring: #7396ff;
+}
+
+[data-accent="rose"] {
+  --primary: #d43f7c;
+  --primary-hover: #b82f68;
+  --primary-light: #ec6ba0;
+  --accent: #fbe8f0;
+  --accent-foreground: #922352;
+  --ring: #d43f7c;
+  --chart-1: #e06592;
+  --sidebar-primary: #d43f7c;
+  --sidebar-accent: #fbe8f0;
+  --sidebar-accent-foreground: #922352;
+  --sidebar-ring: #d43f7c;
+}
+.dark[data-accent="rose"] {
+  --primary: #ec6ba0;
+  --primary-hover: #f280b2;
+  --primary-light: #f280b2;
+  --accent: rgba(236, 107, 160, 0.14);
+  --accent-foreground: #f5c2dc;
+  --ring: #f280b2;
+  --chart-1: #f472b6;
+  --sidebar-primary: #ec6ba0;
+  --sidebar-accent: rgba(236, 107, 160, 0.14);
+  --sidebar-accent-foreground: #f5c2dc;
+  --sidebar-ring: #f280b2;
+}
+
+[data-accent="amber"] {
+  --primary: #a8790a;
+  --primary-hover: #8f6608;
+  --primary-light: #c99a2e;
+  --accent: #f7ecd4;
+  --accent-foreground: #6b4d05;
+  --ring: #a8790a;
+  --chart-1: #c99a2e;
+  --sidebar-primary: #a8790a;
+  --sidebar-accent: #f7ecd4;
+  --sidebar-accent-foreground: #6b4d05;
+  --sidebar-ring: #a8790a;
+}
+.dark[data-accent="amber"] {
+  --primary: #d4a53a;
+  --primary-hover: #e0b654;
+  --primary-light: #e0b654;
+  --accent: rgba(212, 165, 58, 0.14);
+  --accent-foreground: #ecd39d;
+  --ring: #e0b654;
+  --chart-1: #eab308;
+  --sidebar-primary: #d4a53a;
+  --sidebar-accent: rgba(212, 165, 58, 0.14);
+  --sidebar-accent-foreground: #ecd39d;
+  --sidebar-ring: #e0b654;
 }
 
 @layer base {

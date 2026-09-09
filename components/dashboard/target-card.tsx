@@ -127,7 +127,7 @@ export function MonthlyTargetCard({
         <div className="mt-5">
           <div className="h-2 w-full overflow-hidden rounded-full bg-foreground/[0.07]">
             <motion.div
-              className="h-full rounded-full bg-gradient-to-r from-primary to-[#8f7fff]"
+              className="h-full rounded-full bg-gradient-to-r from-primary to-primary-light"
               initial={{ width: 0 }}
               animate={{ width: `${clamped}%` }}
               transition={{ duration: 0.8, ease: "easeOut" }}

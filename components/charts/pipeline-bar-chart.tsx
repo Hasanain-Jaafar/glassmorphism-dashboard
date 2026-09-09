@@ -13,7 +13,12 @@ import {
 import type { PipelineStage } from "@/lib/mock-data";
 import { formatNumber } from "@/lib/format";
 
-const STAGE_COLORS = ["var(--primary)", "#8f7fff", "var(--chart-2)", "var(--chart-3)"];
+const STAGE_COLORS = [
+  "var(--primary)",
+  "var(--primary-light)",
+  "var(--chart-2)",
+  "var(--chart-3)",
+];
 
 function ChartTooltip({
   active,

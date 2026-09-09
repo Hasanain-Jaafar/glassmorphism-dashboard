@@ -45,7 +45,7 @@ export function SalespersonRankChart({ people }: { people: RankedPerson[] }) {
             </div>
             <div className="h-1.5 w-full overflow-hidden rounded-full bg-foreground/[0.07]">
               <motion.div
-                className="h-full rounded-full bg-gradient-to-r from-primary to-[#8f7fff]"
+                className="h-full rounded-full bg-gradient-to-r from-primary to-primary-light"
                 initial={{ width: 0 }}
                 animate={{
                   width: max ? `${(person.contributionPct / max) * 100}%` : "0%",
