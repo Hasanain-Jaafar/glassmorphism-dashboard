@@ -215,16 +215,15 @@ function buildColumns(
                 </DropdownMenuItem>
               )}
               {quotation.status === "accepted" && (
-                <>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => actions.onConvertToDeal(quotation)}>
-                    <Handshake className="size-3.5" />
-                    Convert to Deal
-                  </DropdownMenuItem>
-                </>
+                <DropdownMenuItem onClick={() => actions.onConvertToDeal(quotation)}>
+                  <Handshake className="size-3.5" />
+                  Convert to Deal
+                </DropdownMenuItem>
               )}
               <>
-                {quotation.status !== "accepted" && <DropdownMenuSeparator />}
+                {quotation.status !== "rejected" && quotation.status !== "expired" && (
+                  <DropdownMenuSeparator />
+                )}
                 <DropdownMenuItem
                   variant="destructive"
                   onClick={() => actions.onDelete(quotation)}
