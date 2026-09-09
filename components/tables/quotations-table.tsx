@@ -19,7 +19,6 @@ import {
   CheckCircle2,
   ChevronsUpDown,
   Clock,
-  FilePenLine,
   Handshake,
   MoreHorizontal,
   Send,
@@ -195,10 +194,6 @@ function buildColumns(
               <MoreHorizontal className="size-4" />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => actions.onEdit(quotation)}>
-                <FilePenLine className="size-3.5" />
-                Edit Quotation
-              </DropdownMenuItem>
               {quotation.status === "draft" && (
                 <DropdownMenuItem
                   onClick={() => actions.onStatusChange(quotation, "sent")}
@@ -212,7 +207,7 @@ function buildColumns(
                   onClick={() => actions.onStatusChange(quotation, "accepted")}
                 >
                   <CheckCircle2 className="size-3.5" />
-                  Mark Accepted
+                  Accepted
                 </DropdownMenuItem>
               )}
               {quotation.status === "accepted" && !hasDeal && (
@@ -232,7 +227,7 @@ function buildColumns(
                     onClick={() => actions.onDelete(quotation)}
                   >
                     <Trash2 className="size-3.5" />
-                    Delete Quotation
+                    Delete
                   </DropdownMenuItem>
                 </>
               )}
