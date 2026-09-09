@@ -40,7 +40,7 @@ export function RepRoster({
         />
       </div>
 
-      <ul className="mt-3 flex-1 space-y-0.5 overflow-y-auto">
+      <ul className="mt-3 flex-1 space-y-0.5 overflow-y-auto p-1.5 -m-1.5">
         {people === null ? (
           [0, 1, 2, 3].map((i) => (
             <li key={i} className="p-1">
