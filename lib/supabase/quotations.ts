@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/client";
+import { workingDaysElapsed } from "@/lib/working-days";
 
 export type QuotationStatus = "draft" | "sent" | "accepted" | "rejected" | "expired";
 
@@ -28,6 +29,8 @@ export type Quotation = {
   rejectionReason: QuotationRejectionReason | null;
   items: QuotationItem[];
   createdAt: string;
+  /** ISO datetime of the most recent transition to "sent", or null if never sent (or since reverted to draft). */
+  sentAt: string | null;
 };
 
 type QuotationItemRow = {
@@ -47,11 +50,12 @@ type QuotationRow = {
   valid_until: string | null;
   rejection_reason: QuotationRejectionReason | null;
   created_at: string;
+  sent_at: string | null;
   quotation_items: QuotationItemRow[];
 };
 
 const SELECT_COLUMNS =
-  "id, sales_rep_id, customer_id, appointment_id, status, total, valid_until, rejection_reason, created_at, quotation_items(id, product_id, quantity, unit_price)";
+  "id, sales_rep_id, customer_id, appointment_id, status, total, valid_until, rejection_reason, created_at, sent_at, quotation_items(id, product_id, quantity, unit_price)";
 
 function fromRow(row: QuotationRow): Quotation {
   return {
@@ -70,6 +74,7 @@ function fromRow(row: QuotationRow): Quotation {
       unitPrice: Number(item.unit_price),
     })),
     createdAt: row.created_at,
+    sentAt: row.sent_at,
   };
 }
 
@@ -100,6 +105,22 @@ export type QuotationInput = {
 
 function quotationTotal(items: QuotationItemInput[]): number {
   return items.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0);
+}
+
+/**
+ * sent_at tracks the most recent transition into "sent" — set the first
+ * time (or re-set if it was reverted to draft and re-sent), preserved
+ * across an unrelated edit while already sent, and cleared for any other
+ * status so the follow-up clock always reflects the *current* sent spell.
+ */
+function resolveSentAt(
+  existing: { status: QuotationStatus; sentAt: string | null } | null,
+  newStatus: QuotationStatus
+): string | null {
+  if (newStatus !== "sent") return null;
+  return existing?.status === "sent" && existing.sentAt
+    ? existing.sentAt
+    : new Date().toISOString();
 }
 
 // Customer + Sales Rep are always derived from the linked appointment, never
@@ -134,6 +155,7 @@ export async function createQuotation(values: QuotationInput): Promise<Quotation
       total: quotationTotal(values.items),
       valid_until: values.validUntil,
       rejection_reason: values.rejectionReason,
+      sent_at: resolveSentAt(null, values.status),
     })
     .select("id")
     .single();
@@ -163,6 +185,13 @@ export async function updateQuotation(
     supabase,
     values.appointmentId
   );
+  const { data: existing, error: fetchError } = await supabase
+    .from("quotations")
+    .select("status, sent_at")
+    .eq("id", id)
+    .single();
+  if (fetchError) throw fetchError;
+
   const { error } = await supabase
     .from("quotations")
     .update({
@@ -173,6 +202,10 @@ export async function updateQuotation(
       total: quotationTotal(values.items),
       valid_until: values.validUntil,
       rejection_reason: values.rejectionReason,
+      sent_at: resolveSentAt(
+        { status: existing.status, sentAt: existing.sent_at },
+        values.status
+      ),
     })
     .eq("id", id);
   if (error) throw error;
@@ -208,9 +241,22 @@ export async function updateQuotationStatus(
   status: Exclude<QuotationStatus, "rejected">
 ): Promise<Quotation> {
   const supabase = createClient();
+  const { data: existing, error: fetchError } = await supabase
+    .from("quotations")
+    .select("status, sent_at")
+    .eq("id", id)
+    .single();
+  if (fetchError) throw fetchError;
+
   const { error } = await supabase
     .from("quotations")
-    .update({ status })
+    .update({
+      status,
+      sent_at: resolveSentAt(
+        { status: existing.status, sentAt: existing.sent_at },
+        status
+      ),
+    })
     .eq("id", id);
   if (error) throw error;
   return fetchQuotationById(id);
@@ -228,6 +274,17 @@ export async function deleteQuotation(id: string): Promise<void> {
     }
     throw error;
   }
+}
+
+/** A quotation sitting in "sent" this long with no response needs a follow-up nudge. */
+export const SENT_FOLLOWUP_WORKING_DAYS = 3;
+
+export function isQuotationOverdue(
+  quotation: Pick<Quotation, "status" | "sentAt">,
+  now: Date = new Date()
+): boolean {
+  if (quotation.status !== "sent" || !quotation.sentAt) return false;
+  return workingDaysElapsed(new Date(quotation.sentAt), now) >= SENT_FOLLOWUP_WORKING_DAYS;
 }
 
 async function fetchQuotationById(id: string): Promise<Quotation> {

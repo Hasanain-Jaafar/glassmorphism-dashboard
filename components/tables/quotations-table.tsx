@@ -18,6 +18,7 @@ import {
   CalendarClock,
   CheckCircle2,
   ChevronsUpDown,
+  Clock,
   FilePenLine,
   Handshake,
   MoreHorizontal,
@@ -33,7 +34,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import type { Quotation, QuotationStatus } from "@/lib/supabase/quotations";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { isQuotationOverdue, type Quotation, type QuotationStatus } from "@/lib/supabase/quotations";
 import type { Appointment } from "@/lib/supabase/appointments";
 import type { Customer } from "@/lib/customers-data";
 import type { TeamMember } from "@/lib/supabase/team";
@@ -43,6 +45,7 @@ import {
   quotationStatusStyles,
 } from "@/components/quotations/quotation-styles";
 import { formatUSD } from "@/lib/format";
+import { workingDaysElapsed } from "@/lib/working-days";
 
 const features = tableFeatures({
   rowSortingFeature,
@@ -135,15 +138,30 @@ function buildColumns(
       header: "Status",
       cell: (info) => {
         const status = info.getValue();
-        return (
+        const quotation = info.row.original;
+        const overdue = isQuotationOverdue(quotation);
+        const badge = (
           <span
             className={cn(
-              "rounded-full px-2 py-0.5 text-xs font-medium whitespace-nowrap",
-              quotationStatusStyles[status]
+              "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium whitespace-nowrap",
+              overdue ? "bg-warning/10 text-warning" : quotationStatusStyles[status]
             )}
           >
+            {overdue && <Clock className="size-3" />}
             {quotationStatusLabels[status]}
           </span>
+        );
+        if (!overdue || !quotation.sentAt) return badge;
+        const days = workingDaysElapsed(new Date(quotation.sentAt));
+        return (
+          <Tooltip>
+            <TooltipTrigger render={<span className="inline-flex" />}>
+              {badge}
+            </TooltipTrigger>
+            <TooltipContent>
+              Sent {days} working days ago — follow up
+            </TooltipContent>
+          </Tooltip>
         );
       },
     }),
