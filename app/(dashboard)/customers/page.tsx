@@ -14,7 +14,6 @@ import {
 } from "lucide-react";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { MetricCard } from "@/components/dashboard/metric-card";
-import { CustomerStatusCard } from "@/components/customers/customer-status-card";
 import { Reveal } from "@/components/motion/reveal";
 import { useAuth } from "@/components/providers/auth-provider";
 import { Button } from "@/components/ui/button";
@@ -306,7 +305,7 @@ export default function CustomersPage() {
       </Reveal>
 
       <Reveal delay={0.05}>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 lg:gap-6 xl:grid-cols-5">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 lg:gap-6">
           <MetricCard
             label="Total Customers"
             value={String(stats.total)}
@@ -339,7 +338,6 @@ export default function CustomersPage() {
             icon={Wallet}
             tone="primary"
           />
-          <CustomerStatusCard customers={customersWithAggregates ?? []} />
         </div>
       </Reveal>
 
