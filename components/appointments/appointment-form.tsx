@@ -19,7 +19,11 @@ import { DialogClose, DialogFooter } from "@/components/ui/dialog";
 import type { Appointment, AppointmentStatus } from "@/lib/supabase/appointments";
 import type { Customer } from "@/lib/customers-data";
 import type { TeamMember } from "@/lib/supabase/team";
-import { appointmentStatusLabels } from "@/components/appointments/appointment-styles";
+import { cn } from "@/lib/utils";
+import {
+  appointmentStatusLabels,
+  appointmentStatusStyles,
+} from "@/components/appointments/appointment-styles";
 
 // Working-hours slots, 30 minutes apart. The last slot is 3:30 PM, not
 // 4:00 PM — 4:00 PM is the end of the business day, not a bookable start
@@ -175,29 +179,24 @@ export function AppointmentForm({
     return slots;
   }, [minScheduledAtDate, watchedDate, watchedTime]);
 
-  // Completed vs. Cancelled/No Show is a historical fact about whether the
-  // meeting happened, not a placeholder — so status can't cross that line
-  // once set, in either direction. Cancelled <-> No Show stays open (both
-  // still mean "didn't happen", just reclassifying why), and Scheduled is
-  // unrestricted either way. Based on the appointment's original status
-  // (not the live form value), so working around this via an intermediate
-  // pick within the same dialog session doesn't help either.
-  const attendanceOutcome = (
-    status: AppointmentStatus
-  ): "happened" | "did-not-happen" | null =>
-    status === "completed"
-      ? "happened"
-      : status === "scheduled"
-        ? null
-        : "did-not-happen";
-  const originalOutcome = appointment ? attendanceOutcome(appointment.status) : null;
+  // Completed is a terminal fact — the meeting definitively happened, so
+  // nothing about that appointment's status is still up for debate. Locked
+  // entirely rather than just excluded from the list, matching how a
+  // quotation/deal locks once it has a child record.
+  const isCompletedLocked = appointment?.status === "completed";
+
+  // Cancelled/No Show already recorded that the meeting didn't happen —
+  // that's historical fact too, so status can't jump straight to Completed
+  // after the fact. Reclassifying between Cancelled <-> No Show, or moving
+  // back to Scheduled to reschedule, are still fine — neither contradicts
+  // "didn't happen (yet)". Based on the appointment's original status, not
+  // the live form value, so an intermediate pick within the same dialog
+  // session doesn't work around this either.
+  const wasNeverAttended =
+    appointment?.status === "cancelled" || appointment?.status === "no_show";
   const selectableStatuses = (
     Object.keys(appointmentStatusLabels) as AppointmentStatus[]
-  ).filter((status) => {
-    if (!originalOutcome) return true;
-    const targetOutcome = attendanceOutcome(status);
-    return targetOutcome === null || targetOutcome === originalOutcome;
-  });
+  ).filter((status) => !(wasNeverAttended && status === "completed"));
 
   async function submit(values: FormOutput) {
     const scheduled = combineDateTime(values.scheduledDate, values.scheduledTime);
@@ -327,40 +326,55 @@ export function AppointmentForm({
       <Controller
         control={control}
         name="status"
-        render={({ field }) => (
-          <div className="space-y-1.5 sm:col-span-2">
-            <Label>Status</Label>
-            <Select
-              value={field.value}
-              onValueChange={(value) =>
-                value && field.onChange(value as AppointmentStatus)
-              }
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue>
-                  {(value: string) =>
-                    appointmentStatusLabels[value as AppointmentStatus] ?? value
-                  }
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                {selectableStatuses.map((status) => (
-                  <SelectItem key={status} value={status}>
-                    {appointmentStatusLabels[status]}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {originalOutcome && (
+        render={({ field }) =>
+          isCompletedLocked ? (
+            <div className="space-y-1.5 sm:col-span-2">
+              <Label>Status</Label>
+              <span
+                className={cn(
+                  "flex h-8 w-fit items-center rounded-full px-2.5 text-xs font-medium",
+                  appointmentStatusStyles.completed
+                )}
+              >
+                {appointmentStatusLabels.completed}
+              </span>
               <p className="text-xs text-text-tertiary">
-                Recorded as {appointmentStatusLabels[appointment!.status]} —{" "}
-                {originalOutcome === "happened"
-                  ? "the meeting already happened, so it can't become Cancelled or No Show."
-                  : "the meeting never happened, so it can't become Completed."}
+                Locked — a completed appointment can&apos;t change status.
               </p>
-            )}
-          </div>
-        )}
+            </div>
+          ) : (
+            <div className="space-y-1.5 sm:col-span-2">
+              <Label>Status</Label>
+              <Select
+                value={field.value}
+                onValueChange={(value) =>
+                  value && field.onChange(value as AppointmentStatus)
+                }
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue>
+                    {(value: string) =>
+                      appointmentStatusLabels[value as AppointmentStatus] ?? value
+                    }
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {selectableStatuses.map((status) => (
+                    <SelectItem key={status} value={status}>
+                      {appointmentStatusLabels[status]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {wasNeverAttended && (
+                <p className="text-xs text-text-tertiary">
+                  Recorded as {appointmentStatusLabels[appointment!.status]} — the
+                  meeting never happened, so it can&apos;t become Completed.
+                </p>
+              )}
+            </div>
+          )
+        }
       />
 
       {isAdmin && (
