@@ -120,30 +120,60 @@ export function CoachingPanel({
   ).length;
   const lastNote = notes[0];
 
+  const typeCounts = coachingNoteTypes.map((t) => ({
+    ...t,
+    count: notes.filter((n) => n.type === t.value).length,
+  }));
+  const praiseCount = typeCounts.find((t) => t.value === "praise")?.count ?? 0;
+  const concernCount = typeCounts.find((t) => t.value === "concern")?.count ?? 0;
+  const sentiment =
+    notes.length === 0
+      ? null
+      : praiseCount > concernCount
+        ? { label: "Trending Positive", className: "bg-success/10 text-success" }
+        : concernCount > praiseCount
+          ? { label: "Needs Attention", className: "bg-warning/10 text-warning" }
+          : {
+              label: "Balanced",
+              className: "bg-foreground/[0.06] text-text-tertiary",
+            };
+
   return (
     <div className="space-y-4">
       <div className="glass-panel rounded-2xl p-5 shadow-sm sm:p-6">
-        <div className="flex items-center gap-3">
-          <div className="flex size-11 shrink-0 items-center justify-center overflow-hidden rounded-full bg-accent text-sm font-semibold text-accent-foreground">
-            {person.avatarUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={person.avatarUrl}
-                alt=""
-                className="size-full object-cover"
-              />
-            ) : (
-              person.initials
-            )}
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="flex size-11 shrink-0 items-center justify-center overflow-hidden rounded-full bg-accent text-sm font-semibold text-accent-foreground">
+              {person.avatarUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={person.avatarUrl}
+                  alt=""
+                  className="size-full object-cover"
+                />
+              ) : (
+                person.initials
+              )}
+            </div>
+            <div className="min-w-0">
+              <p className="truncate text-sm font-semibold text-foreground">
+                {person.name}
+              </p>
+              <p className="truncate text-xs text-text-tertiary">
+                {roleLabels[person.role]}
+              </p>
+            </div>
           </div>
-          <div className="min-w-0">
-            <p className="truncate text-sm font-semibold text-foreground">
-              {person.name}
-            </p>
-            <p className="truncate text-xs text-text-tertiary">
-              {roleLabels[person.role]}
-            </p>
-          </div>
+          {sentiment && (
+            <span
+              className={cn(
+                "shrink-0 rounded-full px-2.5 py-1 text-[11px] font-medium whitespace-nowrap",
+                sentiment.className
+              )}
+            >
+              {sentiment.label}
+            </span>
+          )}
         </div>
 
         <div className="mt-5 grid grid-cols-3 gap-3 border-t border-glass-border pt-4 text-center">
@@ -162,6 +192,38 @@ export function CoachingPanel({
             <p className="text-xs text-text-tertiary">Last Note</p>
           </div>
         </div>
+
+        {notes.length > 0 && (
+          <div className="mt-4 border-t border-glass-border pt-4">
+            <div className="flex h-1.5 w-full overflow-hidden rounded-full bg-foreground/[0.06]">
+              {typeCounts.map((t) => {
+                const pct = (t.count / notes.length) * 100;
+                if (pct === 0) return null;
+                return (
+                  <div
+                    key={t.value}
+                    className={cn("h-full", noteTypeTone[t.value].dot)}
+                    style={{ width: `${pct}%` }}
+                  />
+                );
+              })}
+            </div>
+            <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5">
+              {typeCounts.map((t) => (
+                <span
+                  key={t.value}
+                  className="flex items-center gap-1.5 text-xs text-text-tertiary"
+                >
+                  <span
+                    className={cn("size-1.5 rounded-full", noteTypeTone[t.value].dot)}
+                  />
+                  {t.label}{" "}
+                  <span className="font-medium text-foreground">{t.count}</span>
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="glass-panel rounded-2xl p-5 shadow-sm sm:p-6">
