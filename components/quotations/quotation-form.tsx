@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Controller, useFieldArray, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -12,7 +12,9 @@ import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
+  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
@@ -127,6 +129,24 @@ export function QuotationForm({
   );
 
   const { fields, append, remove } = useFieldArray({ control, name: "items" });
+
+  // Grouped by category (each sorted alphabetically) so browsing the
+  // product picker means scanning a handful of category headers instead of
+  // one long flat list.
+  const productsByCategory = useMemo(() => {
+    const groups = new Map<string, Product[]>();
+    for (const product of products) {
+      const list = groups.get(product.category);
+      if (list) list.push(product);
+      else groups.set(product.category, [product]);
+    }
+    return [...groups.entries()]
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([category, items]) => ({
+        category,
+        products: [...items].sort((a, b) => a.name.localeCompare(b.name)),
+      }));
+  }, [products]);
 
   const watchedAppointmentId = watch("appointmentId");
   const watchedStatus = watch("status");
@@ -476,10 +496,15 @@ export function QuotationForm({
                           </SelectValue>
                         </SelectTrigger>
                         <SelectContent>
-                          {products.map((product) => (
-                            <SelectItem key={product.id} value={product.id}>
-                              {product.name}
-                            </SelectItem>
+                          {productsByCategory.map(({ category, products: categoryProducts }) => (
+                            <SelectGroup key={category}>
+                              <SelectLabel>{category}</SelectLabel>
+                              {categoryProducts.map((product) => (
+                                <SelectItem key={product.id} value={product.id}>
+                                  {product.name}
+                                </SelectItem>
+                              ))}
+                            </SelectGroup>
                           ))}
                         </SelectContent>
                       </Select>
