@@ -111,7 +111,7 @@ export function Sidebar() {
       <div className="flex items-center gap-2.5 px-4 py-5 md:justify-center lg:justify-start group-data-[collapsed=true]/sidebar:lg:justify-center group-data-[collapsed=true]/sidebar:lg:gap-0">
         <div className="flex size-9 shrink-0 items-center justify-center">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/favicon128x128.png" alt="" className="size-7" />
+          <img src="/logo-mark.png" alt="" className="size-8" />
         </div>
         <span className="hidden max-w-[160px] overflow-hidden text-sm font-semibold tracking-tight whitespace-nowrap opacity-100 transition-[max-width,opacity] duration-300 ease-out lg:inline-block group-data-[collapsed=true]/sidebar:lg:max-w-0 group-data-[collapsed=true]/sidebar:lg:opacity-0">
           Sales Dashboard
