@@ -77,9 +77,9 @@ export function ThreadList({
               type="button"
               onClick={() => onSelect(admin.id)}
               className={cn(
-                "flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left transition-colors",
+                "flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-left transition-colors",
                 admin.id === activeOtherId
-                  ? "bg-primary/10 text-foreground"
+                  ? "bg-primary/10 text-foreground ring-1 ring-primary/25"
                   : "text-text-secondary hover:bg-foreground/[0.04]"
               )}
             >
