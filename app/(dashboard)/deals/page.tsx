@@ -415,6 +415,7 @@ function DealsPageContent() {
             data={filtered}
             customers={customers}
             salespeople={salespeople}
+            quotations={quotations}
             invoiceDealIds={invoiceDealIds}
             onEdit={openEditForm}
             onStatusChange={handleStatusChange}

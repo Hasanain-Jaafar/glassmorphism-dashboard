@@ -11,11 +11,13 @@ import {
 } from "@tanstack/react-table";
 import type { SortingState } from "@tanstack/react-table";
 import { format } from "date-fns";
+import Link from "next/link";
 import {
   ArrowDown,
   ArrowUp,
   ChevronsUpDown,
   FilePenLine,
+  FileText,
   MoreHorizontal,
   Receipt,
   ThumbsDown,
@@ -32,6 +34,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import type { Deal, DealStatus } from "@/lib/supabase/deals";
+import type { Quotation } from "@/lib/supabase/quotations";
 import type { Customer } from "@/lib/customers-data";
 import type { TeamMember } from "@/lib/supabase/team";
 import { dealStatusLabels, dealStatusStyles } from "@/components/deals/deal-styles";
@@ -48,6 +51,7 @@ const columnHelper = createColumnHelper<typeof features, Deal>();
 function buildColumns(
   customersById: Map<string, Customer>,
   salespeopleById: Map<string, TeamMember>,
+  quotationsById: Map<string, Quotation>,
   invoiceDealIds: Set<string>,
   actions: {
     onEdit: (deal: Deal) => void;
@@ -71,6 +75,26 @@ function buildColumns(
               {customer?.company ?? "Unassigned"}
             </p>
           </button>
+        );
+      },
+    }),
+    columnHelper.accessor("quotationId", {
+      header: "Quotation",
+      cell: (info) => {
+        const quotation = quotationsById.get(info.getValue());
+        if (!quotation) {
+          return <span className="text-text-tertiary">—</span>;
+        }
+        return (
+          <Link
+            href={`/quotations?id=${quotation.id}`}
+            className="inline-flex min-w-0 items-center gap-1.5 text-text-secondary transition-colors hover:text-primary hover:underline"
+          >
+            <FileText className="size-3.5 shrink-0" />
+            <span className="tabular-nums whitespace-nowrap">
+              {formatUSD(quotation.total)}
+            </span>
+          </Link>
         );
       },
     }),
@@ -187,6 +211,7 @@ export function DealsTable({
   data,
   customers,
   salespeople,
+  quotations,
   invoiceDealIds,
   onEdit,
   onStatusChange,
@@ -197,6 +222,7 @@ export function DealsTable({
   data: Deal[];
   customers: Customer[];
   salespeople: TeamMember[];
+  quotations: Quotation[];
   /** Deal ids that already have an invoice — those can't be deleted. */
   invoiceDealIds: Set<string>;
   onEdit: (deal: Deal) => void;
@@ -218,10 +244,14 @@ export function DealsTable({
     () => new Map(salespeople.map((p) => [p.id, p])),
     [salespeople]
   );
+  const quotationsById = useMemo(
+    () => new Map(quotations.map((q) => [q.id, q])),
+    [quotations]
+  );
 
   const columns = useMemo(
     () =>
-      buildColumns(customersById, salespeopleById, invoiceDealIds, {
+      buildColumns(customersById, salespeopleById, quotationsById, invoiceDealIds, {
         onEdit,
         onStatusChange,
         onCreateInvoice,
@@ -230,6 +260,7 @@ export function DealsTable({
     [
       customersById,
       salespeopleById,
+      quotationsById,
       invoiceDealIds,
       onEdit,
       onStatusChange,
@@ -249,7 +280,7 @@ export function DealsTable({
   return (
     <div className="glass-panel overflow-hidden rounded-2xl shadow-sm">
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[860px] text-sm">
+        <table className="w-full min-w-[980px] text-sm">
           <thead>
             {table.getHeaderGroups().map((headerGroup) => (
               <tr key={headerGroup.id} className="border-b border-glass-border">

@@ -11,9 +11,11 @@ import {
 } from "@tanstack/react-table";
 import type { SortingState } from "@tanstack/react-table";
 import { format } from "date-fns";
+import Link from "next/link";
 import {
   ArrowDown,
   ArrowUp,
+  CalendarClock,
   CheckCircle2,
   ChevronsUpDown,
   FilePenLine,
@@ -32,6 +34,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import type { Quotation, QuotationStatus } from "@/lib/supabase/quotations";
+import type { Appointment } from "@/lib/supabase/appointments";
 import type { Customer } from "@/lib/customers-data";
 import type { TeamMember } from "@/lib/supabase/team";
 import {
@@ -52,6 +55,7 @@ const columnHelper = createColumnHelper<typeof features, Quotation>();
 function buildColumns(
   customersById: Map<string, Customer>,
   salespeopleById: Map<string, TeamMember>,
+  appointmentsById: Map<string, Appointment>,
   dealQuotationIds: Set<string>,
   actions: {
     onEdit: (quotation: Quotation) => void;
@@ -78,6 +82,24 @@ function buildColumns(
               {customer?.company ?? "Unassigned"}
             </p>
           </button>
+        );
+      },
+    }),
+    columnHelper.accessor("appointmentId", {
+      header: "Appointment",
+      cell: (info) => {
+        const appointment = appointmentsById.get(info.getValue());
+        if (!appointment) {
+          return <span className="text-text-tertiary">—</span>;
+        }
+        return (
+          <Link
+            href={`/appointments?id=${appointment.id}`}
+            className="inline-flex min-w-0 items-center gap-1.5 text-text-secondary transition-colors hover:text-primary hover:underline"
+          >
+            <CalendarClock className="size-3.5 shrink-0" />
+            <span className="truncate">{appointment.title}</span>
+          </Link>
         );
       },
     }),
@@ -208,15 +230,18 @@ export function QuotationsTable({
   data,
   customers,
   salespeople,
+  appointments,
   dealQuotationIds,
   onEdit,
   onStatusChange,
   onConvertToDeal,
   onDelete,
+  highlightedId,
 }: {
   data: Quotation[];
   customers: Customer[];
   salespeople: TeamMember[];
+  appointments: Appointment[];
   /** Quotation ids that already have a deal — those can't be deleted. */
   dealQuotationIds: Set<string>;
   onEdit: (quotation: Quotation) => void;
@@ -226,6 +251,8 @@ export function QuotationsTable({
   ) => void;
   onConvertToDeal: (quotation: Quotation) => void;
   onDelete: (quotation: Quotation) => void;
+  /** Row to scroll to and briefly flash — see the `?id=` deep link handled in the page. */
+  highlightedId?: string | null;
 }) {
   const [sorting, setSorting] = useState<SortingState>([
     { id: "total", desc: true },
@@ -239,10 +266,14 @@ export function QuotationsTable({
     () => new Map(salespeople.map((p) => [p.id, p])),
     [salespeople]
   );
+  const appointmentsById = useMemo(
+    () => new Map(appointments.map((a) => [a.id, a])),
+    [appointments]
+  );
 
   const columns = useMemo(
     () =>
-      buildColumns(customersById, salespeopleById, dealQuotationIds, {
+      buildColumns(customersById, salespeopleById, appointmentsById, dealQuotationIds, {
         onEdit,
         onStatusChange,
         onConvertToDeal,
@@ -251,6 +282,7 @@ export function QuotationsTable({
     [
       customersById,
       salespeopleById,
+      appointmentsById,
       dealQuotationIds,
       onEdit,
       onStatusChange,
@@ -270,7 +302,7 @@ export function QuotationsTable({
   return (
     <div className="glass-panel overflow-hidden rounded-2xl shadow-sm">
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[900px] text-sm">
+        <table className="w-full min-w-[1020px] text-sm">
           <thead>
             {table.getHeaderGroups().map((headerGroup) => (
               <tr key={headerGroup.id} className="border-b border-glass-border">
@@ -313,7 +345,11 @@ export function QuotationsTable({
             {table.getRowModel().rows.map((row) => (
               <tr
                 key={row.id}
-                className="border-b border-glass-border/60 transition-colors last:border-0 hover:bg-foreground/[0.03]"
+                id={`quotation-${row.original.id}`}
+                className={cn(
+                  "border-b border-glass-border/60 transition-colors duration-500 last:border-0 hover:bg-foreground/[0.03]",
+                  highlightedId === row.original.id && "bg-primary/[0.08]"
+                )}
               >
                 {row.getAllCells().map((cell) => (
                   <td key={cell.id} className="px-4 py-3.5 first:pl-5 last:pr-5">

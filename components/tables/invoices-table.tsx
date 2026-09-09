@@ -11,6 +11,7 @@ import {
 } from "@tanstack/react-table";
 import type { SortingState } from "@tanstack/react-table";
 import { format } from "date-fns";
+import Link from "next/link";
 import {
   ArrowDown,
   ArrowUp,
@@ -18,6 +19,7 @@ import {
   ChevronsUpDown,
   CircleDollarSign,
   FilePenLine,
+  Handshake,
   MoreHorizontal,
   Send,
 } from "lucide-react";
@@ -30,6 +32,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import type { Invoice, InvoiceStatus } from "@/lib/supabase/invoices";
+import type { Deal } from "@/lib/supabase/deals";
 import type { Customer } from "@/lib/customers-data";
 import type { TeamMember } from "@/lib/supabase/team";
 import {
@@ -49,6 +52,7 @@ const columnHelper = createColumnHelper<typeof features, Invoice>();
 function buildColumns(
   customersById: Map<string, Customer>,
   salespeopleById: Map<string, TeamMember>,
+  dealsById: Map<string, Deal>,
   actions: {
     onEdit: (invoice: Invoice) => void;
     onStatusChange: (invoice: Invoice, status: InvoiceStatus) => void;
@@ -69,6 +73,26 @@ function buildColumns(
               {customer?.company ?? "Unassigned"}
             </p>
           </button>
+        );
+      },
+    }),
+    columnHelper.accessor("dealId", {
+      header: "Deal",
+      cell: (info) => {
+        const deal = dealsById.get(info.getValue());
+        if (!deal) {
+          return <span className="text-text-tertiary">—</span>;
+        }
+        return (
+          <Link
+            href={`/deals?id=${deal.id}`}
+            className="inline-flex min-w-0 items-center gap-1.5 text-text-secondary transition-colors hover:text-primary hover:underline"
+          >
+            <Handshake className="size-3.5 shrink-0" />
+            <span className="tabular-nums whitespace-nowrap">
+              {formatUSD(deal.amount)}
+            </span>
+          </Link>
         );
       },
     }),
@@ -182,12 +206,14 @@ export function InvoicesTable({
   data,
   customers,
   salespeople,
+  deals,
   onEdit,
   onStatusChange,
 }: {
   data: Invoice[];
   customers: Customer[];
   salespeople: TeamMember[];
+  deals: Deal[];
   onEdit: (invoice: Invoice) => void;
   onStatusChange: (invoice: Invoice, status: InvoiceStatus) => void;
 }) {
@@ -203,10 +229,15 @@ export function InvoicesTable({
     () => new Map(salespeople.map((p) => [p.id, p])),
     [salespeople]
   );
+  const dealsById = useMemo(() => new Map(deals.map((d) => [d.id, d])), [deals]);
 
   const columns = useMemo(
-    () => buildColumns(customersById, salespeopleById, { onEdit, onStatusChange }),
-    [customersById, salespeopleById, onEdit, onStatusChange]
+    () =>
+      buildColumns(customersById, salespeopleById, dealsById, {
+        onEdit,
+        onStatusChange,
+      }),
+    [customersById, salespeopleById, dealsById, onEdit, onStatusChange]
   );
 
   const table = useTable({
@@ -220,7 +251,7 @@ export function InvoicesTable({
   return (
     <div className="glass-panel overflow-hidden rounded-2xl shadow-sm">
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[900px] text-sm">
+        <table className="w-full min-w-[1000px] text-sm">
           <thead>
             {table.getHeaderGroups().map((headerGroup) => (
               <tr key={headerGroup.id} className="border-b border-glass-border">

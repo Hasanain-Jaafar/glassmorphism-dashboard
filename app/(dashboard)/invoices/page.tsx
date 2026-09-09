@@ -341,6 +341,7 @@ export default function InvoicesPage() {
             data={filtered}
             customers={customers}
             salespeople={salespeople}
+            deals={deals}
             onEdit={openEditForm}
             onStatusChange={handleStatusChange}
           />

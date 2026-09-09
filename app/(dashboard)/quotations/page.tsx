@@ -126,6 +126,29 @@ function QuotationsPageContent() {
     setFormOpen(true);
   }
 
+  // Deep link from a Deal row's "View Quotation" link: /quotations?id=<id>
+  // scrolls to and briefly flashes that row. Any active status filter could
+  // otherwise hide it, so drop it the moment a new id link arrives.
+  const highlightedId = searchParams.get("id");
+  const [flashId, setFlashId] = useState<string | null>(null);
+  const [prevHighlightedId, setPrevHighlightedId] = useState(highlightedId);
+  if (highlightedId !== prevHighlightedId) {
+    setPrevHighlightedId(highlightedId);
+    if (highlightedId) {
+      setStatusFilter(ALL);
+      setSearch("");
+      setFlashId(highlightedId);
+    }
+  }
+
+  useEffect(() => {
+    if (!highlightedId) return;
+    const el = document.getElementById(`quotation-${highlightedId}`);
+    el?.scrollIntoView({ behavior: "smooth", block: "center" });
+    const timeout = setTimeout(() => setFlashId(null), 2400);
+    return () => clearTimeout(timeout);
+  }, [highlightedId, quotations]);
+
   const customersById = useMemo(
     () => new Map(customers.map((c) => [c.id, c])),
     [customers]
@@ -140,6 +163,13 @@ function QuotationsPageContent() {
   // quotation for the same customer and date" means: no more than one
   // active (draft/sent/accepted) quotation per appointment. A rejected or
   // expired quotation doesn't block a re-quote of the same appointment.
+  //
+  // A cancelled or no-show appointment never happened, so it has nothing to
+  // quote — only scheduled (pre-meeting draft) or completed appointments are
+  // eligible. The exception is an appointment already linked to the
+  // quotation being edited: it must stay selectable even if it was
+  // cancelled after the fact, so an existing quotation never loses its
+  // appointment out from under it.
   const availableAppointments = useMemo(() => {
     const blockedAppointmentIds = new Set(
       (quotations ?? [])
@@ -147,7 +177,13 @@ function QuotationsPageContent() {
         .filter((q) => q.status !== "rejected" && q.status !== "expired")
         .map((q) => q.appointmentId)
     );
-    return appointments.filter((a) => !blockedAppointmentIds.has(a.id));
+    return appointments.filter(
+      (a) =>
+        !blockedAppointmentIds.has(a.id) &&
+        (a.status === "scheduled" ||
+          a.status === "completed" ||
+          a.id === editingQuotation?.appointmentId)
+    );
   }, [appointments, quotations, editingQuotation]);
 
   const stats = useMemo(() => {
@@ -413,11 +449,13 @@ function QuotationsPageContent() {
             data={filtered}
             customers={customers}
             salespeople={salespeople}
+            appointments={appointments}
             dealQuotationIds={dealQuotationIds}
             onEdit={openEditForm}
             onStatusChange={handleStatusChange}
             onConvertToDeal={handleConvertToDeal}
             onDelete={setDeleteTarget}
+            highlightedId={flashId}
           />
         )}
       </Reveal>
