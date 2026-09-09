@@ -19,6 +19,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { DialogClose, DialogFooter } from "@/components/ui/dialog";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import type {
   Quotation,
   QuotationRejectionReason,
@@ -156,21 +157,30 @@ export function QuotationForm({
     (sum, item) => sum + (Number(item.quantity) || 0) * (Number(item.unitPrice) || 0),
     0
   );
+  const missingProductIndex = watchedItems.findIndex((item) => !item.productId);
+  const missingProduct = missingProductIndex !== -1;
 
   function renderAddItemButton() {
-    const missingProduct = watchedItems.some((item) => !item.productId);
-    return (
+    const button = (
       <Button
         type="button"
         variant="outline"
         size="sm"
         disabled={missingProduct}
-        title={missingProduct ? "Select a product on the empty line item first" : undefined}
         onClick={() => append({ productId: "", quantity: 1, unitPrice: 0 })}
       >
         <Plus className="size-3.5" />
         Add Item
       </Button>
+    );
+    if (!missingProduct) return button;
+    return (
+      <Tooltip>
+        <TooltipTrigger render={<span className="inline-flex" />}>{button}</TooltipTrigger>
+        <TooltipContent>
+          Pick a product on line {missingProductIndex + 1} first
+        </TooltipContent>
+      </Tooltip>
     );
   }
 
@@ -438,6 +448,11 @@ export function QuotationForm({
           <Label>Line Items</Label>
           {!hasLinkedDeal && renderAddItemButton()}
         </div>
+        {!hasLinkedDeal && missingProduct && (
+          <p className="text-xs text-warning">
+            Pick a product on line {missingProductIndex + 1} to add another item.
+          </p>
+        )}
 
         {hasLinkedDeal ? (
           <div className="space-y-2">
@@ -484,8 +499,10 @@ export function QuotationForm({
                         <SelectTrigger
                           className={cn(
                             "w-full",
-                            errors.items?.[index]?.productId &&
-                              "border-danger focus-visible:ring-danger/40"
+                            errors.items?.[index]?.productId
+                              ? "border-danger focus-visible:ring-danger/40"
+                              : index === missingProductIndex &&
+                                  "border-warning ring-2 ring-warning/30"
                           )}
                         >
                           <SelectValue>
