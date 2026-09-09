@@ -97,10 +97,10 @@ function buildColumns(
         return (
           <Link
             href={`/appointments?id=${appointment.id}`}
-            className="inline-flex min-w-0 items-center gap-1.5 text-text-secondary transition-colors hover:text-primary hover:underline"
+            className="inline-flex max-w-[180px] items-center gap-1.5 text-text-secondary transition-colors hover:text-primary hover:underline"
           >
             <CalendarClock className="size-3.5 shrink-0" />
-            <span className="truncate">{appointment.title}</span>
+            <span className="min-w-0 truncate">{appointment.title}</span>
           </Link>
         );
       },
