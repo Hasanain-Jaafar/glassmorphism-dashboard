@@ -172,7 +172,7 @@ export function SignInForm() {
                 />
               </div>
               {error && <p className="text-sm text-danger">{error}</p>}
-              <Button type="submit" className="h-12 w-full" disabled={loading}>
+              <Button type="submit" className="w-full" disabled={loading}>
                 {loading && <Loader2 className="size-4 animate-spin" />}
                 Set new password
               </Button>
@@ -251,7 +251,7 @@ export function SignInForm() {
               {error && <p className="text-sm text-danger">{error}</p>}
               {notice && <p className="text-sm text-success">{notice}</p>}
 
-              <Button type="submit" className="h-12 w-full" disabled={loading}>
+              <Button type="submit" className="w-full" disabled={loading}>
                 {loading && <Loader2 className="size-4 animate-spin" />}
                 {mode === "sign-up" ? "Create account" : "Sign in"}
               </Button>
