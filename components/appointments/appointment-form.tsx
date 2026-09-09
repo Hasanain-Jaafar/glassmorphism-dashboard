@@ -175,17 +175,29 @@ export function AppointmentForm({
     return slots;
   }, [minScheduledAtDate, watchedDate, watchedTime]);
 
-  // A cancelled or no-show appointment already recorded that the meeting
-  // didn't happen — that's a historical fact about that appointment, not a
-  // placeholder, so it shouldn't be flippable to Completed after the fact.
-  // Based on the appointment's original status (not the live form value),
-  // so undoing the cancellation and re-picking Completed within the same
-  // dialog session doesn't work around this either.
-  const wasNeverAttended =
-    appointment?.status === "cancelled" || appointment?.status === "no_show";
+  // Completed vs. Cancelled/No Show is a historical fact about whether the
+  // meeting happened, not a placeholder — so status can't cross that line
+  // once set, in either direction. Cancelled <-> No Show stays open (both
+  // still mean "didn't happen", just reclassifying why), and Scheduled is
+  // unrestricted either way. Based on the appointment's original status
+  // (not the live form value), so working around this via an intermediate
+  // pick within the same dialog session doesn't help either.
+  const attendanceOutcome = (
+    status: AppointmentStatus
+  ): "happened" | "did-not-happen" | null =>
+    status === "completed"
+      ? "happened"
+      : status === "scheduled"
+        ? null
+        : "did-not-happen";
+  const originalOutcome = appointment ? attendanceOutcome(appointment.status) : null;
   const selectableStatuses = (
     Object.keys(appointmentStatusLabels) as AppointmentStatus[]
-  ).filter((status) => !(wasNeverAttended && status === "completed"));
+  ).filter((status) => {
+    if (!originalOutcome) return true;
+    const targetOutcome = attendanceOutcome(status);
+    return targetOutcome === null || targetOutcome === originalOutcome;
+  });
 
   async function submit(values: FormOutput) {
     const scheduled = combineDateTime(values.scheduledDate, values.scheduledTime);
@@ -339,10 +351,12 @@ export function AppointmentForm({
                 ))}
               </SelectContent>
             </Select>
-            {wasNeverAttended && (
+            {originalOutcome && (
               <p className="text-xs text-text-tertiary">
-                Recorded as {appointmentStatusLabels[appointment!.status]} — the
-                meeting never happened, so it can&apos;t become Completed.
+                Recorded as {appointmentStatusLabels[appointment!.status]} —{" "}
+                {originalOutcome === "happened"
+                  ? "the meeting already happened, so it can't become Cancelled or No Show."
+                  : "the meeting never happened, so it can't become Completed."}
               </p>
             )}
           </div>
