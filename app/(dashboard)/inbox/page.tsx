@@ -198,8 +198,18 @@ export default function InboxPage() {
 
       <Reveal delay={0.05}>
         <div className="glass-panel flex h-[calc(100vh-260px)] min-h-[520px] overflow-hidden rounded-2xl">
-          <div className="hidden w-72 shrink-0 border-r border-glass-border lg:block">
-            <ThreadList {...listProps} />
+          <div className="hidden w-72 shrink-0 flex-col border-r border-glass-border lg:flex">
+            <div className="shrink-0 border-b border-glass-border px-4 py-3.5">
+              <p className="text-sm font-semibold text-foreground">Conversations</p>
+              <p className="text-xs text-text-tertiary">
+                {admins?.length
+                  ? `${admins.length} admin${admins.length === 1 ? "" : "s"}`
+                  : "Admin-to-admin messages"}
+              </p>
+            </div>
+            <div className="min-h-0 flex-1">
+              <ThreadList {...listProps} />
+            </div>
           </div>
 
           <div className="flex min-w-0 flex-1 flex-col">
@@ -239,7 +249,7 @@ export default function InboxPage() {
       <Sheet open={mobileListOpen} onOpenChange={setMobileListOpen}>
         <SheetContent side="left" className="glass-panel w-72 p-0">
           <SheetHeader className="p-3 pb-0">
-            <SheetTitle>Admins</SheetTitle>
+            <SheetTitle>Conversations</SheetTitle>
           </SheetHeader>
           <ThreadList {...listProps} />
         </SheetContent>
