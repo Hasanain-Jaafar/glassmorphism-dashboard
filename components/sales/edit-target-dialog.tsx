@@ -110,9 +110,7 @@ export function EditTargetDialog({
       }}
     >
       {!isControlled && (
-        <DialogTrigger
-          render={<Button variant="outline" size="sm" className="gap-1.5" />}
-        >
+        <DialogTrigger render={<Button size="sm" className="gap-1.5" />}>
           <Pencil className="size-3.5" />
           {triggerLabel}
         </DialogTrigger>
