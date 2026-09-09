@@ -19,9 +19,9 @@ import {
  * hardcodes a Jan–Dec calendar year and the monthly-sales/active-reps
  * formula, so both controls could only ever mislead whoever touched them.
  * Removed rather than faked. Company Name is real and drives the sidebar
- * wordmark (components/dashboard/sidebar.tsx). Currency is shown as plain
- * fact, not an editable-looking disabled field — it's fixed app-wide
- * (CLAUDE.md §37), not a setting.
+ * wordmark (components/dashboard/sidebar.tsx). Currency isn't shown here at
+ * all — it's fixed app-wide (CLAUDE.md §37) with no control over it, so it
+ * isn't a "setting" and doesn't belong on a settings form.
  */
 export function CompanyDefaultsSection() {
   const [name, setName] = useState(DEFAULT_COMPANY_NAME);
@@ -70,34 +70,21 @@ export function CompanyDefaultsSection() {
       </p>
 
       {loading ? (
-        <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <Skeleton className="h-14 w-full" />
+        <div className="mt-6 max-w-sm">
           <Skeleton className="h-14 w-full" />
         </div>
       ) : (
-        <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div className="space-y-1.5">
-            <Label htmlFor="company-name">Company Name</Label>
-            <Input
-              id="company-name"
-              value={name}
-              onChange={(event) => setName(event.target.value)}
-              maxLength={80}
-            />
-            <p className="text-xs text-text-tertiary">
-              Shown in the sidebar for everyone.
-            </p>
-          </div>
-
-          <div className="space-y-1.5">
-            <Label>Currency</Label>
-            <p className="flex h-8 items-center text-sm text-text-secondary">
-              US Dollar (USD $)
-            </p>
-            <p className="text-xs text-text-tertiary">
-              Fixed for this dashboard — not configurable.
-            </p>
-          </div>
+        <div className="mt-6 max-w-sm space-y-1.5">
+          <Label htmlFor="company-name">Company Name</Label>
+          <Input
+            id="company-name"
+            value={name}
+            onChange={(event) => setName(event.target.value)}
+            maxLength={80}
+          />
+          <p className="text-xs text-text-tertiary">
+            Shown in the sidebar for everyone.
+          </p>
         </div>
       )}
 
