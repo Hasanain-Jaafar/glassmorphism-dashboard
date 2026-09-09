@@ -54,7 +54,7 @@ export function Topbar() {
       <div className="flex items-center gap-2 md:hidden">
         <div className="flex size-8 items-center justify-center rounded-lg bg-foreground/[0.04]">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/icon.svg" alt="" className="size-4.5" />
+          <img src="/favicon128x128.png" alt="" className="size-4.5" />
         </div>
       </div>
 

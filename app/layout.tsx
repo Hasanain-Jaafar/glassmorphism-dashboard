@@ -26,6 +26,14 @@ const zain = Zain({
 export const metadata: Metadata = {
   title: "Sales Dashboard",
   description: "Internal sales management dashboard.",
+  icons: {
+    icon: [
+      { url: "/favicon48x48.png", sizes: "48x48", type: "image/png" },
+      { url: "/favicon128x128.png", sizes: "128x128", type: "image/png" },
+    ],
+    shortcut: "/favicon48x48.png",
+    apple: "/favicon128x128.png",
+  },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

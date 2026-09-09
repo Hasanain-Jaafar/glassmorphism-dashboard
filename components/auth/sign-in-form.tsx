@@ -133,7 +133,7 @@ export function SignInForm() {
         <div className="mb-8 flex flex-col items-center text-center">
           <div className="flex size-11 items-center justify-center rounded-2xl bg-glass ring-1 ring-glass-border">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/icon.svg" alt="" className="size-6" />
+            <img src="/favicon128x128.png" alt="" className="size-6" />
           </div>
           <h1 className="mt-4 text-[26px] font-semibold tracking-tight text-foreground">
             {mode === "sign-up"
