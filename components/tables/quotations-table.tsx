@@ -184,6 +184,10 @@ function buildColumns(
       cell: (info) => {
         const quotation = info.row.original;
         const hasDeal = dealQuotationIds.has(quotation.id);
+        // Every action below requires !hasDeal (Mark Sent/Accepted also
+        // can't apply — a quotation with a deal is DB-locked to "accepted")
+        // — once converted, there's nothing left to do here.
+        if (hasDeal) return null;
         return (
           <DropdownMenu>
             <DropdownMenuTrigger
@@ -210,7 +214,7 @@ function buildColumns(
                   Accepted
                 </DropdownMenuItem>
               )}
-              {quotation.status === "accepted" && !hasDeal && (
+              {quotation.status === "accepted" && (
                 <>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={() => actions.onConvertToDeal(quotation)}>
@@ -219,18 +223,16 @@ function buildColumns(
                   </DropdownMenuItem>
                 </>
               )}
-              {!hasDeal && (
-                <>
-                  {quotation.status !== "accepted" && <DropdownMenuSeparator />}
-                  <DropdownMenuItem
-                    variant="destructive"
-                    onClick={() => actions.onDelete(quotation)}
-                  >
-                    <Trash2 className="size-3.5" />
-                    Delete
-                  </DropdownMenuItem>
-                </>
-              )}
+              <>
+                {quotation.status !== "accepted" && <DropdownMenuSeparator />}
+                <DropdownMenuItem
+                  variant="destructive"
+                  onClick={() => actions.onDelete(quotation)}
+                >
+                  <Trash2 className="size-3.5" />
+                  Delete
+                </DropdownMenuItem>
+              </>
             </DropdownMenuContent>
           </DropdownMenu>
         );
