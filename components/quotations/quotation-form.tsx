@@ -137,6 +137,23 @@ export function QuotationForm({
     0
   );
 
+  function renderAddItemButton() {
+    const missingProduct = watchedItems.some((item) => !item.productId);
+    return (
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        disabled={missingProduct}
+        title={missingProduct ? "Select a product on the empty line item first" : undefined}
+        onClick={() => append({ productId: "", quantity: 1, unitPrice: 0 })}
+      >
+        <Plus className="size-3.5" />
+        Add Item
+      </Button>
+    );
+  }
+
   const customersById = new Map(customers.map((c) => [c.id, c]));
   const salespeopleById = new Map(salespeople.map((p) => [p.id, p]));
   const selectedAppointment = appointments.find((a) => a.id === watchedAppointmentId);
@@ -398,23 +415,7 @@ export function QuotationForm({
       <div className="space-y-2 sm:col-span-2">
         <div className="flex items-center justify-between">
           <Label>Line Items</Label>
-          {!hasLinkedDeal && (
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              disabled={watchedItems.some((item) => !item.productId)}
-              title={
-                watchedItems.some((item) => !item.productId)
-                  ? "Select a product on the empty line item first"
-                  : undefined
-              }
-              onClick={() => append({ productId: "", quantity: 1, unitPrice: 0 })}
-            >
-              <Plus className="size-3.5" />
-              Add Item
-            </Button>
-          )}
+          {!hasLinkedDeal && renderAddItemButton()}
         </div>
 
         {hasLinkedDeal ? (
@@ -511,6 +512,9 @@ export function QuotationForm({
                 </div>
               ))}
             </div>
+            {fields.length >= 6 && (
+              <div className="flex justify-start">{renderAddItemButton()}</div>
+            )}
             {errors.items && !Array.isArray(errors.items) && (
               <p className="text-xs text-danger">{errors.items.message}</p>
             )}
