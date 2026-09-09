@@ -3,8 +3,10 @@
 import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
+import { format } from "date-fns";
 import {
   CheckCircle2,
+  Download,
   FilePenLine,
   FilePlus2,
   FileText,
@@ -61,6 +63,7 @@ import type { Customer } from "@/lib/customers-data";
 import type { Product } from "@/lib/mock-data";
 import { formatUSD } from "@/lib/format";
 import { monthlyCountWave, monthlySumWave } from "@/lib/kpi-wave";
+import { exportRowsAsCsv } from "@/lib/csv-export";
 
 const ALL = "all";
 
@@ -231,6 +234,27 @@ function QuotationsPageContent() {
     setStatusFilter(ALL);
   }
 
+  function handleExportCsv() {
+    const salespeopleById = new Map(salespeople.map((p) => [p.id, p]));
+    exportRowsAsCsv(`quotations-${format(new Date(), "yyyy-MM-dd")}.csv`, filtered, [
+      {
+        header: "Customer",
+        value: (q) => customersById.get(q.customerId ?? "")?.company ?? "Unassigned",
+      },
+      {
+        header: "Sales Rep",
+        value: (q) => salespeopleById.get(q.salesRepId)?.name ?? "Unassigned",
+      },
+      { header: "Status", value: (q) => quotationStatusLabels[q.status] },
+      { header: "Total", value: (q) => q.total },
+      {
+        header: "Valid Until",
+        value: (q) => (q.validUntil ? format(new Date(q.validUntil), "yyyy-MM-dd") : ""),
+      },
+      { header: "Created", value: (q) => format(new Date(q.createdAt), "yyyy-MM-dd") },
+    ]);
+  }
+
   function openAddForm() {
     setEditingQuotation(undefined);
     setInitialCustomerId(undefined);
@@ -322,10 +346,20 @@ function QuotationsPageContent() {
           title="Quotations"
           description="What we've quoted, and where it stands"
           actions={
-            <Button onClick={openAddForm}>
-              <FilePlus2 className="size-4" />
-              Add Quotation
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                onClick={handleExportCsv}
+                disabled={filtered.length === 0}
+              >
+                <Download className="size-4" />
+                Export CSV
+              </Button>
+              <Button onClick={openAddForm}>
+                <FilePlus2 className="size-4" />
+                Add Quotation
+              </Button>
+            </div>
           }
         />
       </Reveal>

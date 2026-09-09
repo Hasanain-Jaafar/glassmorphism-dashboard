@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
@@ -13,6 +14,10 @@ import {
 import { cn } from "@/lib/utils";
 import { useLocalStorageBoolean } from "@/lib/use-local-storage-boolean";
 import { useAuth } from "@/components/providers/auth-provider";
+import {
+  DEFAULT_COMPANY_NAME,
+  fetchCompanyName,
+} from "@/lib/supabase/company-settings";
 
 const STORAGE_KEY = "sidebar-collapsed";
 
@@ -20,6 +25,15 @@ export function Sidebar() {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useLocalStorageBoolean(STORAGE_KEY, false);
   const { isAdmin } = useAuth();
+  const [companyName, setCompanyName] = useState(DEFAULT_COMPANY_NAME);
+
+  useEffect(() => {
+    fetchCompanyName()
+      .then(setCompanyName)
+      .catch(() => {
+        // Sidebar wordmark just keeps the default — not worth a toast.
+      });
+  }, []);
 
   const visibleGroups = getVisibleNavGroups(isAdmin);
   const mainGroups = visibleGroups.filter((group) => group.label !== "System");
@@ -113,8 +127,8 @@ export function Sidebar() {
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/new.svg" alt="" className="size-8" />
         </div>
-        <span className="hidden max-w-[160px] overflow-hidden text-sm font-semibold tracking-tight whitespace-nowrap opacity-100 transition-[max-width,opacity] duration-300 ease-out lg:inline-block group-data-[collapsed=true]/sidebar:lg:max-w-0 group-data-[collapsed=true]/sidebar:lg:opacity-0">
-          Sales Dashboard
+        <span className="hidden max-w-[160px] truncate overflow-hidden text-sm font-semibold tracking-tight whitespace-nowrap opacity-100 transition-[max-width,opacity] duration-300 ease-out lg:inline-block group-data-[collapsed=true]/sidebar:lg:max-w-0 group-data-[collapsed=true]/sidebar:lg:opacity-0">
+          {companyName}
         </span>
       </div>
 

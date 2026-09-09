@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { AlertTriangle, CircleDollarSign, Receipt, Wallet } from "lucide-react";
+import { format } from "date-fns";
+import { AlertTriangle, CircleDollarSign, Download, Receipt, Wallet } from "lucide-react";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { MetricCard } from "@/components/dashboard/metric-card";
 import { Reveal } from "@/components/motion/reveal";
@@ -47,6 +48,7 @@ import {
 import type { Customer } from "@/lib/customers-data";
 import { formatUSD } from "@/lib/format";
 import { monthlyCountWave, monthlySumWave } from "@/lib/kpi-wave";
+import { exportRowsAsCsv } from "@/lib/csv-export";
 
 const ALL = "all";
 
@@ -169,6 +171,31 @@ export default function InvoicesPage() {
     setStatusFilter(ALL);
   }
 
+  function handleExportCsv() {
+    const salespeopleById = new Map(salespeople.map((p) => [p.id, p]));
+    exportRowsAsCsv(`invoices-${format(new Date(), "yyyy-MM-dd")}.csv`, filtered, [
+      {
+        header: "Customer",
+        value: (i) => customersById.get(i.customerId ?? "")?.company ?? "Unassigned",
+      },
+      {
+        header: "Sales Rep",
+        value: (i) => salespeopleById.get(i.salesRepId)?.name ?? "Unassigned",
+      },
+      { header: "Status", value: (i) => invoiceStatusLabels[i.status] },
+      { header: "Amount", value: (i) => i.amount },
+      {
+        header: "Due Date",
+        value: (i) => (i.dueDate ? format(new Date(i.dueDate), "yyyy-MM-dd") : ""),
+      },
+      {
+        header: "Paid",
+        value: (i) => (i.paidAt ? format(new Date(i.paidAt), "yyyy-MM-dd") : ""),
+      },
+      { header: "Created", value: (i) => format(new Date(i.createdAt), "yyyy-MM-dd") },
+    ]);
+  }
+
   function openAddForm() {
     setEditingInvoice(undefined);
     setFormOpen(true);
@@ -224,10 +251,20 @@ export default function InvoicesPage() {
           title="Invoices"
           description="What's paid, and what's still owed"
           actions={
-            <Button onClick={openAddForm}>
-              <Receipt className="size-4" />
-              Add Invoice
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                onClick={handleExportCsv}
+                disabled={filtered.length === 0}
+              >
+                <Download className="size-4" />
+                Export CSV
+              </Button>
+              <Button onClick={openAddForm}>
+                <Receipt className="size-4" />
+                Add Invoice
+              </Button>
+            </div>
           }
         />
       </Reveal>

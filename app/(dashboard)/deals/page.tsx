@@ -3,8 +3,10 @@
 import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
+import { format } from "date-fns";
 import {
   CircleDollarSign,
+  Download,
   Handshake,
   HandshakeIcon,
   TrendingUp,
@@ -55,6 +57,7 @@ import {
 import type { Customer } from "@/lib/customers-data";
 import { formatUSD } from "@/lib/format";
 import { monthlyCountWave, monthlySumWave } from "@/lib/kpi-wave";
+import { exportRowsAsCsv } from "@/lib/csv-export";
 
 const ALL = "all";
 
@@ -222,6 +225,27 @@ function DealsPageContent() {
     setStatusFilter(ALL);
   }
 
+  function handleExportCsv() {
+    const salespeopleById = new Map(salespeople.map((p) => [p.id, p]));
+    exportRowsAsCsv(`deals-${format(new Date(), "yyyy-MM-dd")}.csv`, filtered, [
+      {
+        header: "Customer",
+        value: (d) => customersById.get(d.customerId ?? "")?.company ?? "Unassigned",
+      },
+      {
+        header: "Sales Rep",
+        value: (d) => salespeopleById.get(d.salesRepId)?.name ?? "Unassigned",
+      },
+      { header: "Status", value: (d) => dealStatusLabels[d.status] },
+      { header: "Amount", value: (d) => d.amount },
+      {
+        header: "Closed",
+        value: (d) => (d.closedAt ? format(new Date(d.closedAt), "yyyy-MM-dd") : ""),
+      },
+      { header: "Created", value: (d) => format(new Date(d.createdAt), "yyyy-MM-dd") },
+    ]);
+  }
+
   function openAddForm() {
     setEditingDeal(undefined);
     setFormOpen(true);
@@ -300,10 +324,20 @@ function DealsPageContent() {
           title="Deals"
           description="What's open, what's won, and what's lost"
           actions={
-            <Button onClick={openAddForm}>
-              <Handshake className="size-4" />
-              Add Deal
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                onClick={handleExportCsv}
+                disabled={filtered.length === 0}
+              >
+                <Download className="size-4" />
+                Export CSV
+              </Button>
+              <Button onClick={openAddForm}>
+                <Handshake className="size-4" />
+                Add Deal
+              </Button>
+            </div>
           }
         />
       </Reveal>

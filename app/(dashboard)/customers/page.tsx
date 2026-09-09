@@ -3,7 +3,9 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { format } from "date-fns";
 import {
+  Download,
   Lock,
   Search,
   UserCheck,
@@ -66,6 +68,7 @@ import {
 } from "@/lib/customers-data";
 import { formatUSD } from "@/lib/format";
 import { cumulativeCountWave, monthlyCountWave, monthlySumWave } from "@/lib/kpi-wave";
+import { exportRowsAsCsv } from "@/lib/csv-export";
 
 const ALL = "all";
 
@@ -206,6 +209,26 @@ export default function CustomersPage() {
     setDateRange("all");
   }
 
+  function handleExportCsv() {
+    const salespeopleById = new Map(salespeople.map((p) => [p.id, p]));
+    exportRowsAsCsv(`customers-${format(new Date(), "yyyy-MM-dd")}.csv`, filtered, [
+      { header: "Company", value: (c) => c.company },
+      { header: "Contact Person", value: (c) => c.contactPerson },
+      { header: "Email", value: (c) => c.email },
+      { header: "Phone", value: (c) => c.phone },
+      { header: "Address", value: (c) => c.address },
+      { header: "Status", value: (c) => customerStatusLabels[c.status] },
+      {
+        header: "Sales Rep",
+        value: (c) => salespeopleById.get(c.assignedSalespersonId)?.name ?? "Unassigned",
+      },
+      { header: "Total Sales", value: (c) => c.totalSales },
+      { header: "Total Deals", value: (c) => c.totalDeals },
+      { header: "Outstanding Amount", value: (c) => c.outstandingAmount },
+      { header: "Created", value: (c) => format(new Date(c.createdAt), "yyyy-MM-dd") },
+    ]);
+  }
+
   function openAddForm() {
     setEditingCustomer(undefined);
     setFormOpen(true);
@@ -296,10 +319,20 @@ export default function CustomersPage() {
           title="Customers"
           description="Who your customers are, who owns them, and what they owe"
           actions={
-            <Button onClick={openAddForm}>
-              <UserPlus className="size-4" />
-              Add Customer
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                onClick={handleExportCsv}
+                disabled={filtered.length === 0}
+              >
+                <Download className="size-4" />
+                Export CSV
+              </Button>
+              <Button onClick={openAddForm}>
+                <UserPlus className="size-4" />
+                Add Customer
+              </Button>
+            </div>
           }
         />
       </Reveal>
