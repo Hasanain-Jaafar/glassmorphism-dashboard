@@ -268,20 +268,19 @@ export default function TeamPage() {
                   />
                 </div>
 
-                <ChartCard
-                  title="Top Contributors"
-                  description="Top 3 reps compared across sales, deals, conversion, and avg. deal — each axis relative to the leader"
-                >
-                  {ranking.length === 0 ? (
-                    <p className="py-6 text-center text-sm text-text-tertiary">
-                      Rankings will appear once your team is added.
-                    </p>
-                  ) : (
-                    <RepComparisonRadar reps={ranking} />
-                  )}
-                </ChartCard>
-
                 <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-6">
+                  <ChartCard
+                    title="Top Contributors"
+                    description="Top 3 reps compared across sales, deals, conversion, and avg. deal — each axis relative to the leader"
+                  >
+                    {ranking.length === 0 ? (
+                      <p className="py-6 text-center text-sm text-text-tertiary">
+                        Rankings will appear once your team is added.
+                      </p>
+                    ) : (
+                      <RepComparisonRadar reps={ranking} />
+                    )}
+                  </ChartCard>
                   <ChartCard
                     title="Team Health"
                     description="Target achievement, win rate, and average conversion"
@@ -294,6 +293,9 @@ export default function TeamPage() {
                       ]}
                     />
                   </ChartCard>
+                </div>
+
+                <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-6">
                   <ChartCard
                     title="Deals by Status"
                     description="Every deal currently in the pipeline"
