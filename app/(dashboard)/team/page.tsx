@@ -10,6 +10,7 @@ import {
   Wallet,
   Handshake,
   CircleDollarSign,
+  TrendingUp,
 } from "lucide-react";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { MetricCard } from "@/components/dashboard/metric-card";
@@ -18,6 +19,8 @@ import { DonutChart } from "@/components/charts/donut-chart";
 import { TeamHealthRadar } from "@/components/charts/team-health-radar";
 import { RepComparisonRadar } from "@/components/charts/rep-comparison-radar";
 import { SalespersonRankingTable } from "@/components/tables/salesperson-ranking-table";
+import { NeedsFollowUp } from "@/components/sales/needs-follow-up";
+import { WeeklyActivityCard } from "@/components/dashboard/weekly-activity-card";
 import { Reveal } from "@/components/motion/reveal";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -179,6 +182,20 @@ export default function TeamPage() {
     return { open, won, lost, winRate };
   }, [pipelineData]);
 
+  // How much of the team's remaining monthly gap is already covered by open
+  // pipeline value — the "will we actually hit target" check, distinct from
+  // "how much have we sold so far" (Team Sales above).
+  const pipelineCoverage = useMemo(() => {
+    const reps = repsWithTargets ?? [];
+    const openPipeline = reps.reduce((sum, r) => sum + r.openPipelineValue, 0);
+    const remaining = reps.reduce(
+      (sum, r) => sum + Math.max(r.monthlyTarget - r.monthlySales, 0),
+      0
+    );
+    const coveragePct = remaining ? (openPipeline / remaining) * 100 : 100;
+    return { openPipeline, remaining, coveragePct };
+  }, [repsWithTargets]);
+
   const teamKpiWaves = useMemo(() => {
     const wonDeals = pipelineData.deals.filter((d) => d.status === "won");
     const salesWave = monthlySumWave(
@@ -231,8 +248,8 @@ export default function TeamPage() {
 
             {teamMembers === null ? (
               <>
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 lg:gap-6">
-                  {[0, 1, 2].map((i) => (
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 lg:gap-6">
+                  {[0, 1, 2, 3].map((i) => (
                     <Skeleton key={i} className="h-[132px] w-full rounded-2xl" />
                   ))}
                 </div>
@@ -241,10 +258,14 @@ export default function TeamPage() {
                   <Skeleton className="h-72 w-full rounded-2xl" />
                   <Skeleton className="h-72 w-full rounded-2xl" />
                 </div>
+                <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-6">
+                  <Skeleton className="h-72 w-full rounded-2xl" />
+                  <Skeleton className="h-40 w-full rounded-2xl" />
+                </div>
               </>
             ) : (
               <>
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 lg:gap-6">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 lg:gap-6">
                   <MetricCard
                     label="Team Sales"
                     value={formatUSD(stats.monthlySalesTotal)}
@@ -268,6 +289,17 @@ export default function TeamPage() {
                     wave={teamKpiWaves.avgDealSizeWave}
                     icon={CircleDollarSign}
                     tone="cyan"
+                  />
+                  <MetricCard
+                    label="Pipeline Coverage"
+                    value={formatUSD(pipelineCoverage.openPipeline)}
+                    footnote={
+                      pipelineCoverage.remaining
+                        ? `Open pipeline · ${formatUSD(pipelineCoverage.remaining)} left to close`
+                        : "Open pipeline · monthly target already met"
+                    }
+                    icon={TrendingUp}
+                    tone={pipelineCoverage.coveragePct >= 100 ? "success" : "warning"}
                   />
                 </div>
 
@@ -313,6 +345,11 @@ export default function TeamPage() {
                       centerLabel="won"
                     />
                   </ChartCard>
+                </div>
+
+                <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-6">
+                  <NeedsFollowUp />
+                  <WeeklyActivityCard />
                 </div>
               </>
             )}
