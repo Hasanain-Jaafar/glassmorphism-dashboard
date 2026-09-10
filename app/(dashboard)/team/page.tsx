@@ -258,9 +258,10 @@ export default function TeamPage() {
                   <Skeleton className="h-72 w-full rounded-2xl" />
                   <Skeleton className="h-72 w-full rounded-2xl" />
                 </div>
-                <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-6">
+                <div className="grid grid-cols-1 gap-4 lg:grid-cols-3 lg:gap-6">
                   <Skeleton className="h-72 w-full rounded-2xl" />
-                  <Skeleton className="h-40 w-full rounded-2xl" />
+                  <Skeleton className="h-72 w-full rounded-2xl" />
+                  <Skeleton className="h-72 w-full rounded-2xl" />
                 </div>
               </>
             ) : (
@@ -330,7 +331,7 @@ export default function TeamPage() {
                   </ChartCard>
                 </div>
 
-                <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-6">
+                <div className="grid grid-cols-1 gap-4 lg:grid-cols-3 lg:gap-6">
                   <ChartCard
                     title="Deals by Status"
                     description="Every deal currently in the pipeline"
@@ -345,9 +346,6 @@ export default function TeamPage() {
                       centerLabel="won"
                     />
                   </ChartCard>
-                </div>
-
-                <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-6">
                   <NeedsFollowUp />
                   <WeeklyActivityCard />
                 </div>
