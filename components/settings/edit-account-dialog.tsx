@@ -433,47 +433,46 @@ export function EditAccountDialog({
               )}
             />
 
-            <DialogFooter className="flex-col gap-3 sm:col-span-2 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex items-center gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="gap-1.5"
-                  disabled={isSelf || togglingActive}
-                  onClick={handleToggleActive}
-                >
-                  {isActive ? (
-                    <Ban className="size-3.5" />
-                  ) : (
-                    <RotateCcw className="size-3.5" />
-                  )}
-                  {isActive ? "Revoke Access" : "Restore Access"}
-                </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="gap-1.5 text-danger hover:bg-danger/10 hover:text-danger"
-                  disabled={isSelf}
-                  onClick={() => setDeleteOpen(true)}
-                >
-                  <Trash2 className="size-3.5" />
-                  Delete
-                </Button>
-              </div>
-              <div className="flex items-center gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => onOpenChange(false)}
-                >
-                  Cancel
-                </Button>
-                <Button type="submit" disabled={isSubmitting}>
-                  Save Changes
-                </Button>
-              </div>
+            <div className="flex items-center gap-2 border-t border-glass-border pt-4 sm:col-span-2">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="gap-1.5 text-text-secondary"
+                disabled={isSelf || togglingActive}
+                onClick={handleToggleActive}
+              >
+                {isActive ? (
+                  <Ban className="size-3.5" />
+                ) : (
+                  <RotateCcw className="size-3.5" />
+                )}
+                {isActive ? "Revoke Access" : "Restore Access"}
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="gap-1.5 text-danger hover:bg-danger/10 hover:text-danger"
+                disabled={isSelf}
+                onClick={() => setDeleteOpen(true)}
+              >
+                <Trash2 className="size-3.5" />
+                Delete
+              </Button>
+            </div>
+
+            <DialogFooter className="sm:col-span-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => onOpenChange(false)}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" disabled={isSubmitting}>
+                Save Changes
+              </Button>
             </DialogFooter>
           </form>
         </DialogContent>
