@@ -6,6 +6,7 @@ import type { Deal, DealStatus } from "@/lib/supabase/deals";
 import type { Invoice, InvoiceStatus } from "@/lib/supabase/invoices";
 import type { TeamMember } from "@/lib/supabase/team";
 import type { CompanyTargets } from "@/lib/supabase/targets";
+import { computeActivityTrend } from "@/lib/activity-trend";
 
 /**
  * Read-only, server-scoped counterparts to lib/supabase/*.ts's fetch
@@ -135,6 +136,10 @@ export async function fetchTeamMembersServer(supabase: ServerSupabase): Promise<
     conversionRate: 0,
     avgDeal: 0,
     totalAppointments: 0,
+    salesTrend: [],
+    openPipelineValue: 0,
+    activityTrend: computeActivityTrend([]),
+    stalledCount: 0,
   }));
 }
 

@@ -1,5 +1,11 @@
 import { createClient } from "@/lib/supabase/client";
 import type { EducationLevel, UserRole } from "@/components/providers/auth-provider";
+import { isDealStale, type DealStatus } from "@/lib/supabase/deals";
+import { isQuotationOverdue, type QuotationStatus } from "@/lib/supabase/quotations";
+import { computeActivityTrend, type ActivityTrend } from "@/lib/activity-trend";
+import { monthlySumWave } from "@/lib/kpi-wave";
+
+const SALES_TREND_MONTHS = 6;
 
 export type TeamMember = {
   id: string;
@@ -24,6 +30,14 @@ export type TeamMember = {
   conversionRate: number;
   avgDeal: number;
   totalAppointments: number;
+  /** Trailing months of paid sales, oldest -> newest — a per-rep trend sparkline instead of a single-month snapshot. */
+  salesTrend: number[];
+  /** Sum of this rep's currently-open deal amounts — pipeline in flight toward their remaining target. */
+  openPipelineValue: number;
+  /** Week-over-week appointments-booked + quotations-sent trend — the leading indicator that predicts next month's revenue. */
+  activityTrend: ActivityTrend;
+  /** Count of this rep's stale open deals + overdue sent quotations. */
+  stalledCount: number;
 };
 
 function initialsFromName(name: string) {
@@ -72,6 +86,10 @@ export async function fetchTeamMembers(): Promise<TeamMember[]> {
     conversionRate: 0,
     avgDeal: 0,
     totalAppointments: 0,
+    salesTrend: [],
+    openPipelineValue: 0,
+    activityTrend: computeActivityTrend([]),
+    stalledCount: 0,
   }));
 }
 
@@ -85,6 +103,13 @@ export async function fetchTeamMembers(): Promise<TeamMember[]> {
  * won/(won+lost) — the same definition already used for the company-wide
  * "Win Rate" KPI on /deals.
  *
+ * `quotations` is optional — existing callers that only need the original
+ * fields (monthlySales, closedDeals, etc.) don't need to fetch it. Without
+ * it, `stalledCount` and `activityTrend` are derived from deals/appointments
+ * alone (undercounting slightly, since overdue quotations and quotation
+ * sends aren't included) — pass it whenever the caller actually renders
+ * those two fields.
+ *
  * `year`/`month` (1–12) are passed in explicitly rather than read from the
  * system clock — callers should pass lib/mock-data.ts's `currentYear` /
  * lib/target-period.ts's `currentMonthNumber`, the same "current period"
@@ -94,12 +119,13 @@ export async function fetchTeamMembers(): Promise<TeamMember[]> {
 export function withTeamAggregates(
   members: TeamMember[],
   data: {
-    appointments: { salesRepId: string; scheduledAt: string }[];
+    appointments: { salesRepId: string; scheduledAt: string; createdAt: string }[];
     deals: {
       salesRepId: string;
-      status: string;
+      status: DealStatus;
       amount: number;
       closedAt: string | null;
+      createdAt: string;
     }[];
     invoices: {
       salesRepId: string;
@@ -107,10 +133,16 @@ export function withTeamAggregates(
       amount: number;
       paidAt: string | null;
     }[];
+    quotations?: {
+      salesRepId: string;
+      status: QuotationStatus;
+      sentAt: string | null;
+    }[];
   },
   year: number,
   month: number
 ): TeamMember[] {
+  const now = new Date();
   const isThisMonth = (iso: string | null) => {
     if (!iso) return false;
     const d = new Date(iso);
@@ -135,11 +167,13 @@ export function withTeamAggregates(
   const appointmentsByRep = byRep(data.appointments, (a) => a.salesRepId);
   const dealsByRep = byRep(data.deals, (d) => d.salesRepId);
   const invoicesByRep = byRep(data.invoices, (i) => i.salesRepId);
+  const quotationsByRep = byRep(data.quotations ?? [], (q) => q.salesRepId);
 
   return members.map((member) => {
     const invoices = invoicesByRep.get(member.id) ?? [];
     const deals = dealsByRep.get(member.id) ?? [];
     const appointments = appointmentsByRep.get(member.id) ?? [];
+    const quotations = quotationsByRep.get(member.id) ?? [];
 
     let monthlySales = 0;
     let yearlySales = 0;
@@ -161,6 +195,26 @@ export function withTeamAggregates(
       isThisMonth(a.scheduledAt)
     ).length;
 
+    const salesTrend = monthlySumWave(
+      invoices
+        .filter((i) => i.status === "paid")
+        .map((i) => ({ date: i.paidAt, amount: i.amount })),
+      SALES_TREND_MONTHS
+    );
+
+    const openPipelineValue = deals
+      .filter((d) => d.status === "open")
+      .reduce((sum, d) => sum + d.amount, 0);
+
+    const activityTrend = computeActivityTrend([
+      ...appointments.map((a) => a.createdAt),
+      ...quotations.map((q) => q.sentAt),
+    ]);
+
+    const stalledCount =
+      deals.filter((d) => isDealStale(d, now)).length +
+      quotations.filter((q) => isQuotationOverdue(q, now)).length;
+
     return {
       ...member,
       monthlySales,
@@ -169,6 +223,10 @@ export function withTeamAggregates(
       conversionRate,
       avgDeal: closedDeals ? monthlySales / closedDeals : 0,
       totalAppointments,
+      salesTrend,
+      openPipelineValue,
+      activityTrend,
+      stalledCount,
     };
   });
 }

@@ -46,7 +46,7 @@ import {
   type TeamMember,
 } from "@/lib/supabase/team";
 import { fetchAppointments } from "@/lib/supabase/appointments";
-import { fetchDeals } from "@/lib/supabase/deals";
+import { fetchDeals, type DealStatus } from "@/lib/supabase/deals";
 import { fetchInvoices, type Invoice } from "@/lib/supabase/invoices";
 import {
   computeCompanyRevenueSeries,
@@ -125,12 +125,13 @@ export default function TargetsPage() {
   >({});
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [pipelineData, setPipelineData] = useState<{
-    appointments: { salesRepId: string; scheduledAt: string }[];
+    appointments: { salesRepId: string; scheduledAt: string; createdAt: string }[];
     deals: {
       salesRepId: string;
-      status: string;
+      status: DealStatus;
       amount: number;
       closedAt: string | null;
+      createdAt: string;
     }[];
   }>({ appointments: [], deals: [] });
   const [selection, setSelection] = useState<TargetPeriodSelection>(

@@ -4,14 +4,37 @@ import { useState } from "react";
 import { useTable, createColumnHelper } from "@tanstack/react-table";
 import type { SortingState } from "@tanstack/react-table";
 import { format } from "date-fns";
-import { ArrowDown, ArrowUp, Car, ChevronsUpDown } from "lucide-react";
+import {
+  AlertTriangle,
+  ArrowDown,
+  ArrowDownRight,
+  ArrowUp,
+  ArrowUpRight,
+  Car,
+  ChevronsUpDown,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { sortableTableFeatures as features } from "@/components/tables/table-features";
 import { ColumnVisibilityMenu } from "@/components/tables/column-visibility-menu";
 import { usePersistedColumnVisibility } from "@/components/tables/use-persisted-column-visibility";
+import { Sparkline } from "@/components/charts/sparkline";
 import type { RankedTeamMember } from "@/lib/supabase/team";
 import type { EducationLevel } from "@/components/providers/auth-provider";
 import { formatUSD, formatPercent } from "@/lib/format";
+
+/** Compares the second half of a trend series to the first half — sturdier
+ * than comparing just the two endpoints against one noisy month. */
+function trendTone(values: number[]): "success" | "danger" | "neutral" {
+  const midpoint = Math.ceil(values.length / 2);
+  const avg = (arr: number[]) =>
+    arr.length ? arr.reduce((sum, v) => sum + v, 0) / arr.length : 0;
+  const earlierAvg = avg(values.slice(0, midpoint));
+  const laterAvg = avg(values.slice(midpoint));
+  if (earlierAvg === 0 && laterAvg === 0) return "neutral";
+  if (laterAvg > earlierAvg * 1.15) return "success";
+  if (laterAvg < earlierAvg * 0.85) return "danger";
+  return "neutral";
+}
 
 const roleLabels: Record<RankedTeamMember["role"], string> = {
   admin: "Administrator",
@@ -123,6 +146,92 @@ const columns = columnHelper.columns([
         {formatPercent(info.getValue(), 0)}
       </span>
     ),
+  }),
+  columnHelper.accessor("salesTrend", {
+    header: "Trend",
+    enableSorting: false,
+    cell: (info) => {
+      const trend = info.getValue();
+      return (
+        <Sparkline data={trend} tone={trendTone(trend)} className="mx-auto" />
+      );
+    },
+  }),
+  columnHelper.accessor((row) => row.openPipelineValue, {
+    id: "pipeline",
+    header: "Pipeline Coverage",
+    cell: (info) => {
+      const person = info.row.original;
+      const remaining = Math.max(person.monthlyTarget - person.monthlySales, 0);
+      const covered = remaining === 0 || person.openPipelineValue >= remaining;
+      const partial = !covered && person.openPipelineValue > 0;
+      return (
+        <div className="flex flex-col items-center gap-1">
+          <span className="tabular-nums text-sm font-medium text-foreground">
+            {formatUSD(person.openPipelineValue)}
+          </span>
+          <span
+            className={cn(
+              "inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-medium whitespace-nowrap",
+              covered
+                ? "bg-success/10 text-success"
+                : partial
+                  ? "bg-warning/10 text-warning"
+                  : "bg-danger/10 text-danger"
+            )}
+          >
+            {remaining === 0 ? "Target met" : covered ? "Covered" : partial ? "Partial" : "Short"}
+          </span>
+        </div>
+      );
+    },
+  }),
+  columnHelper.accessor((row) => row.activityTrend.deltaPct, {
+    id: "activityTrend",
+    header: "Activity Trend",
+    cell: (info) => {
+      const trend = info.row.original.activityTrend;
+      const flat = trend.priorWeek === 0 && trend.lastWeek === 0;
+      return (
+        <div className="flex flex-col items-center gap-1">
+          <span
+            className={cn(
+              "inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-xs font-medium whitespace-nowrap",
+              flat
+                ? "bg-foreground/[0.06] text-text-tertiary"
+                : trend.declining
+                  ? "bg-warning/10 text-warning"
+                  : "bg-success/10 text-success"
+            )}
+          >
+            {!flat &&
+              (trend.deltaPct >= 0 ? (
+                <ArrowUpRight className="size-3" />
+              ) : (
+                <ArrowDownRight className="size-3" />
+              ))}
+            {flat ? "—" : `${Math.abs(trend.deltaPct)}%`}
+          </span>
+          <span className="text-[10px] whitespace-nowrap text-text-tertiary">
+            {trend.lastWeek} last wk
+          </span>
+        </div>
+      );
+    },
+  }),
+  columnHelper.accessor("stalledCount", {
+    header: "Stalled",
+    cell: (info) => {
+      const count = info.getValue();
+      return count > 0 ? (
+        <span className="inline-flex items-center gap-1 rounded-full bg-danger/10 px-2 py-0.5 text-xs font-medium whitespace-nowrap text-danger">
+          <AlertTriangle className="size-3" />
+          {count}
+        </span>
+      ) : (
+        <span className="text-text-tertiary">—</span>
+      );
+    },
   }),
   columnHelper.accessor("email", {
     header: "Email",

@@ -37,6 +37,7 @@ import {
 import { fetchAppointments, type Appointment } from "@/lib/supabase/appointments";
 import { fetchDeals, type Deal } from "@/lib/supabase/deals";
 import { fetchInvoices, type Invoice } from "@/lib/supabase/invoices";
+import { fetchQuotations, type Quotation } from "@/lib/supabase/quotations";
 import {
   fetchIndividualTargets,
   type CompanyTargets,
@@ -67,7 +68,8 @@ export default function TeamPage() {
     appointments: Appointment[];
     deals: Deal[];
     invoices: Invoice[];
-  }>({ appointments: [], deals: [], invoices: [] });
+    quotations: Quotation[];
+  }>({ appointments: [], deals: [], invoices: [], quotations: [] });
 
   useEffect(() => {
     Promise.all([
@@ -76,11 +78,12 @@ export default function TeamPage() {
       fetchAppointments(),
       fetchDeals(),
       fetchInvoices(),
+      fetchQuotations(),
     ])
-      .then(([team, targets, appointments, deals, invoices]) => {
+      .then(([team, targets, appointments, deals, invoices, quotations]) => {
         setTeamMembers(team);
         setIndividualTargets(targets);
-        setPipelineData({ appointments, deals, invoices });
+        setPipelineData({ appointments, deals, invoices, quotations });
       })
       .catch((err) => toast.error(err.message ?? "Couldn't load the team"));
   }, []);
