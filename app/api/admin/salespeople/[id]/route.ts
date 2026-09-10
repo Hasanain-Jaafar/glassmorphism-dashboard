@@ -17,7 +17,15 @@ const updateSchema = z.object({
     .enum(["primary_school", "high_school", "college", ""])
     .nullable()
     .optional(),
+  avatarDataUrl: z.string().optional(),
+  removeAvatar: z.boolean().optional(),
 });
+
+function decodeDataUrl(dataUrl: string) {
+  const match = /^data:([^;]+);base64,(.+)$/.exec(dataUrl);
+  if (!match) return null;
+  return { buffer: Buffer.from(match[2], "base64"), contentType: match[1] };
+}
 
 export async function PATCH(
   request: Request,
@@ -45,6 +53,8 @@ export async function PATCH(
     hasCar,
     startDate,
     education,
+    avatarDataUrl,
+    removeAvatar,
   } = parsed.data;
 
   if (role && id === admin.user.id && role !== "admin") {
@@ -74,6 +84,29 @@ export async function PATCH(
   if (hasCar !== undefined) profileUpdates.has_car = hasCar;
   if (startDate !== undefined) profileUpdates.start_date = startDate || null;
   if (education !== undefined) profileUpdates.education = education || null;
+
+  if (removeAvatar) {
+    await supabaseAdmin.storage.from("avatars").remove([`${id}/avatar.jpg`]);
+    profileUpdates.avatar_url = null;
+  } else if (avatarDataUrl) {
+    const decoded = decodeDataUrl(avatarDataUrl);
+    if (decoded) {
+      const path = `${id}/avatar.jpg`;
+      const { error: uploadError } = await supabaseAdmin.storage
+        .from("avatars")
+        .upload(path, decoded.buffer, {
+          upsert: true,
+          contentType: "image/jpeg",
+        });
+      if (uploadError) {
+        return NextResponse.json({ error: uploadError.message }, { status: 400 });
+      }
+      const {
+        data: { publicUrl },
+      } = supabaseAdmin.storage.from("avatars").getPublicUrl(path);
+      profileUpdates.avatar_url = `${publicUrl}?v=${Date.now()}`;
+    }
+  }
 
   if (Object.keys(profileUpdates).length > 0) {
     const { error } = await supabaseAdmin
