@@ -102,7 +102,7 @@ export function TeamAccessSection() {
                 <button
                   type="button"
                   onClick={() => setEditingAccount(account)}
-                  className="flex w-full items-center justify-between gap-3 rounded-lg py-3 text-left transition-colors hover:bg-foreground/[0.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+                  className="flex w-full cursor-pointer items-center justify-between gap-3 rounded-lg py-3 text-left transition-colors hover:bg-foreground/[0.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
                 >
                   <div className="flex min-w-0 items-center gap-3">
                     <div className="flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-accent text-xs font-semibold text-accent-foreground">
