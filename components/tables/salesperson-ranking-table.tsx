@@ -24,6 +24,9 @@ const educationLabels: Record<EducationLevel, string> = {
   college: "College",
 };
 
+/** Columns that hold identity/free-text content — everything else centers under its header. */
+const LEFT_ALIGNED_COLUMNS = new Set(["name", "email"]);
+
 const columnHelper = createColumnHelper<typeof features, RankedTeamMember>();
 
 const columns = columnHelper.columns([
@@ -35,7 +38,7 @@ const columns = columnHelper.columns([
       return (
         <span
           className={cn(
-            "flex size-6 items-center justify-center rounded-full text-[11px] font-semibold",
+            "inline-flex size-6 items-center justify-center rounded-full text-[11px] font-semibold",
             rank === 1
               ? "bg-primary text-primary-foreground"
               : "bg-foreground/[0.06] text-text-tertiary"
@@ -217,10 +220,14 @@ export function SalespersonRankingTable({
               <tr key={headerGroup.id} className="border-b border-glass-border">
                 {headerGroup.headers.map((header) => {
                   const sorted = header.column.getIsSorted();
+                  const leftAligned = LEFT_ALIGNED_COLUMNS.has(header.column.id);
                   return (
                     <th
                       key={header.id}
-                      className="min-w-[120px] px-4 py-3.5 text-left text-xs font-medium tracking-wide text-text-tertiary uppercase first:pl-5 last:pr-5"
+                      className={cn(
+                        "min-w-[120px] px-4 py-3.5 text-xs font-medium tracking-wide text-text-tertiary uppercase first:pl-5 last:pr-5",
+                        leftAligned ? "text-left" : "text-center"
+                      )}
                     >
                       <button
                         type="button"
@@ -256,7 +263,15 @@ export function SalespersonRankingTable({
                 )}
               >
                 {row.getVisibleCells().map((cell) => (
-                  <td key={cell.id} className="px-4 py-3.5 first:pl-5 last:pr-5">
+                  <td
+                    key={cell.id}
+                    className={cn(
+                      "px-4 py-3.5 first:pl-5 last:pr-5",
+                      LEFT_ALIGNED_COLUMNS.has(cell.column.id)
+                        ? "text-left"
+                        : "text-center"
+                    )}
+                  >
                     <table.FlexRender cell={cell} />
                   </td>
                 ))}
