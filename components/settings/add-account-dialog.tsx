@@ -215,8 +215,8 @@ export function AddAccountDialog({
   return (
     <>
       <Dialog open={open} onOpenChange={closeAndReset}>
-        <DialogTrigger render={<Button size="sm" className="gap-1.5" />}>
-          <UserPlus className="size-3.5" />
+        <DialogTrigger render={<Button className="gap-1.5" />}>
+          <UserPlus className="size-4" />
           Add Salesperson
         </DialogTrigger>
         <DialogContent>
