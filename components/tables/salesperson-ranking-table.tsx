@@ -10,11 +10,18 @@ import { sortableTableFeatures as features } from "@/components/tables/table-fea
 import { ColumnVisibilityMenu } from "@/components/tables/column-visibility-menu";
 import { usePersistedColumnVisibility } from "@/components/tables/use-persisted-column-visibility";
 import type { RankedTeamMember } from "@/lib/supabase/team";
+import type { EducationLevel } from "@/components/providers/auth-provider";
 import { formatUSD, formatPercent } from "@/lib/format";
 
 const roleLabels: Record<RankedTeamMember["role"], string> = {
   admin: "Administrator",
   sales_rep: "Sales Representative",
+};
+
+const educationLabels: Record<EducationLevel, string> = {
+  primary_school: "Primary School",
+  high_school: "High School",
+  college: "College",
 };
 
 const columnHelper = createColumnHelper<typeof features, RankedTeamMember>();
@@ -156,6 +163,19 @@ const columns = columnHelper.columns([
           <Car className="size-3" />
           {hasCar ? "Car" : "No car"}
         </span>
+      );
+    },
+  }),
+  columnHelper.accessor("education", {
+    header: "Education",
+    cell: (info) => {
+      const education = info.getValue();
+      return education ? (
+        <span className="inline-flex items-center rounded-full bg-foreground/[0.06] px-2 py-0.5 text-xs font-medium whitespace-nowrap text-text-secondary">
+          {educationLabels[education]}
+        </span>
+      ) : (
+        <span className="text-text-tertiary">—</span>
       );
     },
   }),

@@ -10,6 +10,7 @@ const createSchema = z.object({
   role: z.enum(["admin", "sales_rep"]).default("sales_rep"),
   hasCar: z.boolean().default(false),
   startDate: z.string().optional(),
+  education: z.enum(["primary_school", "high_school", "college", ""]).optional(),
   avatarDataUrl: z.string().optional(),
 });
 
@@ -40,6 +41,7 @@ export async function POST(request: Request) {
     role,
     hasCar,
     startDate,
+    education,
     avatarDataUrl,
   } = parsed.data;
 
@@ -69,6 +71,7 @@ export async function POST(request: Request) {
       role,
       has_car: hasCar,
       start_date: startDate || null,
+      education: education || null,
     })
     .eq("id", data.user.id);
 

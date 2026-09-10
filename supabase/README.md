@@ -103,6 +103,10 @@ In `supabase/migrations/`, run each file in filename order:
     thread's `last_message_at`/preview in sync. RLS scopes every row to the
     two participants and requires both to be admins, so a sales rep's own
     session can't read or write inbox rows even directly.
+25. `20260101000038_profile_education.sql` — adds an `education` column
+    (`primary_school`/`high_school`/`college`) to `profiles`, collected on the
+    Add/Edit Salesperson forms alongside `has_car`/`start_date` and shown as a
+    column on the /team "All Salespeople" table.
 
 ## 2. Seed baseline data (optional)
 

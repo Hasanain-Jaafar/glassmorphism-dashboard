@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/client";
-import type { UserRole } from "@/components/providers/auth-provider";
+import type { EducationLevel, UserRole } from "@/components/providers/auth-provider";
 
 export type TeamMember = {
   id: string;
@@ -12,6 +12,7 @@ export type TeamMember = {
   hasCar: boolean;
   /** ISO date, or null if not set. */
   startDate: string | null;
+  education: EducationLevel | null;
   /** Current month, paid. Zero until real appointments/quotations/deals/invoices exist — see supabase/README.md. */
   monthlySales: number;
   monthlyTarget: number;
@@ -42,7 +43,7 @@ export async function fetchTeamMembers(): Promise<TeamMember[]> {
   const { data, error } = await supabase
     .from("profiles")
     .select(
-      "id, full_name, email, phone, avatar_url, role, is_active, has_car, start_date"
+      "id, full_name, email, phone, avatar_url, role, is_active, has_car, start_date, education"
     )
     .eq("is_active", true)
     .order("full_name");
@@ -59,6 +60,7 @@ export async function fetchTeamMembers(): Promise<TeamMember[]> {
     phone: p.phone,
     hasCar: p.has_car,
     startDate: p.start_date,
+    education: p.education as EducationLevel | null,
     // Performance metrics require real appointments/quotations/deals/invoices
     // data, which doesn't exist until the sales workflow pages are built —
     // see supabase/README.md for what's live vs. still pending.

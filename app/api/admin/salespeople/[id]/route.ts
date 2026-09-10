@@ -13,6 +13,10 @@ const updateSchema = z.object({
     .optional(),
   hasCar: z.boolean().optional(),
   startDate: z.string().nullable().optional(),
+  education: z
+    .enum(["primary_school", "high_school", "college", ""])
+    .nullable()
+    .optional(),
 });
 
 export async function PATCH(
@@ -32,8 +36,16 @@ export async function PATCH(
       { status: 400 }
     );
   }
-  const { fullName, email, phone, role, password, hasCar, startDate } =
-    parsed.data;
+  const {
+    fullName,
+    email,
+    phone,
+    role,
+    password,
+    hasCar,
+    startDate,
+    education,
+  } = parsed.data;
 
   if (role && id === admin.user.id && role !== "admin") {
     return NextResponse.json(
@@ -61,6 +73,7 @@ export async function PATCH(
   if (role !== undefined) profileUpdates.role = role;
   if (hasCar !== undefined) profileUpdates.has_car = hasCar;
   if (startDate !== undefined) profileUpdates.start_date = startDate || null;
+  if (education !== undefined) profileUpdates.education = education || null;
 
   if (Object.keys(profileUpdates).length > 0) {
     const { error } = await supabaseAdmin

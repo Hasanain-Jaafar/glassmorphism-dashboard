@@ -56,7 +56,7 @@ export function TeamAccessSection() {
     return supabase
       .from("profiles")
       .select(
-        "id, full_name, email, phone, avatar_url, role, is_active, has_car, start_date"
+        "id, full_name, email, phone, avatar_url, role, is_active, has_car, start_date, education"
       )
       .order("full_name");
   }

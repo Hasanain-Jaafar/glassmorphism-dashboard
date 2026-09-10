@@ -13,6 +13,8 @@ import { createClient } from "@/lib/supabase/client";
 
 export type UserRole = "admin" | "sales_rep";
 
+export type EducationLevel = "primary_school" | "high_school" | "college";
+
 export type Profile = {
   id: string;
   full_name: string;
@@ -23,6 +25,7 @@ export type Profile = {
   is_active: boolean;
   has_car?: boolean;
   start_date?: string | null;
+  education?: EducationLevel | null;
   custom_instructions?: string | null;
 };
 

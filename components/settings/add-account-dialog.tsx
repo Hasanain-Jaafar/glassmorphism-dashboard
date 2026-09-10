@@ -35,12 +35,20 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { AvatarCropDialog } from "@/components/settings/avatar-crop-dialog";
-import type { UserRole } from "@/components/providers/auth-provider";
+import type { EducationLevel, UserRole } from "@/components/providers/auth-provider";
 
 const roleLabels: Record<UserRole, string> = {
   admin: "Administrator",
   sales_rep: "Sales Representative",
 };
+
+const educationLabels: Record<EducationLevel, string> = {
+  primary_school: "Primary School",
+  high_school: "High School",
+  college: "College",
+};
+
+const UNSET_EDUCATION = "unset";
 
 const MAX_AVATAR_SIZE = 5 * 1024 * 1024;
 
@@ -61,6 +69,7 @@ const formSchema = z.object({
   role: z.enum(["admin", "sales_rep"]),
   startDate: z.string().optional(),
   hasCar: z.boolean(),
+  education: z.enum(["primary_school", "high_school", "college", ""]).optional(),
 });
 
 type FormInput = z.input<typeof formSchema>;
@@ -74,6 +83,7 @@ const defaultValues: FormInput = {
   role: "sales_rep",
   startDate: new Date().toISOString().slice(0, 10),
   hasCar: false,
+  education: "",
 };
 
 function generatePassword() {
@@ -413,6 +423,42 @@ export function AddAccountDialog({
               <div className="space-y-1.5">
                 <Label htmlFor="acc-start-date">Start Date</Label>
                 <Input id="acc-start-date" type="date" {...register("startDate")} />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="acc-education">Education</Label>
+                <Controller
+                  control={control}
+                  name="education"
+                  render={({ field }) => (
+                    <Select
+                      value={field.value || UNSET_EDUCATION}
+                      onValueChange={(value) =>
+                        field.onChange(
+                          value === UNSET_EDUCATION ? "" : (value as EducationLevel)
+                        )
+                      }
+                    >
+                      <SelectTrigger id="acc-education" className="w-full">
+                        <SelectValue>
+                          {(value: string) =>
+                            value === UNSET_EDUCATION
+                              ? "Not set"
+                              : educationLabels[value as EducationLevel]
+                          }
+                        </SelectValue>
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value={UNSET_EDUCATION}>Not set</SelectItem>
+                        <SelectItem value="primary_school">
+                          Primary School
+                        </SelectItem>
+                        <SelectItem value="high_school">High School</SelectItem>
+                        <SelectItem value="college">College</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
               </div>
 
               <Controller

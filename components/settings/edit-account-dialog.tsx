@@ -25,12 +25,24 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import type { Profile, UserRole } from "@/components/providers/auth-provider";
+import type {
+  EducationLevel,
+  Profile,
+  UserRole,
+} from "@/components/providers/auth-provider";
 
 const roleLabels: Record<UserRole, string> = {
   admin: "Administrator",
   sales_rep: "Sales Representative",
 };
+
+const educationLabels: Record<EducationLevel, string> = {
+  primary_school: "Primary School",
+  high_school: "High School",
+  college: "College",
+};
+
+const UNSET_EDUCATION = "unset";
 
 const formSchema = z.object({
   fullName: z.string().min(2, "Enter a full name"),
@@ -45,6 +57,7 @@ const formSchema = z.object({
     }),
   startDate: z.string().optional(),
   hasCar: z.boolean(),
+  education: z.enum(["primary_school", "high_school", "college", ""]).optional(),
 });
 
 type FormInput = z.input<typeof formSchema>;
@@ -81,6 +94,7 @@ export function EditAccountDialog({
       password: "",
       startDate: account.start_date ?? "",
       hasCar: account.has_car ?? false,
+      education: account.education ?? "",
     },
   });
 
@@ -95,6 +109,7 @@ export function EditAccountDialog({
         role: values.role,
         startDate: values.startDate || null,
         hasCar: values.hasCar,
+        education: values.education || null,
         ...(values.password ? { password: values.password } : {}),
       }),
     });
@@ -221,6 +236,42 @@ export function EditAccountDialog({
               id="edit-acc-start-date"
               type="date"
               {...register("startDate")}
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="edit-acc-education">Education</Label>
+            <Controller
+              control={control}
+              name="education"
+              render={({ field }) => (
+                <Select
+                  value={field.value || UNSET_EDUCATION}
+                  onValueChange={(value) =>
+                    field.onChange(
+                      value === UNSET_EDUCATION ? "" : (value as EducationLevel)
+                    )
+                  }
+                >
+                  <SelectTrigger id="edit-acc-education" className="w-full">
+                    <SelectValue>
+                      {(value: string) =>
+                        value === UNSET_EDUCATION
+                          ? "Not set"
+                          : educationLabels[value as EducationLevel]
+                      }
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={UNSET_EDUCATION}>Not set</SelectItem>
+                    <SelectItem value="primary_school">
+                      Primary School
+                    </SelectItem>
+                    <SelectItem value="high_school">High School</SelectItem>
+                    <SelectItem value="college">College</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
             />
           </div>
 

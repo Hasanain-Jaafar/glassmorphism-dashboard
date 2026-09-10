@@ -110,7 +110,9 @@ export async function fetchInvoicesServer(supabase: ServerSupabase): Promise<Inv
 export async function fetchTeamMembersServer(supabase: ServerSupabase): Promise<TeamMember[]> {
   const { data, error } = await supabase
     .from("profiles")
-    .select("id, full_name, email, phone, avatar_url, role, is_active, has_car, start_date")
+    .select(
+      "id, full_name, email, phone, avatar_url, role, is_active, has_car, start_date, education"
+    )
     .eq("is_active", true)
     .order("full_name");
   if (error) throw error;
@@ -124,6 +126,7 @@ export async function fetchTeamMembersServer(supabase: ServerSupabase): Promise<
     phone: p.phone,
     hasCar: p.has_car,
     startDate: p.start_date,
+    education: p.education,
     monthlySales: 0,
     monthlyTarget: 0,
     yearlySales: 0,
