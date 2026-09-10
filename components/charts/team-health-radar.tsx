@@ -18,9 +18,9 @@ export type TeamHealthAxis = { axis: string; value: number };
  * into one team-health snapshot. */
 export function TeamHealthRadar({ data }: { data: TeamHealthAxis[] }) {
   return (
-    <div className="h-[220px] w-full sm:h-[240px]">
+    <div className="h-[280px] w-full">
       <ResponsiveContainer width="100%" height="100%">
-        <RadarChart data={data} outerRadius="62%">
+        <RadarChart data={data} outerRadius="65%">
           <PolarGrid stroke="var(--foreground)" strokeOpacity={0.08} />
           <PolarAngleAxis
             dataKey="axis"
