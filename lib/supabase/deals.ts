@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/client";
+import { workingDaysElapsed } from "@/lib/working-days";
 
 export type DealStatus = "open" | "won" | "lost";
 
@@ -179,6 +180,19 @@ export async function updateDealStatus(
     .single();
   if (error) throw error;
   return fromRow(data);
+}
+
+/** An open deal with no closed sub-stages to time against — this is how long
+ * it's sat open since creation. Sitting open this long with no follow-up
+ * needs a nudge. */
+export const STALE_OPEN_WORKING_DAYS = 5;
+
+export function isDealStale(
+  deal: Pick<Deal, "status" | "createdAt">,
+  now: Date = new Date()
+): boolean {
+  if (deal.status !== "open") return false;
+  return workingDaysElapsed(new Date(deal.createdAt), now) >= STALE_OPEN_WORKING_DAYS;
 }
 
 /** Only succeeds while no invoice references this deal (DB-enforced). */

@@ -10,6 +10,8 @@ import { RevenueChart } from "@/components/charts/revenue-chart";
 import { SalespersonRanking } from "@/components/sales/salesperson-ranking";
 import { PipelineSummary } from "@/components/sales/pipeline-summary";
 import { TeamSnapshot } from "@/components/sales/team-snapshot";
+import { NeedsFollowUp } from "@/components/sales/needs-follow-up";
+import { WeeklyActivityCard } from "@/components/dashboard/weekly-activity-card";
 import { PulseRow } from "@/components/dashboard/pulse-row";
 import { CatalogOverview } from "@/components/products/catalog-overview";
 import { ProductStatusOverview } from "@/components/products/product-status-overview";
@@ -386,6 +388,13 @@ export default function DashboardPage() {
       </div>
 
       <Reveal delay={0.4}>
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-6">
+          <NeedsFollowUp />
+          <WeeklyActivityCard />
+        </div>
+      </Reveal>
+
+      <Reveal delay={0.42}>
         <PulseRow />
       </Reveal>
 
