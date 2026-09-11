@@ -25,6 +25,7 @@ import {
   appointmentStatusLabels,
   appointmentStatusStyles,
 } from "@/components/appointments/appointment-styles";
+import { InactiveCustomerBanner } from "@/components/customers/inactive-customer-banner";
 
 // Working-hours slots, 30 minutes apart. The last slot is 3:30 PM, not
 // 4:00 PM — 4:00 PM is the end of the business day, not a bookable start
@@ -256,6 +257,9 @@ export function AppointmentForm({
             </Select>
             {errors.customerId && (
               <p className="text-xs text-danger">{errors.customerId.message}</p>
+            )}
+            {customers.find((c) => c.id === field.value)?.status === "inactive" && (
+              <InactiveCustomerBanner />
             )}
           </div>
         )}

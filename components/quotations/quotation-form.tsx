@@ -38,6 +38,7 @@ import {
   quotationStatusStyles,
 } from "@/components/quotations/quotation-styles";
 import { formatUSD } from "@/lib/format";
+import { InactiveCustomerBanner } from "@/components/customers/inactive-customer-banner";
 
 const quotationItemSchema = z.object({
   productId: z.string().min(1, "Select a product"),
@@ -315,6 +316,8 @@ export function QuotationForm({
           {selectedRep?.name ?? "—"}
         </p>
       </div>
+
+      {selectedCustomer?.status === "inactive" && <InactiveCustomerBanner />}
 
       <Controller
         control={control}
