@@ -105,7 +105,7 @@ export function Sidebar() {
       data-collapsed={collapsed}
       className={cn(
         "group/sidebar sticky top-6 lg:top-8 hidden h-[calc(100dvh-3rem)] lg:h-[calc(100dvh-4rem)] shrink-0 flex-col",
-        "md:flex md:w-[76px] lg:w-[236px] data-[collapsed=true]:lg:w-[76px]",
+        "md:flex md:w-[76px] lg:w-[220px] data-[collapsed=true]:lg:w-[76px]",
         "glass-panel rounded-3xl shadow-lg transition-[width] duration-300 ease-out"
       )}
     >
