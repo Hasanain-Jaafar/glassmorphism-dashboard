@@ -2,10 +2,18 @@
 
 import { Check } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { useLocalStorageBoolean } from "@/lib/use-local-storage-boolean";
 import { KPI_WAVE_ANIMATIONS_STORAGE_KEY } from "@/lib/kpi-wave";
 import { ACCENT_COLORS, useAccentColor } from "@/lib/use-accent-color";
+import { WEEK_START_OPTIONS, useWeekStart, type WeekStart } from "@/lib/use-week-start";
 
 export function AppearanceSection() {
   const [animateKpiCards, setAnimateKpiCards] = useLocalStorageBoolean(
@@ -13,6 +21,7 @@ export function AppearanceSection() {
     true
   );
   const [accent, setAccent] = useAccentColor();
+  const [weekStart, setWeekStart] = useWeekStart();
 
   return (
     <div className="glass-panel rounded-2xl p-5 shadow-sm sm:p-6">
@@ -58,6 +67,40 @@ export function AppearanceSection() {
               );
             })}
           </div>
+        </li>
+
+        <li className="flex items-center justify-between gap-4 py-3.5">
+          <div className="min-w-0">
+            <p className="text-sm font-medium text-foreground">
+              First day of the week
+            </p>
+            <p className="mt-0.5 text-xs text-text-tertiary">
+              Applies to the calendar in Appointments, Quotations, and
+              Invoices.
+            </p>
+          </div>
+          <Select
+            value={String(weekStart)}
+            onValueChange={(value) =>
+              value && setWeekStart(Number(value) as WeekStart)
+            }
+          >
+            <SelectTrigger className="w-36">
+              <SelectValue>
+                {(value: string) =>
+                  WEEK_START_OPTIONS.find((o) => String(o.value) === value)
+                    ?.label ?? "Saturday"
+                }
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              {WEEK_START_OPTIONS.map((option) => (
+                <SelectItem key={option.value} value={String(option.value)}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </li>
 
         <li className="flex items-center justify-between gap-4 py-3.5">

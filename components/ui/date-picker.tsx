@@ -7,6 +7,7 @@ import { CalendarIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { useWeekStart } from "@/lib/use-week-start"
 
 /** Parses a "yyyy-MM-dd" value as a local date, not UTC. */
 function parseDateValue(value: string): Date | undefined {
@@ -44,6 +45,7 @@ function DatePicker({
   className?: string
 }) {
   const [open, setOpen] = React.useState(false)
+  const [weekStartsOn] = useWeekStart()
   const selected = parseDateValue(value)
   const minDate = min ? parseDateValue(min) : undefined
 
@@ -64,6 +66,7 @@ function DatePicker({
       <PopoverContent align="start" className="w-auto p-2.5">
         <Calendar
           mode="single"
+          weekStartsOn={weekStartsOn}
           selected={selected}
           defaultMonth={selected ?? minDate}
           disabled={minDate ? { before: minDate } : undefined}
