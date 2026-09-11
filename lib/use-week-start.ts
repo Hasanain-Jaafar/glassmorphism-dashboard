@@ -28,6 +28,17 @@ function isWeekStart(value: string | null): value is `${WeekStart}` {
 }
 
 /**
+ * Plain (non-hook) read of the same preference, for use outside components
+ * — e.g. date-range math in lib/supabase/*.ts stat helpers. SSR-safe: falls
+ * back to the default when there's no `window` (server) to read from.
+ */
+export function getWeekStart(): WeekStart {
+  if (typeof window === "undefined") return DEFAULT_WEEK_START;
+  const stored = window.localStorage.getItem(WEEK_START_STORAGE_KEY);
+  return isWeekStart(stored) ? (Number(stored) as WeekStart) : DEFAULT_WEEK_START;
+}
+
+/**
  * The Settings > Appearance "first day of week" preference, synced with
  * localStorage (same useSyncExternalStore pattern as useAccentColor) and
  * read by the Calendar/DatePicker components used across Appointments,

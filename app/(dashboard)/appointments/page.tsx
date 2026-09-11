@@ -271,7 +271,7 @@ function AppointmentsPageContent() {
           <MetricCard
             label="This Week"
             value={String(stats.thisWeek)}
-            footnote="Scheduled, next 7 days"
+            footnote="Scheduled this week"
             wave={appointmentKpiWaves.thisWeekWave}
             icon={CalendarClock}
             tone="primary"

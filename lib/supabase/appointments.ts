@@ -1,4 +1,6 @@
+import { startOfWeek, endOfWeek } from "date-fns";
 import { createClient } from "@/lib/supabase/client";
+import { getWeekStart } from "@/lib/use-week-start";
 
 export type AppointmentStatus = "scheduled" | "completed" | "cancelled" | "no_show";
 
@@ -115,14 +117,19 @@ export async function deleteAppointment(id: string): Promise<void> {
 
 export function computeAppointmentStats(appointments: Appointment[]) {
   const now = new Date();
-  const weekFromNow = new Date(now);
-  weekFromNow.setDate(weekFromNow.getDate() + 7);
+  // The actual current calendar week (Settings > Appearance "first day of
+  // week"), not a rolling "next 7 days" — that previously drifted from what
+  // "This Week" implies (e.g. on a Wednesday it skipped Sat–Tue and bled
+  // into the following week instead).
+  const weekStartsOn = getWeekStart();
+  const weekStart = startOfWeek(now, { weekStartsOn });
+  const weekEnd = endOfWeek(now, { weekStartsOn });
 
   const total = appointments.length;
   const thisWeek = appointments.filter((a) => {
     const scheduled = new Date(a.scheduledAt);
     return (
-      a.status === "scheduled" && scheduled >= now && scheduled <= weekFromNow
+      a.status === "scheduled" && scheduled >= weekStart && scheduled <= weekEnd
     );
   }).length;
   const completed = appointments.filter((a) => a.status === "completed").length;
