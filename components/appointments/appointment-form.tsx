@@ -162,6 +162,14 @@ export function AppointmentForm({
 
   const watchedDate = watch("scheduledDate");
   const watchedTime = watch("scheduledTime");
+  const watchedCustomerId = watch("customerId");
+
+  // Only blocks *creating* a new appointment — editing/closing out one that
+  // already exists against a customer who went inactive since shouldn't get
+  // locked out too.
+  const selectedCustomerInactive =
+    customers.find((c) => c.id === watchedCustomerId)?.status === "inactive";
+  const blockedByInactiveCustomer = !appointment && selectedCustomerInactive;
 
   // On the same day a new appointment is being booked, drop slots inside
   // the 1-hour lead time. Any other day (or when editing), every
@@ -258,8 +266,8 @@ export function AppointmentForm({
             {errors.customerId && (
               <p className="text-xs text-danger">{errors.customerId.message}</p>
             )}
-            {customers.find((c) => c.id === field.value)?.status === "inactive" && (
-              <InactiveCustomerBanner />
+            {selectedCustomerInactive && (
+              <InactiveCustomerBanner blocksSubmit={blockedByInactiveCustomer} />
             )}
           </div>
         )}
@@ -441,7 +449,7 @@ export function AppointmentForm({
         <DialogClose render={<Button type="button" variant="outline" />}>
           Cancel
         </DialogClose>
-        <Button type="submit" disabled={isSubmitting}>
+        <Button type="submit" disabled={isSubmitting || blockedByInactiveCustomer}>
           {appointment ? "Save Changes" : "Create Appointment"}
         </Button>
       </DialogFooter>

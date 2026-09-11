@@ -199,6 +199,12 @@ export function QuotationForm({
     ? deals.some((d) => d.quotationId === quotation.id)
     : false;
 
+  // Only blocks *creating* a new quotation — editing/updating one that
+  // already exists for a customer who went inactive since shouldn't get
+  // locked out too.
+  const selectedCustomerInactive = selectedCustomer?.status === "inactive";
+  const blockedByInactiveCustomer = !quotation && selectedCustomerInactive;
+
   // Unlike the "today" floor, this always applies (create and edit) — the
   // appointment's date is a fixed historical fact, not a moving target.
   const appointmentMinDate = selectedAppointment
@@ -317,7 +323,9 @@ export function QuotationForm({
         </p>
       </div>
 
-      {selectedCustomer?.status === "inactive" && <InactiveCustomerBanner />}
+      {selectedCustomerInactive && (
+        <InactiveCustomerBanner blocksSubmit={blockedByInactiveCustomer} />
+      )}
 
       <Controller
         control={control}
@@ -588,7 +596,7 @@ export function QuotationForm({
           {hasLinkedDeal ? "Close" : "Cancel"}
         </DialogClose>
         {!hasLinkedDeal && (
-          <Button type="submit" disabled={isSubmitting}>
+          <Button type="submit" disabled={isSubmitting || blockedByInactiveCustomer}>
             {quotation ? "Save Changes" : "Create Quotation"}
           </Button>
         )}
