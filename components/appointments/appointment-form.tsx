@@ -5,6 +5,7 @@ import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Input } from "@/components/ui/input";
+import { DatePicker } from "@/components/ui/date-picker";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
@@ -272,18 +273,24 @@ export function AppointmentForm({
         )}
       </div>
 
-      <div className="space-y-1.5">
-        <Label htmlFor="a-scheduled-date">Date</Label>
-        <Input
-          id="a-scheduled-date"
-          type="date"
-          min={minDateValue}
-          {...register("scheduledDate")}
-        />
-        {errors.scheduledDate && (
-          <p className="text-xs text-danger">{errors.scheduledDate.message}</p>
+      <Controller
+        control={control}
+        name="scheduledDate"
+        render={({ field }) => (
+          <div className="space-y-1.5">
+            <Label htmlFor="a-scheduled-date">Date</Label>
+            <DatePicker
+              id="a-scheduled-date"
+              value={field.value}
+              onChange={field.onChange}
+              min={minDateValue}
+            />
+            {errors.scheduledDate && (
+              <p className="text-xs text-danger">{errors.scheduledDate.message}</p>
+            )}
+          </div>
         )}
-      </div>
+      />
 
       <Controller
         control={control}

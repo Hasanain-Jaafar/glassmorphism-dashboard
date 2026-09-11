@@ -5,6 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { format } from "date-fns";
 import { Input } from "@/components/ui/input";
+import { DatePicker } from "@/components/ui/date-picker";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import {
@@ -219,11 +220,18 @@ export function InvoiceForm({
       ) : (
         <div className="space-y-1.5">
           <Label htmlFor="i-due">Due Date (optional)</Label>
-          <Input
-            id="i-due"
-            type="date"
-            min={minDueDate ?? undefined}
-            {...register("dueDate")}
+          <Controller
+            control={control}
+            name="dueDate"
+            render={({ field }) => (
+              <DatePicker
+                id="i-due"
+                value={field.value}
+                onChange={field.onChange}
+                min={minDueDate ?? undefined}
+                placeholder="No due date"
+              />
+            )}
           />
           {errors.dueDate ? (
             <p className="text-xs text-danger">{errors.dueDate.message}</p>

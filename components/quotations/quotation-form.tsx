@@ -7,6 +7,7 @@ import { z } from "zod";
 import { format } from "date-fns";
 import { Plus, Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { DatePicker } from "@/components/ui/date-picker";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import {
@@ -423,11 +424,12 @@ export function QuotationForm({
             control={control}
             name="validUntil"
             render={({ field }) => (
-              <Input
+              <DatePicker
                 id="q-valid-until"
-                type="date"
+                value={field.value}
+                onChange={field.onChange}
                 min={minValidUntil ?? undefined}
-                {...field}
+                placeholder="No expiration"
               />
             )}
           />
