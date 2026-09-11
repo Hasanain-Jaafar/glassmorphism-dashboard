@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { useTable, createColumnHelper } from "@tanstack/react-table";
 import type { SortingState } from "@tanstack/react-table";
 import { ArrowDown, ArrowUp, ChevronsUpDown, Package } from "lucide-react";
+import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { sortableTableFeatures as features } from "@/components/tables/table-features";
 import { usePersistedColumnVisibility } from "@/components/tables/use-persisted-column-visibility";
@@ -120,6 +121,17 @@ function buildColumns(admin: boolean, onEdit: (product: Product) => void) {
           {info.getValue() || "—"}
         </span>
       ),
+    }),
+    columnHelper.accessor("createdAt", {
+      header: "Date Added",
+      cell: (info) => {
+        const value = info.getValue();
+        return (
+          <span className="whitespace-nowrap text-text-secondary">
+            {value ? format(new Date(value), "MMM d, yyyy") : "—"}
+          </span>
+        );
+      },
     }),
     columnHelper.accessor("description", {
       header: "Description",

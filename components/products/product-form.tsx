@@ -3,6 +3,7 @@
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -77,7 +78,7 @@ export function ProductForm({
   onSubmit,
 }: {
   product?: Product;
-  onSubmit: (product: Omit<Product, "id">) => Promise<void>;
+  onSubmit: (product: Omit<Product, "id" | "createdAt">) => Promise<void>;
 }) {
   const {
     register,
@@ -255,6 +256,12 @@ export function ProductForm({
           <p className="text-xs text-danger">{errors.description.message}</p>
         )}
       </div>
+
+      {product?.createdAt && (
+        <p className="text-xs text-text-tertiary sm:col-span-2">
+          Added {format(new Date(product.createdAt), "MMM d, yyyy")}
+        </p>
+      )}
 
       <DialogFooter className="sm:col-span-2">
         <DialogClose render={<Button type="button" variant="outline" />}>

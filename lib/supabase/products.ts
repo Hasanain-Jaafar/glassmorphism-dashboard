@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/client";
 import type { Product } from "@/lib/mock-data";
 
 const PRODUCT_COLUMNS =
-  "id, name, sku, category, brand, price, status, description, delivery_time, made_in";
+  "id, name, sku, category, brand, price, status, description, delivery_time, made_in, created_at";
 
 type ProductRow = {
   id: string;
@@ -15,6 +15,7 @@ type ProductRow = {
   description: string;
   delivery_time: string | null;
   made_in: string | null;
+  created_at: string;
 };
 
 function normalize(row: ProductRow): Product {
@@ -29,10 +30,13 @@ function normalize(row: ProductRow): Product {
     description: row.description,
     deliveryTime: row.delivery_time,
     madeIn: row.made_in,
+    createdAt: row.created_at,
   };
 }
 
-function toRow(input: Omit<Product, "id">) {
+// created_at is DB-generated (default now()) and immutable — never written
+// here, on insert or update.
+function toRow(input: Omit<Product, "id" | "createdAt">) {
   return {
     name: input.name,
     sku: input.sku,
@@ -57,7 +61,7 @@ export async function fetchProducts(): Promise<Product[]> {
 }
 
 export async function insertProduct(
-  input: Omit<Product, "id">
+  input: Omit<Product, "id" | "createdAt">
 ): Promise<Product> {
   const supabase = createClient();
   const { data, error } = await supabase
@@ -71,7 +75,7 @@ export async function insertProduct(
 
 export async function updateProduct(
   id: string,
-  input: Omit<Product, "id">
+  input: Omit<Product, "id" | "createdAt">
 ): Promise<Product> {
   const supabase = createClient();
   const { data, error } = await supabase

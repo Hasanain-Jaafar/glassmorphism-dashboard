@@ -301,6 +301,10 @@ export type Product = {
   deliveryTime?: string | null;
   /** Country of origin, e.g. "Turkey". Optional — not every product has one set. */
   madeIn?: string | null;
+  /** ISO timestamp — when the product was added to the system. Set by the
+   * database (created_at default now()), so it's absent on the static mock
+   * catalog below (only used for command palette search, never displayed). */
+  createdAt?: string;
 };
 
 export const productCategories = [

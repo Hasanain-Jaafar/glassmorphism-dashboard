@@ -196,7 +196,7 @@ export default function ProductsPage() {
     setFormOpen(true);
   }
 
-  async function handleFormSubmit(product: Omit<Product, "id">) {
+  async function handleFormSubmit(product: Omit<Product, "id" | "createdAt">) {
     try {
       if (editingProduct) {
         const updated = await updateProduct(editingProduct.id, product);
