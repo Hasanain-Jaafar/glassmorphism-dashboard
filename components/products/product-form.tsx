@@ -22,6 +22,7 @@ import {
   type ProductStatus,
 } from "@/lib/mock-data";
 import { statusLabels } from "@/components/products/product-styles";
+import { formatDeliveryTime } from "@/lib/delivery-time";
 
 const formSchema = z.object({
   name: z.string().min(2, "Enter a product name"),
@@ -31,7 +32,13 @@ const formSchema = z.object({
   price: z.coerce.number().min(0, "Must be 0 or more"),
   status: z.enum(["active", "draft", "archived"]),
   description: z.string().min(2, "Enter a short description"),
-  deliveryTime: z.string().trim().optional(),
+  // Always normalized to "N-unit" / "N-N-unit" (e.g. "3-days", "2-3-weeks")
+  // regardless of how loosely it was typed — see lib/delivery-time.ts.
+  deliveryTime: z
+    .string()
+    .trim()
+    .optional()
+    .transform((value) => (value ? formatDeliveryTime(value) : value)),
   madeIn: z.string().trim().optional(),
 });
 
@@ -77,6 +84,7 @@ export function ProductForm({
     control,
     handleSubmit,
     reset,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<FormInput, unknown, FormOutput>({
     resolver: zodResolver(formSchema),
@@ -140,8 +148,15 @@ export function ProductForm({
         <Label htmlFor="p-delivery-time">Delivery Time</Label>
         <Input
           id="p-delivery-time"
-          placeholder="2-3 weeks"
-          {...register("deliveryTime")}
+          placeholder="3-days, 1-week, 2-3-weeks"
+          {...register("deliveryTime", {
+            onBlur: (e) => {
+              const formatted = formatDeliveryTime(e.target.value);
+              if (formatted !== e.target.value) {
+                setValue("deliveryTime", formatted);
+              }
+            },
+          })}
         />
       </div>
 
