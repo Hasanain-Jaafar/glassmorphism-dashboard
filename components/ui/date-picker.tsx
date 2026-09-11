@@ -55,7 +55,7 @@ function DatePicker({
         id={id}
         disabled={disabled}
         className={cn(
-          "flex h-8 w-full items-center justify-between gap-1.5 rounded-lg border border-input bg-transparent px-2.5 text-sm text-foreground transition-colors outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 dark:bg-input/30",
+          "flex h-8 w-full items-center justify-between gap-1.5 rounded-xs border border-input bg-transparent px-2.5 text-sm text-foreground transition-colors outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 dark:bg-input/30",
           !selected && "text-muted-foreground",
           className
         )}
@@ -63,7 +63,7 @@ function DatePicker({
         <span>{selected ? format(selected, "MMM d, yyyy") : placeholder}</span>
         <CalendarIcon className="size-3.5 shrink-0 text-text-tertiary" />
       </PopoverTrigger>
-      <PopoverContent align="start" className="w-auto p-2.5">
+      <PopoverContent align="start" className="w-auto rounded-sm p-2.5">
         <Calendar
           mode="single"
           weekStartsOn={weekStartsOn}

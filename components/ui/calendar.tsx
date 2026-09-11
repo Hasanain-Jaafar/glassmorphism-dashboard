@@ -33,9 +33,9 @@ function Calendar({
         caption_label: "text-sm font-medium text-foreground",
         nav: "flex items-center justify-between absolute inset-x-0 top-0 h-8",
         button_previous:
-          "inline-flex size-7 items-center justify-center rounded-md text-text-secondary transition-colors hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-40",
+          "inline-flex size-7 items-center justify-center rounded-[6px] text-text-secondary transition-colors hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-40",
         button_next:
-          "inline-flex size-7 items-center justify-center rounded-md text-text-secondary transition-colors hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-40",
+          "inline-flex size-7 items-center justify-center rounded-[6px] text-text-secondary transition-colors hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-40",
         month_grid: "w-full border-collapse",
         weekdays: "flex",
         weekday:
@@ -43,7 +43,7 @@ function Calendar({
         week: "mt-1 flex w-full",
         day: "p-0 text-center",
         day_button: cn(
-          "inline-flex size-8 items-center justify-center rounded-md text-sm font-normal text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+          "inline-flex size-8 items-center justify-center rounded-[6px] text-sm font-normal text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
         ),
         today: "[&>button]:border [&>button]:border-primary/50",
         selected:
