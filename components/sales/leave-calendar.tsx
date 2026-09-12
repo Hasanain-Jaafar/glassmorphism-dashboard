@@ -141,10 +141,11 @@ export function LeaveCalendar({
           const onLeave = leaveOn(day);
           const shown = onLeave.slice(0, 3);
           const overflow = onLeave.length - shown.length;
-          // 2+ people out the same day is a coverage conflict — red, matching
-          // the same red used on a conflicting request's row/popup elsewhere
-          // in this feature, so the signal reads consistently everywhere.
-          const lowCoverage = onLeave.length >= 2;
+          // Two tiers: exactly 2 out is worth a glance (amber); 3+ is a real
+          // coverage conflict — red, matching the same red used on a
+          // conflicting request's row/popup elsewhere in this feature.
+          const twoOut = onLeave.length === 2;
+          const threePlusOut = onLeave.length >= 3;
 
           return (
             <button
@@ -153,9 +154,11 @@ export function LeaveCalendar({
               onClick={() => setSelectedDay(day)}
               className={cn(
                 "mx-auto flex min-h-[84px] w-full max-w-[76px] cursor-pointer flex-col items-center gap-2 rounded-xl p-1.5 transition-colors",
-                lowCoverage
+                threePlusOut
                   ? "bg-danger/10 ring-1 ring-danger/25 hover:bg-danger/15"
-                  : "hover:bg-foreground/[0.04]"
+                  : twoOut
+                    ? "bg-warning/10 ring-1 ring-warning/25 hover:bg-warning/15"
+                    : "hover:bg-foreground/[0.04]"
               )}
             >
               <span
@@ -197,8 +200,12 @@ export function LeaveCalendar({
           </span>
         ))}
         <span className="flex items-center gap-2 text-xs text-text-secondary">
+          <span className="size-3 rounded-full bg-warning/25 ring-1 ring-warning/50" />
+          2 out same day
+        </span>
+        <span className="flex items-center gap-2 text-xs text-text-secondary">
           <span className="size-3 rounded-full bg-danger/25 ring-1 ring-danger/50" />
-          2+ out same day
+          3+ out same day
         </span>
       </div>
 
