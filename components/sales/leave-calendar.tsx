@@ -124,15 +124,18 @@ export function LeaveCalendar({
         </div>
       </div>
 
-      <div className="mt-4 grid grid-cols-7 gap-2">
+      <div className="mt-4 grid grid-cols-7 gap-2 rounded-lg bg-foreground/[0.04] py-2">
         {WEEKDAY_LABELS.map((label) => (
           <div
             key={label}
-            className="py-1 text-center text-[11px] font-medium text-text-tertiary"
+            className="text-center text-sm font-bold text-text-secondary"
           >
             {label}
           </div>
         ))}
+      </div>
+
+      <div className="mt-2 grid grid-cols-7 gap-2">
         {days.map((day) => {
           const inMonth = isSameMonth(day, viewedMonth);
           const onLeave = leaveOn(day);
@@ -150,7 +153,7 @@ export function LeaveCalendar({
               type="button"
               onClick={() => setSelectedDay(day)}
               className={cn(
-                "flex min-h-[84px] cursor-pointer flex-col items-center gap-2 rounded-xl p-1.5 transition-colors",
+                "mx-auto flex min-h-[84px] w-full max-w-[76px] cursor-pointer flex-col items-center gap-2 rounded-xl p-1.5 transition-colors",
                 lowCoverage
                   ? "bg-warning/10 ring-1 ring-warning/25 hover:bg-warning/15"
                   : "hover:bg-foreground/[0.04]"
