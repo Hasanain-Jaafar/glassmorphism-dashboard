@@ -302,11 +302,11 @@ export function RequestLeaveDialog({
     >
       <DialogTrigger render={<Button />}>
         <Plus className="size-4" />
-        {isAdmin ? "Log Time Off" : "Request Time Off"}
+        {isAdmin ? "Add Leave" : "Request Time Off"}
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{isAdmin ? "Log Time Off" : "Request Time Off"}</DialogTitle>
+          <DialogTitle>{isAdmin ? "Add Leave" : "Request Time Off"}</DialogTitle>
           <DialogDescription>
             {isAdmin
               ? "Record leave for yourself or any team member."

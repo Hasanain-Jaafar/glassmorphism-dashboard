@@ -116,6 +116,13 @@ In `supabase/migrations/`, run each file in filename order:
 27. `20260101000041_leave_requests_realtime.sql` — enables Realtime on
     `leave_requests` so a rep sees their request flip to Approved/Rejected
     live, and an admin sees a new submission live, without a manual refresh.
+28. `20260101000042_profiles_select_all.sql` — widens `profiles_select` so
+    any signed-in user can read the whole team roster, not just their own
+    row. **Required** — without it, a sales rep's `fetchTeamMembers()` only
+    ever returns themself, which silently broke the "All Salespeople" tab,
+    `NeedsFollowUp`'s rep names, and the Attendance tab's shared calendar /
+    coverage-conflict popup (coworkers showed as "Someone") for any non-admin
+    viewer. Write access (insert/update/delete) stays admin-only.
 
 ## 2. Seed baseline data (optional)
 
