@@ -110,9 +110,12 @@ In `supabase/migrations/`, run each file in filename order:
 26. `20260101000039_leave_management.sql` + `20260101000040_leave_management_rls.sql`
     — `leave_requests` (vacation/sick/unpaid/other, with a pending → approved/
     rejected workflow) and `leave_entitlements` (per-rep annual vacation
-    allowance) backing the Team page's **Time Off** tab. RLS lets every
+    allowance) backing the Team page's **Attendance** tab. RLS lets every
     signed-in user see *approved* leave (the shared team calendar), but keeps
     pending/rejected requests visible only to their owner and admins.
+27. `20260101000041_leave_requests_realtime.sql` — enables Realtime on
+    `leave_requests` so a rep sees their request flip to Approved/Rejected
+    live, and an admin sees a new submission live, without a manual refresh.
 
 ## 2. Seed baseline data (optional)
 
@@ -168,9 +171,9 @@ read-only tools (`lib/ai/tools.ts`) — 4 backed by the same real aggregates
 the rest of the dashboard uses, plus a 5th reading admin-uploaded knowledge
 base PDFs — via the Claude API (requires `ANTHROPIC_API_KEY`), and the
 **Admin Inbox** (`/inbox`, admin-only) — 1:1 direct messages between admins,
-live-synced via Realtime, and **leave management** (Team → Time Off) — leave
+live-synced via Realtime, and **leave management** (Team → Attendance) — leave
 requests, their approve/reject workflow, and per-rep annual vacation
-entitlements (migration 26 above).
+entitlements (migrations 26-27 above), live-synced via Realtime.
 
 The Dashboard, Team (KPI + All Salespeople tabs), Targets (Company tab and
 the Individual tab's monthlySales/yearlySales columns), and Customers pages

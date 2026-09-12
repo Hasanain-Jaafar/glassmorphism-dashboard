@@ -200,6 +200,30 @@ export function summarizeLeaveUsage(
   return usage;
 }
 
+/**
+ * Live updates for leave_requests (migration 41 enables the Realtime
+ * publication) — fires `onChange` on any insert/update/delete visible to
+ * this session's RLS, e.g. a rep's request flipping to approved/rejected,
+ * or an admin seeing a brand-new submission. Callers just refetch on
+ * change rather than reconciling payloads, since a full leave-requests
+ * fetch is cheap and every derived stat is recomputed from it anyway.
+ */
+export function subscribeToLeaveRequests(onChange: () => void): () => void {
+  const supabase = createClient();
+  const channel = supabase
+    .channel("leave-requests-changes")
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "leave_requests" },
+      onChange
+    )
+    .subscribe();
+
+  return () => {
+    supabase.removeChannel(channel);
+  };
+}
+
 /** Every approved request whose range touches `date` — what the team calendar and "out today" count render. */
 export function leaveOnDate(requests: LeaveRequest[], date: Date): LeaveRequest[] {
   const iso = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(

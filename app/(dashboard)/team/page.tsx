@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import {
   Gauge,
   Table2,
-  CalendarOff,
+  CalendarClock,
   Settings as SettingsIcon,
   Wallet,
   Handshake,
@@ -54,7 +54,7 @@ import { monthlyCountWave, monthlySumWave } from "@/lib/kpi-wave";
 import { TeamAccessSection } from "@/components/settings/team-access-section";
 import { useAuth } from "@/components/providers/auth-provider";
 
-const teamTabs = ["kpi", "all", "time-off", "settings"] as const;
+const teamTabs = ["kpi", "all", "attendance", "settings"] as const;
 type TeamTab = (typeof teamTabs)[number];
 
 function resolveTeamTab(value: string | null, admin: boolean): TeamTab | null {
@@ -234,9 +234,9 @@ export default function TeamPage() {
               <Table2 className="size-[15px]" />
               All Salespeople
             </TabsTab>
-            <TabsTab value="time-off">
-              <CalendarOff className="size-[15px]" />
-              Time Off
+            <TabsTab value="attendance">
+              <CalendarClock className="size-[15px]" />
+              Attendance
             </TabsTab>
             {admin && (
               <TabsTab value="settings">
@@ -375,7 +375,7 @@ export default function TeamPage() {
             )}
           </TabsPanel>
 
-          <TabsPanel value="time-off">
+          <TabsPanel value="attendance">
             <TimeOffPanel />
           </TabsPanel>
 

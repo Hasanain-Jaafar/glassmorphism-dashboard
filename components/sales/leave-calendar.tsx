@@ -15,6 +15,13 @@ import {
 } from "date-fns";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import type { LeaveRequest, LeaveType } from "@/lib/supabase/leave";
 import { LEAVE_TYPE_LABELS } from "@/lib/supabase/leave";
@@ -23,6 +30,13 @@ import type { TeamMember } from "@/lib/supabase/team";
 const WEEK_STARTS_ON = 6; // Saturday — same Sat-Thu work week as components/ui/calendar.tsx
 const WEEKDAY_LABELS = ["Sat", "Sun", "Mon", "Tue", "Wed", "Thu", "Fri"];
 
+const LEAVE_TYPE_RING: Record<LeaveType, string> = {
+  vacation: "ring-primary",
+  sick: "ring-warning",
+  unpaid: "ring-foreground/30",
+  other: "ring-chart-2",
+};
+
 const LEAVE_TYPE_DOT: Record<LeaveType, string> = {
   vacation: "bg-primary",
   sick: "bg-warning",
@@ -30,12 +44,30 @@ const LEAVE_TYPE_DOT: Record<LeaveType, string> = {
   other: "bg-chart-2",
 };
 
+function personAvatar(member: TeamMember | undefined, ring: string) {
+  return (
+    <span
+      className={cn(
+        "flex size-5 shrink-0 items-center justify-center overflow-hidden rounded-full bg-accent text-[9px] font-semibold text-accent-foreground ring-2 ring-offset-1 ring-offset-background",
+        ring
+      )}
+    >
+      {member?.avatarUrl ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={member.avatarUrl} alt="" className="size-full object-cover" />
+      ) : (
+        member?.initials ?? "?"
+      )}
+    </span>
+  );
+}
+
 /**
  * The shared "who's confirmed out" calendar — only renders approved leave
  * (RLS already hides pending/rejected requests from everyone but the owner
  * and admins, so `requests` may not even contain those for a non-admin
- * viewer). Deliberately read-only: approving/rejecting lives in the
- * requests list, not here.
+ * viewer). Clicking a day opens a read-only breakdown; approving/rejecting
+ * still lives in the requests list, not here.
  */
 export function LeaveCalendar({
   requests,
@@ -45,6 +77,7 @@ export function LeaveCalendar({
   members: TeamMember[];
 }) {
   const [viewedMonth, setViewedMonth] = useState(() => startOfMonth(new Date()));
+  const [selectedDay, setSelectedDay] = useState<Date | null>(null);
 
   const memberById = useMemo(() => new Map(members.map((m) => [m.id, m])), [members]);
   const approved = useMemo(
@@ -62,6 +95,8 @@ export function LeaveCalendar({
     const iso = format(day, "yyyy-MM-dd");
     return approved.filter((r) => r.startDate <= iso && r.endDate >= iso);
   }
+
+  const selectedDayLeave = selectedDay ? leaveOn(selectedDay) : [];
 
   return (
     <div>
@@ -105,44 +140,39 @@ export function LeaveCalendar({
           const overflow = onLeave.length - shown.length;
 
           return (
-            <div
+            <button
               key={day.toISOString()}
-              className={cn(
-                "flex min-h-[58px] flex-col items-center gap-1 rounded-lg border border-transparent p-1",
-                isToday(day) && "border-primary/40 bg-primary/[0.06]"
-              )}
+              type="button"
+              onClick={() => setSelectedDay(day)}
+              className="flex min-h-[58px] flex-col items-center gap-1.5 rounded-lg p-1 transition-colors hover:bg-foreground/[0.04]"
             >
               <span
                 className={cn(
-                  "text-xs",
-                  inMonth ? "text-text-secondary" : "text-text-tertiary/50"
+                  "flex size-6 items-center justify-center rounded-full text-xs",
+                  isToday(day)
+                    ? "bg-primary text-primary-foreground font-semibold"
+                    : inMonth
+                      ? "text-text-secondary"
+                      : "text-text-tertiary/50"
                 )}
               >
                 {format(day, "d")}
               </span>
               {shown.length > 0 && (
-                <div className="flex flex-wrap items-center justify-center gap-0.5">
-                  {shown.map((leave) => {
-                    const person = memberById.get(leave.salespersonId);
-                    return (
-                      <span
-                        key={leave.id}
-                        title={`${person?.name ?? "Unknown"} · ${LEAVE_TYPE_LABELS[leave.leaveType]}`}
-                        className={cn(
-                          "size-1.5 rounded-full",
-                          LEAVE_TYPE_DOT[leave.leaveType]
-                        )}
-                      />
-                    );
-                  })}
+                <div className="flex -space-x-1.5">
+                  {shown.map((leave) => (
+                    <span key={leave.id}>
+                      {personAvatar(memberById.get(leave.salespersonId), LEAVE_TYPE_RING[leave.leaveType])}
+                    </span>
+                  ))}
                   {overflow > 0 && (
-                    <span className="text-[9px] font-medium text-text-tertiary">
+                    <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-foreground/[0.08] text-[9px] font-medium text-text-tertiary ring-2 ring-offset-1 ring-offset-background ring-transparent">
                       +{overflow}
                     </span>
                   )}
                 </div>
               )}
-            </div>
+            </button>
           );
         })}
       </div>
@@ -155,6 +185,59 @@ export function LeaveCalendar({
           </span>
         ))}
       </div>
+
+      <Dialog open={selectedDay !== null} onOpenChange={(open) => !open && setSelectedDay(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {selectedDay ? format(selectedDay, "EEEE, MMMM d, yyyy") : ""}
+            </DialogTitle>
+            <DialogDescription>
+              {selectedDayLeave.length === 0
+                ? "Everyone is scheduled to work this day."
+                : `${selectedDayLeave.length} team member${selectedDayLeave.length === 1 ? "" : "s"} out`}
+            </DialogDescription>
+          </DialogHeader>
+
+          {selectedDayLeave.length > 0 && (
+            <ul className="space-y-2 pt-1">
+              {selectedDayLeave.map((leave) => {
+                const person = memberById.get(leave.salespersonId);
+                return (
+                  <li
+                    key={leave.id}
+                    className="flex items-start gap-2.5 rounded-xl border border-glass-border/60 bg-foreground/[0.02] p-2.5"
+                  >
+                    <div className="flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-accent text-xs font-semibold text-accent-foreground">
+                      {person?.avatarUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={person.avatarUrl} alt="" className="size-full object-cover" />
+                      ) : (
+                        person?.initials ?? "?"
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium text-foreground">
+                        {person?.name ?? "Unknown"}
+                      </p>
+                      <p className="truncate text-xs text-text-tertiary">
+                        {LEAVE_TYPE_LABELS[leave.leaveType]} ·{" "}
+                        {format(new Date(`${leave.startDate}T00:00:00`), "MMM d")} –{" "}
+                        {format(new Date(`${leave.endDate}T00:00:00`), "MMM d, yyyy")}
+                      </p>
+                      {leave.reason && (
+                        <p className="mt-0.5 truncate text-xs text-text-tertiary/80">
+                          &ldquo;{leave.reason}&rdquo;
+                        </p>
+                      )}
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

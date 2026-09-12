@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Users, Clock3, Umbrella } from "lucide-react";
+import { Users, Clock3, Umbrella, CalendarCheck } from "lucide-react";
 import { MetricCard } from "@/components/dashboard/metric-card";
 import { ChartCard } from "@/components/dashboard/chart-card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -17,12 +17,12 @@ import {
   saveLeaveEntitlement,
   summarizeLeaveUsage,
   leaveOnDate,
+  subscribeToLeaveRequests,
   DEFAULT_VACATION_DAYS,
   type LeaveRequest,
 } from "@/lib/supabase/leave";
 import { currentYear } from "@/lib/mock-data";
 import { LeaveCalendar } from "@/components/sales/leave-calendar";
-import { LeaveBalanceCard } from "@/components/sales/leave-balance-card";
 import { LeaveRequestsList } from "@/components/sales/leave-requests-list";
 import { LeaveBalancesTable } from "@/components/sales/leave-balances-table";
 import { RequestLeaveDialog, type RequestLeaveValues } from "@/components/sales/request-leave-dialog";
@@ -54,6 +54,14 @@ export function TimeOffPanel() {
   const refetchRequests = useCallback(() => {
     return fetchLeaveRequests(currentYear).then(setRequests);
   }, []);
+
+  // Live sync: a rep's own request flipping to approved/rejected, or an
+  // admin seeing a brand-new submission, shows up without a manual refresh.
+  useEffect(() => {
+    return subscribeToLeaveRequests(() => {
+      refetchRequests().catch(() => {});
+    });
+  }, [refetchRequests]);
 
   const refetchEntitlements = useCallback(() => {
     return fetchLeaveEntitlements(currentYear).then(setEntitlements);
@@ -95,9 +103,9 @@ export function TimeOffPanel() {
     await refetchRequests();
   }
 
-  async function handleReview(id: string, status: "approved" | "rejected") {
+  async function handleReview(id: string, status: "approved" | "rejected", note?: string) {
     try {
-      await reviewLeaveRequest(id, status);
+      await reviewLeaveRequest(id, status, note);
       toast.success(status === "approved" ? "Request approved" : "Request rejected");
       await refetchRequests();
     } catch (err) {
@@ -126,23 +134,22 @@ export function TimeOffPanel() {
   if (members === null || requests === null || !stats) {
     return (
       <div className="space-y-6">
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 lg:gap-6">
-          {[0, 1, 2].map((i) => (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 lg:gap-6">
+          {[0, 1, 2, 3].map((i) => (
             <Skeleton key={i} className="h-[132px] w-full rounded-2xl" />
           ))}
         </div>
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-6">
-          <Skeleton className="h-80 w-full rounded-2xl" />
-          <Skeleton className="h-80 w-full rounded-2xl" />
-        </div>
+        <Skeleton className="h-80 w-full rounded-2xl" />
         <Skeleton className="h-72 w-full rounded-2xl" />
       </div>
     );
   }
 
+  const vacationRemaining = Math.max(myEntitled - myUsage.vacation, 0);
+
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 lg:gap-6">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 lg:gap-6">
         <MetricCard
           label="Out Today"
           value={String(stats.outToday)}
@@ -164,32 +171,29 @@ export function TimeOffPanel() {
           icon={Umbrella}
           tone="cyan"
         />
-      </div>
-
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-6">
-        <ChartCard
-          title="Team Calendar"
-          description="Who's confirmed out, by day"
-        >
-          <LeaveCalendar requests={requests} members={members} />
-        </ChartCard>
-
-        <LeaveBalanceCard
-          vacationEntitled={myEntitled}
-          vacationUsed={myUsage.vacation}
-          sickUsed={myUsage.sick}
-          unpaidUsed={myUsage.unpaid}
-          otherUsed={myUsage.other}
-          action={
-            <RequestLeaveDialog
-              teamMembers={members}
-              currentUserId={currentUserId}
-              isAdmin={isAdmin}
-              onSubmit={handleCreate}
-            />
-          }
+        <MetricCard
+          label="My Vacation Remaining"
+          value={`${vacationRemaining}d`}
+          footnote={`${myUsage.vacation} of ${myEntitled} days used this year`}
+          icon={CalendarCheck}
+          tone="primary"
         />
       </div>
+
+      <ChartCard
+        title="Team Calendar"
+        description="Who's confirmed out, by day — click a day for details"
+        actions={
+          <RequestLeaveDialog
+            teamMembers={members}
+            currentUserId={currentUserId}
+            isAdmin={isAdmin}
+            onSubmit={handleCreate}
+          />
+        }
+      >
+        <LeaveCalendar requests={requests} members={members} />
+      </ChartCard>
 
       <LeaveRequestsList
         requests={requests}

@@ -2,9 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { format } from "date-fns";
-import { Check, X, XCircle } from "lucide-react";
 import { ChartCard } from "@/components/dashboard/chart-card";
-import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
   LEAVE_TYPE_LABELS,
@@ -12,6 +10,7 @@ import {
   type LeaveStatus,
 } from "@/lib/supabase/leave";
 import type { TeamMember } from "@/lib/supabase/team";
+import { LeaveRequestDetailsDialog } from "@/components/sales/leave-request-details-dialog";
 
 const STATUS_STYLES: Record<LeaveStatus, string> = {
   pending: "bg-warning/10 text-warning",
@@ -39,7 +38,9 @@ function formatRange(request: LeaveRequest) {
  * rows) and can approve/reject pending ones. A rep only ever has their own
  * rows for non-approved statuses (RLS), so this same component — unchanged
  * — naturally becomes "my requests" for a rep, with Cancel instead of
- * Approve/Reject.
+ * Approve/Reject. Every row opens the same details dialog rather than
+ * acting inline, so the reviewer (or the requester looking back later) sees
+ * the full context — reason, and once decided, who reviewed it and why.
  */
 export function LeaveRequestsList({
   requests,
@@ -53,11 +54,11 @@ export function LeaveRequestsList({
   members: TeamMember[];
   isAdmin: boolean;
   currentUserId: string;
-  onReview: (id: string, status: "approved" | "rejected") => Promise<void>;
+  onReview: (id: string, status: "approved" | "rejected", note?: string) => Promise<void>;
   onCancel: (id: string) => Promise<void>;
 }) {
   const [filter, setFilter] = useState<Filter>(isAdmin ? "pending" : "all");
-  const [busyId, setBusyId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const memberById = useMemo(() => new Map(members.map((m) => [m.id, m])), [members]);
 
@@ -70,19 +71,12 @@ export function LeaveRequestsList({
   }, [scoped, filter]);
 
   const pendingCount = scoped.filter((r) => r.status === "pending").length;
-
-  async function handle(action: () => Promise<void>) {
-    try {
-      await action();
-    } catch {
-      // onReview/onCancel callers already surface their own error toast.
-    }
-  }
+  const selected = requests.find((r) => r.id === selectedId) ?? null;
 
   return (
     <ChartCard
       title={isAdmin ? "Leave Requests" : "My Requests"}
-      description={isAdmin ? "Approve or reject time-off requests" : "Your time-off history"}
+      description={isAdmin ? "Click a request to review and decide" : "Your time-off history"}
       actions={
         <div className="flex shrink-0 gap-1">
           {(["pending", "approved", "rejected", "all"] as Filter[]).map((f) => (
@@ -112,104 +106,58 @@ export function LeaveRequestsList({
         <ul className="space-y-2">
           {filtered.map((request) => {
             const person = memberById.get(request.salespersonId);
-            const canCancel =
-              request.status === "pending" &&
-              (isAdmin || request.salespersonId === currentUserId);
-            const canReview = isAdmin && request.status === "pending";
-            const isBusy = busyId === request.id;
 
             return (
-              <li
-                key={request.id}
-                className="flex flex-wrap items-center gap-2.5 rounded-xl border border-glass-border/60 bg-foreground/[0.02] p-2.5"
-              >
-                <div className="flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-accent text-xs font-semibold text-accent-foreground">
-                  {person?.avatarUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={person.avatarUrl} alt="" className="size-full object-cover" />
-                  ) : (
-                    person?.initials ?? "?"
-                  )}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium text-foreground">
-                    {isAdmin ? person?.name ?? "Unknown" : LEAVE_TYPE_LABELS[request.leaveType]}
-                  </p>
-                  <p className="truncate text-xs text-text-tertiary">
-                    {isAdmin && `${LEAVE_TYPE_LABELS[request.leaveType]} · `}
-                    {formatRange(request)} · {request.days}d
-                  </p>
-                  {request.reason && (
-                    <p className="mt-0.5 truncate text-xs text-text-tertiary/80">
-                      &ldquo;{request.reason}&rdquo;
-                    </p>
-                  )}
-                </div>
-                <span
-                  className={cn(
-                    "shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium",
-                    STATUS_STYLES[request.status]
-                  )}
+              <li key={request.id}>
+                <button
+                  type="button"
+                  onClick={() => setSelectedId(request.id)}
+                  className="flex w-full items-center gap-2.5 rounded-xl border border-glass-border/60 bg-foreground/[0.02] p-2.5 text-left transition-colors hover:bg-foreground/[0.05]"
                 >
-                  {STATUS_LABELS[request.status]}
-                </span>
-                {(canReview || canCancel) && (
-                  <div className="flex shrink-0 items-center gap-1">
-                    {canReview && (
-                      <>
-                        <Button
-                          variant="ghost"
-                          size="icon-sm"
-                          disabled={isBusy}
-                          aria-label="Approve"
-                          className="text-success hover:bg-success/10 hover:text-success"
-                          onClick={() => {
-                            setBusyId(request.id);
-                            handle(() => onReview(request.id, "approved")).finally(() =>
-                              setBusyId(null)
-                            );
-                          }}
-                        >
-                          <Check className="size-3.5" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon-sm"
-                          disabled={isBusy}
-                          aria-label="Reject"
-                          className="text-danger hover:bg-danger/10 hover:text-danger"
-                          onClick={() => {
-                            setBusyId(request.id);
-                            handle(() => onReview(request.id, "rejected")).finally(() =>
-                              setBusyId(null)
-                            );
-                          }}
-                        >
-                          <X className="size-3.5" />
-                        </Button>
-                      </>
-                    )}
-                    {canCancel && !canReview && (
-                      <Button
-                        variant="ghost"
-                        size="icon-sm"
-                        disabled={isBusy}
-                        aria-label="Cancel request"
-                        className="text-text-tertiary hover:text-danger"
-                        onClick={() => {
-                          setBusyId(request.id);
-                          handle(() => onCancel(request.id)).finally(() => setBusyId(null));
-                        }}
-                      >
-                        <XCircle className="size-3.5" />
-                      </Button>
+                  <div className="flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-accent text-xs font-semibold text-accent-foreground">
+                    {person?.avatarUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={person.avatarUrl} alt="" className="size-full object-cover" />
+                    ) : (
+                      person?.initials ?? "?"
                     )}
                   </div>
-                )}
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium text-foreground">
+                      {isAdmin ? person?.name ?? "Unknown" : LEAVE_TYPE_LABELS[request.leaveType]}
+                    </p>
+                    <p className="truncate text-xs text-text-tertiary">
+                      {isAdmin && `${LEAVE_TYPE_LABELS[request.leaveType]} · `}
+                      {formatRange(request)} · {request.days}d
+                    </p>
+                  </div>
+                  <span
+                    className={cn(
+                      "shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium",
+                      STATUS_STYLES[request.status]
+                    )}
+                  >
+                    {STATUS_LABELS[request.status]}
+                  </span>
+                </button>
               </li>
             );
           })}
         </ul>
+      )}
+
+      {selected && (
+        <LeaveRequestDetailsDialog
+          request={selected}
+          person={memberById.get(selected.salespersonId)}
+          reviewer={selected.reviewedBy ? memberById.get(selected.reviewedBy) : undefined}
+          isAdmin={isAdmin}
+          currentUserId={currentUserId}
+          onClose={() => setSelectedId(null)}
+          onApprove={(id) => onReview(id, "approved")}
+          onReject={(id, note) => onReview(id, "rejected", note)}
+          onCancel={onCancel}
+        />
       )}
     </ChartCard>
   );
