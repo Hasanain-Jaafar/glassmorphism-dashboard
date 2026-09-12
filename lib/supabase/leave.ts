@@ -200,6 +200,48 @@ export function summarizeLeaveUsage(
   return usage;
 }
 
+export type CoverageConflict = {
+  /** "yyyy-MM-dd" */
+  date: string;
+  /** Everyone else (not the requester) already approved off on this date. */
+  people: { salespersonId: string; leaveType: LeaveType }[];
+};
+
+/**
+ * Every day within `request`'s range that already has 2+ *other* people
+ * approved off — a coverage risk worth flagging before approving one more.
+ * Only looks at approved leave (RLS-visible to everyone) and excludes the
+ * requester themself, so a rep requesting the same week a coworker is
+ * already off surfaces here even though the rep's own request is still
+ * pending.
+ */
+export function coverageConflictsForRequest(
+  requests: LeaveRequest[],
+  request: LeaveRequest
+): CoverageConflict[] {
+  const approved = requests.filter(
+    (r) => r.status === "approved" && r.salespersonId !== request.salespersonId
+  );
+  const start = new Date(`${request.startDate}T00:00:00`);
+  const end = new Date(`${request.endDate}T00:00:00`);
+
+  const conflicts: CoverageConflict[] = [];
+  for (const cursor = new Date(start); cursor <= end; cursor.setDate(cursor.getDate() + 1)) {
+    const iso = `${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, "0")}-${String(cursor.getDate()).padStart(2, "0")}`;
+    const peopleOut = approved.filter((r) => r.startDate <= iso && r.endDate >= iso);
+    if (peopleOut.length >= 2) {
+      conflicts.push({
+        date: iso,
+        people: peopleOut.map((r) => ({
+          salespersonId: r.salespersonId,
+          leaveType: r.leaveType,
+        })),
+      });
+    }
+  }
+  return conflicts;
+}
+
 /**
  * Live updates for leave_requests (migration 41 enables the Realtime
  * publication) — fires `onChange` on any insert/update/delete visible to

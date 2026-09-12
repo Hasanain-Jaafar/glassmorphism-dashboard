@@ -14,8 +14,17 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
-import { LEAVE_TYPE_LABELS, type LeaveRequest, type LeaveStatus } from "@/lib/supabase/leave";
+import {
+  LEAVE_TYPE_LABELS,
+  type CoverageConflict,
+  type LeaveRequest,
+  type LeaveStatus,
+} from "@/lib/supabase/leave";
 import type { TeamMember } from "@/lib/supabase/team";
+
+function formatConflictDate(iso: string) {
+  return format(new Date(`${iso}T00:00:00`), "EEE, MMM d");
+}
 
 const STATUS_STYLES: Record<LeaveStatus, string> = {
   pending: "bg-warning/10 text-warning",
@@ -47,6 +56,8 @@ export function LeaveRequestDetailsDialog({
   person,
   reviewer,
   otherLeaveThisMonth,
+  coverageConflicts,
+  members,
   isAdmin,
   currentUserId,
   onClose,
@@ -59,6 +70,10 @@ export function LeaveRequestDetailsDialog({
   reviewer: TeamMember | undefined;
   /** This person's other approved leave in the same calendar month — the exact dates and days, not just a total, since a reviewer (or the person themself) needs to see when, not just how much. */
   otherLeaveThisMonth?: LeaveRequest[];
+  /** Days within this request's range where 2+ *other* people are already approved off — a coverage risk to flag before approving one more. */
+  coverageConflicts?: CoverageConflict[];
+  /** Only needed to resolve names in coverageConflicts. */
+  members?: TeamMember[];
   isAdmin: boolean;
   currentUserId: string;
   onClose: () => void;
@@ -135,6 +150,28 @@ export function LeaveRequestDetailsDialog({
         </DialogHeader>
 
         <div className="space-y-3 pt-1">
+          {coverageConflicts && coverageConflicts.length > 0 && (
+            <div className="space-y-1.5 rounded-lg bg-danger/10 p-2.5">
+              <p className="text-xs font-semibold text-danger">
+                ⚠ Coverage conflict — already 2+ people on leave
+              </p>
+              <ul className="space-y-1">
+                {coverageConflicts.map((conflict) => (
+                  <li key={conflict.date} className="text-xs text-danger">
+                    <span className="font-medium">{formatConflictDate(conflict.date)}:</span>{" "}
+                    {conflict.people
+                      .map((p) => {
+                        const name =
+                          members?.find((m) => m.id === p.salespersonId)?.name ?? "Someone";
+                        return `${name} (${LEAVE_TYPE_LABELS[p.leaveType]})`;
+                      })
+                      .join(", ")}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
           <div className="flex items-center justify-between text-sm">
             <span className="text-text-tertiary">Status</span>
             <span
