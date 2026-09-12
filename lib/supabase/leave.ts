@@ -227,32 +227,25 @@ export function subscribeToLeaveRequests(onChange: () => void): () => void {
 /**
  * Every other *approved* request this same person had in the same calendar
  * month as `request` (excluding `request` itself) — decision-support for a
- * reviewer: "they already took 3 days of sick leave this month" changes
- * whether a new request should be approved. Grouped by type since a mix of
- * vacation + sick reads differently than 5 days of the same type.
+ * reviewer: "they already took 3 days of sick leave, Mar 4-6" changes
+ * whether a new request should be approved. Returns the full requests (not
+ * just a day total) so a reviewer sees the actual dates, not just an amount.
  */
 export function otherLeaveThisMonth(
   requests: LeaveRequest[],
   request: LeaveRequest
-): { type: LeaveType; days: number }[] {
+): LeaveRequest[] {
   const anchor = new Date(`${request.startDate}T00:00:00`);
   const year = anchor.getFullYear();
   const month = anchor.getMonth();
 
-  const totals: Partial<Record<LeaveType, number>> = {};
-  for (const r of requests) {
-    if (r.id === request.id) continue;
-    if (r.salespersonId !== request.salespersonId) continue;
-    if (r.status !== "approved") continue;
+  return requests.filter((r) => {
+    if (r.id === request.id) return false;
+    if (r.salespersonId !== request.salespersonId) return false;
+    if (r.status !== "approved") return false;
     const d = new Date(`${r.startDate}T00:00:00`);
-    if (d.getFullYear() !== year || d.getMonth() !== month) continue;
-    totals[r.leaveType] = (totals[r.leaveType] ?? 0) + r.days;
-  }
-
-  return (Object.keys(totals) as LeaveType[]).map((type) => ({
-    type,
-    days: totals[type] as number,
-  }));
+    return d.getFullYear() === year && d.getMonth() === month;
+  });
 }
 
 /** Every approved request whose range touches `date` — what the team calendar and "out today" count render. */

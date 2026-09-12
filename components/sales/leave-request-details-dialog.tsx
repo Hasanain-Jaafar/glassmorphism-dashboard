@@ -14,7 +14,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
-import { LEAVE_TYPE_LABELS, type LeaveRequest, type LeaveStatus, type LeaveType } from "@/lib/supabase/leave";
+import { LEAVE_TYPE_LABELS, type LeaveRequest, type LeaveStatus } from "@/lib/supabase/leave";
 import type { TeamMember } from "@/lib/supabase/team";
 
 const STATUS_STYLES: Record<LeaveStatus, string> = {
@@ -57,8 +57,8 @@ export function LeaveRequestDetailsDialog({
   request: LeaveRequest;
   person: TeamMember | undefined;
   reviewer: TeamMember | undefined;
-  /** This person's other approved leave in the same calendar month — decision support shown only while reviewing a pending request. */
-  otherLeaveThisMonth?: { type: LeaveType; days: number }[];
+  /** This person's other approved leave in the same calendar month — the exact dates and days, not just a total, since a reviewer (or the person themself) needs to see when, not just how much. */
+  otherLeaveThisMonth?: LeaveRequest[];
   isAdmin: boolean;
   currentUserId: string;
   onClose: () => void;
@@ -148,7 +148,9 @@ export function LeaveRequestDetailsDialog({
           </div>
           <div className="flex items-center justify-between text-sm">
             <span className="text-text-tertiary">Duration</span>
-            <span className="font-medium text-foreground">{request.days} working day{request.days === 1 ? "" : "s"}</span>
+            <span className="text-base font-semibold text-foreground">
+              {request.days} working day{request.days === 1 ? "" : "s"}
+            </span>
           </div>
           <div className="flex items-center justify-between text-sm">
             <span className="text-text-tertiary">Submitted</span>
@@ -164,17 +166,26 @@ export function LeaveRequestDetailsDialog({
             </div>
           )}
 
-          {request.status === "pending" &&
-            otherLeaveThisMonth &&
-            otherLeaveThisMonth.length > 0 && (
-              <div className="rounded-lg bg-warning/10 p-2.5 text-xs text-warning">
-                Already took{" "}
-                {otherLeaveThisMonth
-                  .map((e) => `${e.days}d ${LEAVE_TYPE_LABELS[e.type]}`)
-                  .join(", ")}{" "}
-                this month
-              </div>
-            )}
+          {otherLeaveThisMonth && otherLeaveThisMonth.length > 0 && (
+            <div className="space-y-1.5 rounded-lg bg-warning/10 p-2.5">
+              <p className="text-xs font-medium text-warning">
+                Other approved leave this month
+              </p>
+              <ul className="space-y-1">
+                {otherLeaveThisMonth.map((entry) => (
+                  <li
+                    key={entry.id}
+                    className="flex items-center justify-between gap-2 text-xs text-warning"
+                  >
+                    <span className="truncate">
+                      {LEAVE_TYPE_LABELS[entry.leaveType]} · {formatRange(entry)}
+                    </span>
+                    <span className="shrink-0 font-semibold">{entry.days}d</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
 
           {request.status !== "pending" && (
             <div className="border-t border-glass-border pt-3">

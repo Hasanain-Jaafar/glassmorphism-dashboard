@@ -34,10 +34,13 @@ function formatRange(request: LeaveRequest) {
   return `${format(start, "MMM d")} – ${format(end, "MMM d, yyyy")}`;
 }
 
-/** "Already took 2d Vacation, 1d Sick this month" — decision-support shown next to a pending request. */
-function formatOtherLeave(entries: { type: LeaveRequest["leaveType"]; days: number }[]) {
+/** "Already took 2d Vacation, 1d Sick this month" — compact row-level summary; the popup shows the actual dates. */
+function formatOtherLeave(entries: LeaveRequest[]) {
   if (entries.length === 0) return null;
-  return `Already took ${entries.map((e) => `${e.days}d ${LEAVE_TYPE_LABELS[e.type]}`).join(", ")} this month`;
+  const totals = new Map<string, number>();
+  for (const e of entries) totals.set(e.leaveType, (totals.get(e.leaveType) ?? 0) + e.days);
+  const summary = Array.from(totals, ([type, days]) => `${days}d ${LEAVE_TYPE_LABELS[type as keyof typeof LEAVE_TYPE_LABELS]}`).join(", ");
+  return `Already took ${summary} this month`;
 }
 
 /**
@@ -92,7 +95,7 @@ export function LeaveRequestsList({
               type="button"
               onClick={() => setFilter(f)}
               className={cn(
-                "rounded-full px-2.5 py-1 text-xs font-medium capitalize transition-colors",
+                "cursor-pointer rounded-full px-2.5 py-1 text-xs font-medium capitalize transition-colors",
                 filter === f
                   ? "bg-primary/10 text-primary"
                   : "text-text-tertiary hover:text-foreground"
@@ -123,7 +126,7 @@ export function LeaveRequestsList({
                 <button
                   type="button"
                   onClick={() => setSelectedId(request.id)}
-                  className="flex w-full items-center gap-2.5 rounded-xl border border-glass-border/60 bg-foreground/[0.02] p-2.5 text-left transition-colors hover:bg-foreground/[0.05]"
+                  className="flex w-full cursor-pointer items-center gap-2.5 rounded-xl border border-glass-border/60 bg-foreground/[0.02] p-2.5 text-left transition-colors hover:bg-foreground/[0.05]"
                 >
                   <div className="flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-accent text-xs font-semibold text-accent-foreground">
                     {person?.avatarUrl ? (
@@ -139,7 +142,10 @@ export function LeaveRequestsList({
                     </p>
                     <p className="truncate text-xs text-text-tertiary">
                       {isAdmin && `${LEAVE_TYPE_LABELS[request.leaveType]} · `}
-                      {formatRange(request)} · {request.days}d
+                      {formatRange(request)} ·{" "}
+                      <span className="text-sm font-semibold text-foreground">
+                        {request.days}d
+                      </span>
                     </p>
                     {otherLeaveNote && (
                       <p className="truncate text-[11px] text-warning">{otherLeaveNote}</p>
@@ -165,7 +171,7 @@ export function LeaveRequestsList({
           request={selected}
           person={memberById.get(selected.salespersonId)}
           reviewer={selected.reviewedBy ? memberById.get(selected.reviewedBy) : undefined}
-          otherLeaveThisMonth={isAdmin ? otherLeaveThisMonth(requests, selected) : []}
+          otherLeaveThisMonth={otherLeaveThisMonth(requests, selected)}
           isAdmin={isAdmin}
           currentUserId={currentUserId}
           onClose={() => setSelectedId(null)}

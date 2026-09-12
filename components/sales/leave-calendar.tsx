@@ -144,7 +144,7 @@ export function LeaveCalendar({
               key={day.toISOString()}
               type="button"
               onClick={() => setSelectedDay(day)}
-              className="flex min-h-[84px] flex-col items-center gap-2 rounded-xl p-1.5 transition-colors hover:bg-foreground/[0.04]"
+              className="flex min-h-[84px] cursor-pointer flex-col items-center gap-2 rounded-xl p-1.5 transition-colors hover:bg-foreground/[0.04]"
             >
               <span
                 className={cn(
