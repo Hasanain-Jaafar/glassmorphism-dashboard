@@ -167,20 +167,23 @@ export function LeaveRequestDetailsDialog({
           )}
 
           {otherLeaveThisMonth && otherLeaveThisMonth.length > 0 && (
-            <div className="space-y-1.5 rounded-lg bg-warning/10 p-2.5">
+            <div className="space-y-1.5">
               <p className="text-xs font-medium text-warning">
                 Other approved leave this month
               </p>
-              <ul className="space-y-1">
+              <ul className="space-y-1.5">
                 {otherLeaveThisMonth.map((entry) => (
                   <li
                     key={entry.id}
-                    className="flex items-center justify-between gap-2 text-xs text-warning"
+                    className="rounded-lg bg-warning/10 px-2.5 py-2 text-xs text-warning"
                   >
-                    <span className="truncate">
-                      {LEAVE_TYPE_LABELS[entry.leaveType]} · {formatRange(entry)}
-                    </span>
-                    <span className="shrink-0 font-semibold">{entry.days}d</span>
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="truncate font-semibold">
+                        {LEAVE_TYPE_LABELS[entry.leaveType]}
+                      </span>
+                      <span className="shrink-0 font-semibold">{entry.days}d</span>
+                    </div>
+                    <p className="mt-0.5 truncate text-warning/80">{formatRange(entry)}</p>
                   </li>
                 ))}
               </ul>

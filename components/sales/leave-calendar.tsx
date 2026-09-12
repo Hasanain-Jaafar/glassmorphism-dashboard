@@ -138,13 +138,23 @@ export function LeaveCalendar({
           const onLeave = leaveOn(day);
           const shown = onLeave.slice(0, 3);
           const overflow = onLeave.length - shown.length;
+          // 2+ people out the same day is a coverage risk worth a glance —
+          // warning (amber), not danger (red): per CLAUDE.md's semantic
+          // palette, red is reserved for destructive/negative states, and
+          // this is a caution signal, not an error.
+          const lowCoverage = onLeave.length >= 2;
 
           return (
             <button
               key={day.toISOString()}
               type="button"
               onClick={() => setSelectedDay(day)}
-              className="flex min-h-[84px] cursor-pointer flex-col items-center gap-2 rounded-xl p-1.5 transition-colors hover:bg-foreground/[0.04]"
+              className={cn(
+                "flex min-h-[84px] cursor-pointer flex-col items-center gap-2 rounded-xl p-1.5 transition-colors",
+                lowCoverage
+                  ? "bg-warning/10 ring-1 ring-warning/25 hover:bg-warning/15"
+                  : "hover:bg-foreground/[0.04]"
+              )}
             >
               <span
                 className={cn(
@@ -184,6 +194,10 @@ export function LeaveCalendar({
             {LEAVE_TYPE_LABELS[type]}
           </span>
         ))}
+        <span className="flex items-center gap-2 text-xs text-text-secondary">
+          <span className="size-3 rounded-full bg-warning/25 ring-1 ring-warning/50" />
+          2+ out same day
+        </span>
       </div>
 
       <Dialog open={selectedDay !== null} onOpenChange={(open) => !open && setSelectedDay(null)}>
