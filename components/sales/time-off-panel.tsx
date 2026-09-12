@@ -1,0 +1,213 @@
+"use client";
+
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
+import { Users, Clock3, Umbrella } from "lucide-react";
+import { MetricCard } from "@/components/dashboard/metric-card";
+import { ChartCard } from "@/components/dashboard/chart-card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useAuth } from "@/components/providers/auth-provider";
+import { fetchTeamMembers, type TeamMember } from "@/lib/supabase/team";
+import {
+  fetchLeaveRequests,
+  fetchLeaveEntitlements,
+  createLeaveRequest,
+  reviewLeaveRequest,
+  cancelLeaveRequest,
+  saveLeaveEntitlement,
+  summarizeLeaveUsage,
+  leaveOnDate,
+  DEFAULT_VACATION_DAYS,
+  type LeaveRequest,
+} from "@/lib/supabase/leave";
+import { currentYear } from "@/lib/mock-data";
+import { LeaveCalendar } from "@/components/sales/leave-calendar";
+import { LeaveBalanceCard } from "@/components/sales/leave-balance-card";
+import { LeaveRequestsList } from "@/components/sales/leave-requests-list";
+import { LeaveBalancesTable } from "@/components/sales/leave-balances-table";
+import { RequestLeaveDialog, type RequestLeaveValues } from "@/components/sales/request-leave-dialog";
+
+export function TimeOffPanel() {
+  const { isAdmin, profile } = useAuth();
+  const currentUserId = profile?.id ?? "";
+
+  const [members, setMembers] = useState<TeamMember[] | null>(null);
+  const [requests, setRequests] = useState<LeaveRequest[] | null>(null);
+  const [entitlements, setEntitlements] = useState<Record<string, number>>({});
+
+  const loadAll = useCallback(() => {
+    return Promise.all([
+      fetchTeamMembers(),
+      fetchLeaveRequests(currentYear),
+      fetchLeaveEntitlements(currentYear),
+    ]).then(([m, r, e]) => {
+      setMembers(m);
+      setRequests(r);
+      setEntitlements(e);
+    });
+  }, []);
+
+  useEffect(() => {
+    loadAll().catch((err) => toast.error(err.message ?? "Couldn't load time off"));
+  }, [loadAll]);
+
+  const refetchRequests = useCallback(() => {
+    return fetchLeaveRequests(currentYear).then(setRequests);
+  }, []);
+
+  const refetchEntitlements = useCallback(() => {
+    return fetchLeaveEntitlements(currentYear).then(setEntitlements);
+  }, []);
+
+  const stats = useMemo(() => {
+    if (!requests) return null;
+    const outToday = leaveOnDate(requests, new Date()).length;
+    const pending = requests.filter((r) => r.status === "pending").length;
+
+    const now = new Date();
+    const monthStartIso = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
+    const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    const monthEndIso = `${monthEnd.getFullYear()}-${String(monthEnd.getMonth() + 1).padStart(2, "0")}-${String(monthEnd.getDate()).padStart(2, "0")}`;
+    const daysThisMonth = requests
+      .filter((r) => r.status === "approved" && r.startDate <= monthEndIso && r.endDate >= monthStartIso)
+      .reduce((sum, r) => sum + r.days, 0);
+
+    return { outToday, pending, daysThisMonth };
+  }, [requests]);
+
+  const myUsage = useMemo(
+    () => summarizeLeaveUsage(requests ?? [], currentUserId, currentYear),
+    [requests, currentUserId]
+  );
+  const myEntitled = entitlements[currentUserId] ?? DEFAULT_VACATION_DAYS;
+
+  const usageByMember = useMemo(() => {
+    if (!members) return {};
+    const result: Record<string, ReturnType<typeof summarizeLeaveUsage>> = {};
+    for (const member of members) {
+      result[member.id] = summarizeLeaveUsage(requests ?? [], member.id, currentYear);
+    }
+    return result;
+  }, [members, requests]);
+
+  async function handleCreate(values: RequestLeaveValues) {
+    await createLeaveRequest(values);
+    await refetchRequests();
+  }
+
+  async function handleReview(id: string, status: "approved" | "rejected") {
+    try {
+      await reviewLeaveRequest(id, status);
+      toast.success(status === "approved" ? "Request approved" : "Request rejected");
+      await refetchRequests();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Couldn't update that request");
+      throw err;
+    }
+  }
+
+  async function handleCancel(id: string) {
+    try {
+      await cancelLeaveRequest(id);
+      toast.success("Request cancelled");
+      await refetchRequests();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Couldn't cancel that request");
+      throw err;
+    }
+  }
+
+  async function handleSaveEntitlement(salespersonId: string, vacationDays: number) {
+    await saveLeaveEntitlement(salespersonId, currentYear, vacationDays);
+    toast.success("Entitlement updated");
+    await refetchEntitlements();
+  }
+
+  if (members === null || requests === null || !stats) {
+    return (
+      <div className="space-y-6">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 lg:gap-6">
+          {[0, 1, 2].map((i) => (
+            <Skeleton key={i} className="h-[132px] w-full rounded-2xl" />
+          ))}
+        </div>
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-6">
+          <Skeleton className="h-80 w-full rounded-2xl" />
+          <Skeleton className="h-80 w-full rounded-2xl" />
+        </div>
+        <Skeleton className="h-72 w-full rounded-2xl" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 lg:gap-6">
+        <MetricCard
+          label="Out Today"
+          value={String(stats.outToday)}
+          footnote="Across the whole team"
+          icon={Users}
+          tone="neutral"
+        />
+        <MetricCard
+          label={isAdmin ? "Pending Requests" : "My Pending Requests"}
+          value={String(stats.pending)}
+          footnote={stats.pending > 0 ? "Awaiting a decision" : "All caught up"}
+          icon={Clock3}
+          tone={stats.pending > 0 ? "warning" : "neutral"}
+        />
+        <MetricCard
+          label="Leave Days This Month"
+          value={String(stats.daysThisMonth)}
+          footnote="Approved, across the team"
+          icon={Umbrella}
+          tone="cyan"
+        />
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-6">
+        <ChartCard
+          title="Team Calendar"
+          description="Who's confirmed out, by day"
+        >
+          <LeaveCalendar requests={requests} members={members} />
+        </ChartCard>
+
+        <LeaveBalanceCard
+          vacationEntitled={myEntitled}
+          vacationUsed={myUsage.vacation}
+          sickUsed={myUsage.sick}
+          unpaidUsed={myUsage.unpaid}
+          otherUsed={myUsage.other}
+          action={
+            <RequestLeaveDialog
+              teamMembers={members}
+              currentUserId={currentUserId}
+              isAdmin={isAdmin}
+              onSubmit={handleCreate}
+            />
+          }
+        />
+      </div>
+
+      <LeaveRequestsList
+        requests={requests}
+        members={members}
+        isAdmin={isAdmin}
+        currentUserId={currentUserId}
+        onReview={handleReview}
+        onCancel={handleCancel}
+      />
+
+      {isAdmin && (
+        <LeaveBalancesTable
+          members={members}
+          entitlements={entitlements}
+          usageByMember={usageByMember}
+          onSaveEntitlement={handleSaveEntitlement}
+        />
+      )}
+    </div>
+  );
+}

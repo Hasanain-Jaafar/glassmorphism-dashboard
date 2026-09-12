@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import {
   Gauge,
   Table2,
+  CalendarOff,
   Settings as SettingsIcon,
   Wallet,
   Handshake,
@@ -20,6 +21,7 @@ import { TeamHealthRadar } from "@/components/charts/team-health-radar";
 import { RepComparisonRadar } from "@/components/charts/rep-comparison-radar";
 import { SalespersonRankingTable } from "@/components/tables/salesperson-ranking-table";
 import { NeedsFollowUp } from "@/components/sales/needs-follow-up";
+import { TimeOffPanel } from "@/components/sales/time-off-panel";
 import { WeeklyActivityCard } from "@/components/dashboard/weekly-activity-card";
 import { Reveal } from "@/components/motion/reveal";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -52,7 +54,7 @@ import { monthlyCountWave, monthlySumWave } from "@/lib/kpi-wave";
 import { TeamAccessSection } from "@/components/settings/team-access-section";
 import { useAuth } from "@/components/providers/auth-provider";
 
-const teamTabs = ["kpi", "all", "settings"] as const;
+const teamTabs = ["kpi", "all", "time-off", "settings"] as const;
 type TeamTab = (typeof teamTabs)[number];
 
 function resolveTeamTab(value: string | null, admin: boolean): TeamTab | null {
@@ -232,6 +234,10 @@ export default function TeamPage() {
               <Table2 className="size-[15px]" />
               All Salespeople
             </TabsTab>
+            <TabsTab value="time-off">
+              <CalendarOff className="size-[15px]" />
+              Time Off
+            </TabsTab>
             {admin && (
               <TabsTab value="settings">
                 <SettingsIcon className="size-[15px]" />
@@ -367,6 +373,10 @@ export default function TeamPage() {
             ) : (
               <SalespersonRankingTable data={ranking} highlightedId={flashId} />
             )}
+          </TabsPanel>
+
+          <TabsPanel value="time-off">
+            <TimeOffPanel />
           </TabsPanel>
 
           {admin && (
