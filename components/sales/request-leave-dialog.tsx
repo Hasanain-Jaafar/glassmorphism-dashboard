@@ -300,8 +300,8 @@ export function RequestLeaveDialog({
         if (next) setInstanceKey((k) => k + 1);
       }}
     >
-      <DialogTrigger render={<Button size="sm" className="gap-1.5" />}>
-        <Plus className="size-3.5" />
+      <DialogTrigger render={<Button />}>
+        <Plus className="size-4" />
         {isAdmin ? "Log Time Off" : "Request Time Off"}
       </DialogTrigger>
       <DialogContent>

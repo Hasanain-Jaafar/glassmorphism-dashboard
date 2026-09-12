@@ -28,16 +28,27 @@ export function LeaveBalancesTable({
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [savingId, setSavingId] = useState<string | null>(null);
 
+  // Clears the draft entirely (not to "") once it's committed or discarded —
+  // an empty string would still win over `entitled` in `draft ?? entitled`
+  // below, permanently blanking the field after the first edit.
+  function clearDraft(salespersonId: string) {
+    setDrafts((d) => {
+      const next = { ...d };
+      delete next[salespersonId];
+      return next;
+    });
+  }
+
   async function commit(salespersonId: string, raw: string) {
     const value = Number(raw);
     if (!Number.isFinite(value) || value < 0) {
-      setDrafts((d) => ({ ...d, [salespersonId]: "" }));
+      clearDraft(salespersonId);
       return;
     }
     setSavingId(salespersonId);
     try {
       await onSaveEntitlement(salespersonId, value);
-      setDrafts((d) => ({ ...d, [salespersonId]: "" }));
+      clearDraft(salespersonId);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Couldn't save that entitlement");
     } finally {

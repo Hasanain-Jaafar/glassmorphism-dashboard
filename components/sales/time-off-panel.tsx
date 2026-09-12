@@ -22,6 +22,7 @@ import {
   type LeaveRequest,
 } from "@/lib/supabase/leave";
 import { currentYear } from "@/lib/mock-data";
+import { monthlyCountWave, monthlySumWave } from "@/lib/kpi-wave";
 import { LeaveCalendar } from "@/components/sales/leave-calendar";
 import { LeaveRequestsList } from "@/components/sales/leave-requests-list";
 import { LeaveBalancesTable } from "@/components/sales/leave-balances-table";
@@ -82,6 +83,30 @@ export function TimeOffPanel() {
 
     return { outToday, pending, daysThisMonth };
   }, [requests]);
+
+  // Decorative trailing-month waves (see lib/kpi-wave.ts) for the stat tiles
+  // — 6 months, not the default 12, since fetchLeaveRequests only ever holds
+  // the current year, and 12 trailing months would render mostly-zero bars
+  // for whichever prior-year months fall outside that window.
+  const waves = useMemo(() => {
+    const requestList = requests ?? [];
+    const approved = requestList.filter((r) => r.status === "approved");
+    const myApprovedVacation = approved.filter(
+      (r) => r.salespersonId === currentUserId && r.leaveType === "vacation"
+    );
+    return {
+      outTodayWave: monthlyCountWave(approved.map((r) => r.startDate), 6),
+      pendingWave: monthlyCountWave(requestList.map((r) => r.createdAt), 6),
+      daysThisMonthWave: monthlySumWave(
+        approved.map((r) => ({ date: r.startDate, amount: r.days })),
+        6
+      ),
+      vacationRemainingWave: monthlySumWave(
+        myApprovedVacation.map((r) => ({ date: r.startDate, amount: r.days })),
+        6
+      ),
+    };
+  }, [requests, currentUserId]);
 
   const myUsage = useMemo(
     () => summarizeLeaveUsage(requests ?? [], currentUserId, currentYear),
@@ -154,6 +179,7 @@ export function TimeOffPanel() {
           label="Out Today"
           value={String(stats.outToday)}
           footnote="Across the whole team"
+          wave={waves.outTodayWave}
           icon={Users}
           tone="neutral"
         />
@@ -161,6 +187,7 @@ export function TimeOffPanel() {
           label={isAdmin ? "Pending Requests" : "My Pending Requests"}
           value={String(stats.pending)}
           footnote={stats.pending > 0 ? "Awaiting a decision" : "All caught up"}
+          wave={waves.pendingWave}
           icon={Clock3}
           tone={stats.pending > 0 ? "warning" : "neutral"}
         />
@@ -168,6 +195,7 @@ export function TimeOffPanel() {
           label="Leave Days This Month"
           value={String(stats.daysThisMonth)}
           footnote="Approved, across the team"
+          wave={waves.daysThisMonthWave}
           icon={Umbrella}
           tone="cyan"
         />
@@ -175,6 +203,7 @@ export function TimeOffPanel() {
           label="My Vacation Remaining"
           value={`${vacationRemaining}d`}
           footnote={`${myUsage.vacation} of ${myEntitled} days used this year`}
+          wave={waves.vacationRemainingWave}
           icon={CalendarCheck}
           tone="primary"
         />

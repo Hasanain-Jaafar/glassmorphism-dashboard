@@ -14,7 +14,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
-import { LEAVE_TYPE_LABELS, type LeaveRequest, type LeaveStatus } from "@/lib/supabase/leave";
+import { LEAVE_TYPE_LABELS, type LeaveRequest, type LeaveStatus, type LeaveType } from "@/lib/supabase/leave";
 import type { TeamMember } from "@/lib/supabase/team";
 
 const STATUS_STYLES: Record<LeaveStatus, string> = {
@@ -46,6 +46,7 @@ export function LeaveRequestDetailsDialog({
   request,
   person,
   reviewer,
+  otherLeaveThisMonth,
   isAdmin,
   currentUserId,
   onClose,
@@ -56,6 +57,8 @@ export function LeaveRequestDetailsDialog({
   request: LeaveRequest;
   person: TeamMember | undefined;
   reviewer: TeamMember | undefined;
+  /** This person's other approved leave in the same calendar month — decision support shown only while reviewing a pending request. */
+  otherLeaveThisMonth?: { type: LeaveType; days: number }[];
   isAdmin: boolean;
   currentUserId: string;
   onClose: () => void;
@@ -161,6 +164,18 @@ export function LeaveRequestDetailsDialog({
             </div>
           )}
 
+          {request.status === "pending" &&
+            otherLeaveThisMonth &&
+            otherLeaveThisMonth.length > 0 && (
+              <div className="rounded-lg bg-warning/10 p-2.5 text-xs text-warning">
+                Already took{" "}
+                {otherLeaveThisMonth
+                  .map((e) => `${e.days}d ${LEAVE_TYPE_LABELS[e.type]}`)
+                  .join(", ")}{" "}
+                this month
+              </div>
+            )}
+
           {request.status !== "pending" && (
             <div className="border-t border-glass-border pt-3">
               <p className="text-xs text-text-tertiary">
@@ -177,7 +192,7 @@ export function LeaveRequestDetailsDialog({
 
           {rejecting && (
             <div className="space-y-1.5 border-t border-glass-border pt-3">
-              <Label htmlFor="reject-note">Reason for rejection</Label>
+              <Label htmlFor="reject-note">Reason for rejection (required)</Label>
               <Textarea
                 id="reject-note"
                 rows={2}
@@ -205,7 +220,12 @@ export function LeaveRequestDetailsDialog({
               <Button type="button" variant="outline" onClick={() => setRejecting(false)} disabled={busy}>
                 Back
               </Button>
-              <Button type="button" variant="destructive" onClick={confirmReject} disabled={busy}>
+              <Button
+                type="button"
+                variant="destructive"
+                onClick={confirmReject}
+                disabled={busy || rejectNote.trim().length === 0}
+              >
                 Confirm Rejection
               </Button>
             </>

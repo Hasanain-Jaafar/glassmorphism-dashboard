@@ -6,6 +6,7 @@ import { ChartCard } from "@/components/dashboard/chart-card";
 import { cn } from "@/lib/utils";
 import {
   LEAVE_TYPE_LABELS,
+  otherLeaveThisMonth,
   type LeaveRequest,
   type LeaveStatus,
 } from "@/lib/supabase/leave";
@@ -31,6 +32,12 @@ function formatRange(request: LeaveRequest) {
   const end = new Date(`${request.endDate}T00:00:00`);
   if (request.startDate === request.endDate) return format(start, "MMM d, yyyy");
   return `${format(start, "MMM d")} – ${format(end, "MMM d, yyyy")}`;
+}
+
+/** "Already took 2d Vacation, 1d Sick this month" — decision-support shown next to a pending request. */
+function formatOtherLeave(entries: { type: LeaveRequest["leaveType"]; days: number }[]) {
+  if (entries.length === 0) return null;
+  return `Already took ${entries.map((e) => `${e.days}d ${LEAVE_TYPE_LABELS[e.type]}`).join(", ")} this month`;
 }
 
 /**
@@ -106,6 +113,10 @@ export function LeaveRequestsList({
         <ul className="space-y-2">
           {filtered.map((request) => {
             const person = memberById.get(request.salespersonId);
+            const otherLeaveNote =
+              isAdmin && request.status === "pending"
+                ? formatOtherLeave(otherLeaveThisMonth(requests, request))
+                : null;
 
             return (
               <li key={request.id}>
@@ -130,6 +141,9 @@ export function LeaveRequestsList({
                       {isAdmin && `${LEAVE_TYPE_LABELS[request.leaveType]} · `}
                       {formatRange(request)} · {request.days}d
                     </p>
+                    {otherLeaveNote && (
+                      <p className="truncate text-[11px] text-warning">{otherLeaveNote}</p>
+                    )}
                   </div>
                   <span
                     className={cn(
@@ -151,6 +165,7 @@ export function LeaveRequestsList({
           request={selected}
           person={memberById.get(selected.salespersonId)}
           reviewer={selected.reviewedBy ? memberById.get(selected.reviewedBy) : undefined}
+          otherLeaveThisMonth={isAdmin ? otherLeaveThisMonth(requests, selected) : []}
           isAdmin={isAdmin}
           currentUserId={currentUserId}
           onClose={() => setSelectedId(null)}

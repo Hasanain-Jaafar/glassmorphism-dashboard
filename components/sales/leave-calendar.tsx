@@ -124,7 +124,7 @@ export function LeaveCalendar({
         </div>
       </div>
 
-      <div className="mt-4 grid grid-cols-7 gap-1">
+      <div className="mt-4 grid grid-cols-7 gap-2">
         {WEEKDAY_LABELS.map((label) => (
           <div
             key={label}
@@ -144,7 +144,7 @@ export function LeaveCalendar({
               key={day.toISOString()}
               type="button"
               onClick={() => setSelectedDay(day)}
-              className="flex min-h-[58px] flex-col items-center gap-1.5 rounded-lg p-1 transition-colors hover:bg-foreground/[0.04]"
+              className="flex min-h-[84px] flex-col items-center gap-2 rounded-xl p-1.5 transition-colors hover:bg-foreground/[0.04]"
             >
               <span
                 className={cn(
@@ -177,10 +177,10 @@ export function LeaveCalendar({
         })}
       </div>
 
-      <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-glass-border pt-3">
+      <div className="mt-4 flex flex-wrap items-center gap-4 border-t border-glass-border pt-3">
         {(Object.keys(LEAVE_TYPE_LABELS) as LeaveType[]).map((type) => (
-          <span key={type} className="flex items-center gap-1.5 text-[11px] text-text-tertiary">
-            <span className={cn("size-1.5 rounded-full", LEAVE_TYPE_DOT[type])} />
+          <span key={type} className="flex items-center gap-2 text-xs text-text-secondary">
+            <span className={cn("size-3 rounded-full", LEAVE_TYPE_DOT[type])} />
             {LEAVE_TYPE_LABELS[type]}
           </span>
         ))}
