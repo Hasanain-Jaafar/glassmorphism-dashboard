@@ -12,15 +12,11 @@ import {
 } from "lucide-react";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { MetricCard } from "@/components/dashboard/metric-card";
+import { SearchInput } from "@/components/dashboard/search-input";
 import { Reveal } from "@/components/motion/reveal";
 import { useAuth } from "@/components/providers/auth-provider";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  InputGroup,
-  InputGroupAddon,
-  InputGroupInput,
-} from "@/components/ui/input-group";
 import {
   Select,
   SelectContent,
@@ -301,16 +297,12 @@ function AppointmentsPageContent() {
 
       <Reveal delay={0.1}>
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <InputGroup className="glass-panel filter-control sm:max-w-xs">
-            <InputGroupAddon>
-              <CalendarClock className="size-4" />
-            </InputGroupAddon>
-            <InputGroupInput
-              placeholder="Search by title or customer..."
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-            />
-          </InputGroup>
+          <SearchInput
+            icon={CalendarClock}
+            placeholder="Search by title or customer..."
+            value={search}
+            onChange={setSearch}
+          />
 
           <Select
             value={statusFilter}

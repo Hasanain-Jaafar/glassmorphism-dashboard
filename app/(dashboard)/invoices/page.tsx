@@ -6,14 +6,10 @@ import { format } from "date-fns";
 import { AlertTriangle, CircleDollarSign, Download, Receipt, Wallet } from "lucide-react";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { MetricCard } from "@/components/dashboard/metric-card";
+import { SearchInput } from "@/components/dashboard/search-input";
 import { Reveal } from "@/components/motion/reveal";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  InputGroup,
-  InputGroupAddon,
-  InputGroupInput,
-} from "@/components/ui/input-group";
 import {
   Select,
   SelectContent,
@@ -308,16 +304,12 @@ export default function InvoicesPage() {
 
       <Reveal delay={0.1}>
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <InputGroup className="glass-panel filter-control sm:max-w-xs">
-            <InputGroupAddon>
-              <Receipt className="size-4" />
-            </InputGroupAddon>
-            <InputGroupInput
-              placeholder="Search by customer..."
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-            />
-          </InputGroup>
+          <SearchInput
+            icon={Receipt}
+            placeholder="Search by customer..."
+            value={search}
+            onChange={setSearch}
+          />
 
           <Select
             value={statusFilter}

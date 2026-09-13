@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Search } from "lucide-react";
+import { Search, X } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
@@ -36,8 +36,18 @@ export function RepRoster({
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search reps…"
-          className="h-9 pl-8"
+          className={cn("h-9 pl-8", query && "pr-8")}
         />
+        {query && (
+          <button
+            type="button"
+            aria-label="Clear search"
+            onClick={() => setQuery("")}
+            className="absolute top-1/2 right-2 flex size-5 -translate-y-1/2 items-center justify-center rounded-md text-text-tertiary transition-colors hover:text-foreground"
+          >
+            <X className="size-3.5" />
+          </button>
+        )}
       </div>
 
       <ul className="mt-3 flex-1 space-y-0.5 overflow-y-auto p-1.5 -m-1.5">
