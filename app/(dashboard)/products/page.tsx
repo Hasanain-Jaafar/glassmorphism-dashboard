@@ -12,12 +12,12 @@ import {
   Search,
   Table2,
   Tags,
-  Trophy,
 } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { MetricCard } from "@/components/dashboard/metric-card";
 import { ProductCard } from "@/components/products/product-card";
+import { BestSellerCard } from "@/components/products/best-seller-card";
 import { ProductForm } from "@/components/products/product-form";
 import { ProductTable, useProductTable } from "@/components/tables/product-table";
 import { ColumnVisibilityMenu } from "@/components/tables/column-visibility-menu";
@@ -79,12 +79,6 @@ type ProductTab = (typeof productTabs)[number];
 
 function isProductTab(value: string | null): value is ProductTab {
   return (productTabs as readonly string[]).includes(value ?? "");
-}
-
-// Best Seller's value sits at KPI-number size (28-32px) — long product
-// names need clipping so they don't overflow the card.
-function truncateLabel(value: string, max = 18): string {
-  return value.length > max ? `${value.slice(0, max - 1)}…` : value;
 }
 
 export default function ProductsPage() {
@@ -151,11 +145,11 @@ export default function ProductsPage() {
   const stats = useMemo(() => computeProductStats(products), [products]);
 
   const bestSeller = useMemo(() => {
-    let best: { product: Product; unitsSold: number } | null = null;
+    let best: { product: Product; unitsSold: number; revenue: number } | null = null;
     for (const product of products) {
-      const unitsSold = salesByProduct[product.id]?.unitsSold ?? 0;
-      if (unitsSold > 0 && (!best || unitsSold > best.unitsSold)) {
-        best = { product, unitsSold };
+      const sales = salesByProduct[product.id];
+      if (sales?.unitsSold && (!best || sales.unitsSold > best.unitsSold)) {
+        best = { product, unitsSold: sales.unitsSold, revenue: sales.revenue };
       }
     }
     return best;
@@ -302,20 +296,10 @@ export default function ProductsPage() {
             icon={CircleDollarSign}
             tone="primary"
           />
-          <MetricCard
-            label="Best Seller"
-            value={
-              bestSeller
-                ? truncateLabel(bestSeller.product.name)
-                : "—"
-            }
-            footnote={
-              bestSeller
-                ? `${bestSeller.unitsSold.toLocaleString("en-US")} units sold`
-                : "No paid sales yet"
-            }
-            icon={Trophy}
-            tone="warning"
+          <BestSellerCard
+            productName={bestSeller?.product.name ?? null}
+            unitsSold={bestSeller?.unitsSold ?? 0}
+            revenue={bestSeller?.revenue ?? 0}
           />
         </div>
       </Reveal>
