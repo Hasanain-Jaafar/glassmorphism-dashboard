@@ -61,6 +61,12 @@ const features = tableFeatures({
 
 const columnHelper = createColumnHelper<typeof features, TargetRow>();
 
+// These columns hold short, self-contained values ("4 / 6") rather than
+// text that reads naturally from the left edge — centering both the header
+// and the cell keeps the number visually aligned under its title instead of
+// sitting flush left under a much wider label.
+const centeredColumnIds = new Set(["appointments", "deals"]);
+
 function buildColumns(onEdit: (id: string) => void) {
   return columnHelper.columns([
     columnHelper.accessor("name", {
@@ -260,7 +266,10 @@ export function SalespersonTargetTable({
                   return (
                     <th
                       key={header.id}
-                      className="px-4 py-3.5 text-left text-xs font-medium tracking-wide text-text-tertiary uppercase first:pl-5 last:pr-5"
+                      className={cn(
+                        "px-4 py-3.5 text-left text-xs font-medium tracking-wide text-text-tertiary uppercase first:pl-5 last:pr-5",
+                        centeredColumnIds.has(header.column.id) && "text-center"
+                      )}
                     >
                       {sortable ? (
                         <button
@@ -296,7 +305,13 @@ export function SalespersonTargetTable({
                 className="border-b border-glass-border/60 transition-colors last:border-0 hover:bg-foreground/[0.03]"
               >
                 {row.getAllCells().map((cell) => (
-                  <td key={cell.id} className="px-4 py-3.5 first:pl-5 last:pr-5">
+                  <td
+                    key={cell.id}
+                    className={cn(
+                      "px-4 py-3.5 first:pl-5 last:pr-5",
+                      centeredColumnIds.has(cell.column.id) && "text-center"
+                    )}
+                  >
                     <table.FlexRender cell={cell} />
                   </td>
                 ))}
