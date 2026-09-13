@@ -6,6 +6,7 @@ import type { Deal, DealStatus } from "@/lib/supabase/deals";
 import type { Invoice, InvoiceStatus } from "@/lib/supabase/invoices";
 import type { TeamMember } from "@/lib/supabase/team";
 import type { CompanyTargets } from "@/lib/supabase/targets";
+import type { LeaveRequest, LeaveType, LeaveStatus } from "@/lib/supabase/leave";
 import { computeActivityTrend } from "@/lib/activity-trend";
 
 /**
@@ -177,6 +178,37 @@ export async function fetchKnowledgeBaseServer(
     .order("created_at", { ascending: false });
   if (error) throw error;
   return data ?? [];
+}
+
+/**
+ * RLS scopes this the same way lib/supabase/leave.ts's fetchLeaveRequests
+ * does: an admin sees every request, a rep sees their own (any status) plus
+ * every other approved one — matches the shared "who's out" team calendar.
+ */
+export async function fetchLeaveRequestsServer(
+  supabase: ServerSupabase
+): Promise<LeaveRequest[]> {
+  const { data, error } = await supabase
+    .from("leave_requests")
+    .select(
+      "id, salesperson_id, leave_type, start_date, end_date, days, reason, status, reviewed_by, reviewed_at, review_note, created_at"
+    )
+    .order("start_date", { ascending: false });
+  if (error) throw error;
+  return (data ?? []).map((row) => ({
+    id: row.id,
+    salespersonId: row.salesperson_id,
+    leaveType: row.leave_type as LeaveType,
+    startDate: row.start_date,
+    endDate: row.end_date,
+    days: Number(row.days),
+    reason: row.reason,
+    status: row.status as LeaveStatus,
+    reviewedBy: row.reviewed_by,
+    reviewedAt: row.reviewed_at,
+    reviewNote: row.review_note,
+    createdAt: row.created_at,
+  }));
 }
 
 /** RLS scopes this to the caller's own rows for a rep, everyone's for an admin. */

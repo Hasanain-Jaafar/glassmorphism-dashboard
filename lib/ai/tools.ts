@@ -19,8 +19,10 @@ import {
   fetchCompanyTargetsServer,
   fetchIndividualTargetsServer,
   fetchKnowledgeBaseServer,
+  fetchLeaveRequestsServer,
   type ServerSupabase,
 } from "@/lib/ai/data";
+import { leaveOnDate } from "@/lib/supabase/leave";
 import { widgetInputSchemas, type AssistantWidget } from "@/lib/ai/widgets";
 
 export type AssistantToolContext = {
@@ -30,7 +32,7 @@ export type AssistantToolContext = {
 };
 
 /**
- * 5 read-only data tools, each scoped by Postgres RLS via the request's own
+ * 6 read-only data tools, each scoped by Postgres RLS via the request's own
  * Supabase server client — a sales rep's tool calls only ever see their own
  * rows, an admin's see everyone's, exactly like the rest of the dashboard.
  * `year`/`month` follow the same "current period" the rest of the app agrees
@@ -260,6 +262,44 @@ export function buildAssistantTools(ctx: AssistantToolContext) {
     },
   });
 
+  const getLeaveStatus = betaZodTool({
+    name: "get_leave_status",
+    description:
+      "Who is on approved leave (vacation, sick, unpaid, or other) on a given date — defaults to today when no date is given. Use for questions like \"who's out today\" or \"is Anna on leave next Monday\".",
+    inputSchema: z.object({
+      date: z
+        .string()
+        .regex(/^\d{4}-\d{2}-\d{2}$/)
+        .optional()
+        .describe("yyyy-MM-dd, defaults to today"),
+    }),
+    run: async ({ date }) => {
+      const [requests, members] = await Promise.all([
+        fetchLeaveRequestsServer(supabase),
+        fetchTeamMembersServer(supabase),
+      ]);
+      const namesById = new Map(members.map((m) => [m.id, m.name]));
+      const target = date ? new Date(`${date}T00:00:00`) : new Date();
+      const onLeave = leaveOnDate(requests, target);
+      // Match leaveOnDate's own local-date formatting (not toISOString,
+      // which is UTC and could report the wrong calendar day).
+      const targetIso =
+        date ??
+        `${target.getFullYear()}-${String(target.getMonth() + 1).padStart(2, "0")}-${String(target.getDate()).padStart(2, "0")}`;
+
+      return JSON.stringify({
+        date: targetIso,
+        count: onLeave.length,
+        onLeave: onLeave.map((r) => ({
+          name: namesById.get(r.salespersonId) ?? "Unknown",
+          leaveType: r.leaveType,
+          startDate: r.startDate,
+          endDate: r.endDate,
+        })),
+      });
+    },
+  });
+
   const showMetric = betaZodTool({
     name: "show_metric",
     description:
@@ -311,6 +351,7 @@ export function buildAssistantTools(ctx: AssistantToolContext) {
       getPipelineStats,
       getTargetProgress,
       getKnowledgeBase,
+      getLeaveStatus,
       showMetric,
       showRankedList,
       showPipeline,
