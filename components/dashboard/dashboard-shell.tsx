@@ -3,12 +3,14 @@ import { AmbientBackground } from "@/components/dashboard/ambient-background";
 import { Sidebar } from "@/components/dashboard/sidebar";
 import { Topbar } from "@/components/dashboard/topbar";
 import { MobileNav } from "@/components/dashboard/mobile-nav";
+import { ScrollToTop } from "@/components/dashboard/scroll-to-top";
 import { AuthProvider } from "@/components/providers/auth-provider";
 
 export function DashboardShell({ children }: { children: ReactNode }) {
   return (
     <AuthProvider>
       <div className="relative min-h-screen">
+        <ScrollToTop />
         <AmbientBackground />
         <div className="mx-auto flex max-w-[1600px] gap-6 p-4 pb-24 sm:p-6 md:pb-6 lg:gap-6 lg:p-8 2xl:p-10">
           <Sidebar />
