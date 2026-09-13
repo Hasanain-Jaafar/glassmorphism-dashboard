@@ -7,6 +7,9 @@ import type { Invoice, InvoiceStatus } from "@/lib/supabase/invoices";
 import type { TeamMember } from "@/lib/supabase/team";
 import type { CompanyTargets } from "@/lib/supabase/targets";
 import type { LeaveRequest, LeaveType, LeaveStatus } from "@/lib/supabase/leave";
+import type { Customer, CustomerStatus } from "@/lib/customers-data";
+import type { Product, ProductStatus } from "@/lib/mock-data";
+import type { ProductSalesTotals } from "@/lib/supabase/product-sales";
 import { computeActivityTrend } from "@/lib/activity-trend";
 
 /**
@@ -234,4 +237,110 @@ export async function fetchIndividualTargetsServer(
     }
   }
   return byPerson;
+}
+
+/**
+ * Raw customer rows only — totalSales/totalDeals/outstandingAmount/
+ * lastPurchaseDate are left at 0/null here, exactly like the browser
+ * version (lib/supabase/customers.ts's fetchCustomers). Callers overlay
+ * real aggregates via withCustomerAggregates (lib/customers-data.ts) once
+ * they've also fetched deals/invoices.
+ */
+export async function fetchCustomersServer(supabase: ServerSupabase): Promise<Customer[]> {
+  const { data, error } = await supabase
+    .from("customers")
+    .select("id, name, company, email, phone, address, status, owner_id, created_at")
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return (data ?? []).map((row) => ({
+    id: row.id,
+    company: row.company ?? "",
+    contactPerson: row.name,
+    email: row.email ?? "",
+    phone: row.phone ?? "",
+    address: row.address ?? "",
+    status: row.status as CustomerStatus,
+    assignedSalespersonId: row.owner_id ?? "",
+    totalSales: 0,
+    totalDeals: 0,
+    outstandingAmount: 0,
+    lastPurchaseDate: null,
+    createdAt: row.created_at.slice(0, 10),
+  }));
+}
+
+export async function fetchProductsServer(supabase: ServerSupabase): Promise<Product[]> {
+  const { data, error } = await supabase
+    .from("products")
+    .select("id, name, sku, category, brand, price, status, description, delivery_time, made_in, created_at")
+    .order("name");
+  if (error) throw error;
+  return (data ?? []).map((row) => ({
+    id: row.id,
+    name: row.name,
+    sku: row.sku,
+    category: row.category,
+    brand: row.brand,
+    price: Number(row.price),
+    status: row.status as ProductStatus,
+    description: row.description,
+    deliveryTime: row.delivery_time,
+    madeIn: row.made_in,
+    createdAt: row.created_at,
+  }));
+}
+
+/**
+ * Same walk-the-pipeline-backwards logic as the browser version
+ * (lib/supabase/product-sales.ts's fetchProductSalesTotals), duplicated
+ * here for the server client rather than parametrized — matches how every
+ * other fetch*Server function in this file relates to its browser
+ * counterpart.
+ */
+export async function fetchProductSalesTotalsServer(
+  supabase: ServerSupabase
+): Promise<ProductSalesTotals> {
+  const { data: paidInvoices, error: invoicesError } = await supabase
+    .from("invoices")
+    .select("deal_id")
+    .eq("status", "paid");
+  if (invoicesError) throw invoicesError;
+
+  const dealIds = [
+    ...new Set((paidInvoices ?? []).map((row) => row.deal_id).filter(Boolean)),
+  ];
+  if (dealIds.length === 0) return {};
+
+  const { data: wonDeals, error: dealsError } = await supabase
+    .from("deals")
+    .select("quotation_id")
+    .in("id", dealIds)
+    .eq("status", "won");
+  if (dealsError) throw dealsError;
+
+  const quotationIds = [
+    ...new Set((wonDeals ?? []).map((row) => row.quotation_id).filter(Boolean)),
+  ];
+  if (quotationIds.length === 0) return {};
+
+  const { data: items, error: itemsError } = await supabase
+    .from("quotation_items")
+    .select("product_id, quantity, unit_price")
+    .in("quotation_id", quotationIds);
+  if (itemsError) throw itemsError;
+
+  const totals: ProductSalesTotals = {};
+  for (const item of items ?? []) {
+    if (!item.product_id) continue;
+    const quantity = Number(item.quantity);
+    const revenue = quantity * Number(item.unit_price);
+    const existing = totals[item.product_id];
+    if (existing) {
+      existing.unitsSold += quantity;
+      existing.revenue += revenue;
+    } else {
+      totals[item.product_id] = { unitsSold: quantity, revenue };
+    }
+  }
+  return totals;
 }

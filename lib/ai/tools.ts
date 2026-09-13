@@ -20,9 +20,13 @@ import {
   fetchIndividualTargetsServer,
   fetchKnowledgeBaseServer,
   fetchLeaveRequestsServer,
+  fetchCustomersServer,
+  fetchProductsServer,
+  fetchProductSalesTotalsServer,
   type ServerSupabase,
 } from "@/lib/ai/data";
 import { leaveOnDate } from "@/lib/supabase/leave";
+import { withCustomerAggregates } from "@/lib/customers-data";
 import { widgetInputSchemas, type AssistantWidget } from "@/lib/ai/widgets";
 
 export type AssistantToolContext = {
@@ -32,7 +36,7 @@ export type AssistantToolContext = {
 };
 
 /**
- * 6 read-only data tools, each scoped by Postgres RLS via the request's own
+ * 8 read-only data tools, each scoped by Postgres RLS via the request's own
  * Supabase server client — a sales rep's tool calls only ever see their own
  * rows, an admin's see everyone's, exactly like the rest of the dashboard.
  * `year`/`month` follow the same "current period" the rest of the app agrees
@@ -300,6 +304,120 @@ export function buildAssistantTools(ctx: AssistantToolContext) {
     },
   });
 
+  const getCustomers = betaZodTool({
+    name: "get_customers",
+    description:
+      "Search customers by name/company, or list the top customers by total sales when no search term is given. Each result includes total sales (paid invoices only), total won deals, outstanding balance (sent/overdue invoices), and last purchase date. Use for questions like \"what's Al-Fahad's outstanding balance?\" or \"who are our biggest customers?\".",
+    inputSchema: z.object({
+      search: z
+        .string()
+        .optional()
+        .describe("Match against company name or contact person, case-insensitive"),
+      limit: z
+        .number()
+        .int()
+        .min(1)
+        .max(20)
+        .optional()
+        .describe("Max results, default 10"),
+    }),
+    run: async ({ search, limit }) => {
+      const [customers, deals, invoices] = await Promise.all([
+        fetchCustomersServer(supabase),
+        fetchDealsServer(supabase),
+        fetchInvoicesServer(supabase),
+      ]);
+      const withAggregates = withCustomerAggregates(customers, { deals, invoices });
+
+      const query = search?.trim().toLowerCase();
+      const matched = query
+        ? withAggregates.filter(
+            (c) =>
+              c.company.toLowerCase().includes(query) ||
+              c.contactPerson.toLowerCase().includes(query)
+          )
+        : withAggregates;
+
+      const sorted = [...matched].sort((a, b) => b.totalSales - a.totalSales);
+      const results = sorted.slice(0, limit ?? 10);
+
+      return JSON.stringify({
+        matchCount: matched.length,
+        customers: results.map((c) => ({
+          company: c.company,
+          contactPerson: c.contactPerson,
+          email: c.email,
+          phone: c.phone,
+          status: c.status,
+          totalSales: c.totalSales,
+          totalSalesFormatted: formatUSD(c.totalSales),
+          totalDeals: c.totalDeals,
+          outstandingAmount: c.outstandingAmount,
+          outstandingAmountFormatted: formatUSD(c.outstandingAmount),
+          lastPurchaseDate: c.lastPurchaseDate,
+        })),
+      });
+    },
+  });
+
+  const getProducts = betaZodTool({
+    name: "get_products",
+    description:
+      "Search the product catalog by name/SKU/brand, or list the best-selling products (by units sold, realized/paid sales only) when no search term is given. Use for questions like \"what's our best-selling product?\" or \"how much is the Rain Shower Panel System?\".",
+    inputSchema: z.object({
+      search: z
+        .string()
+        .optional()
+        .describe("Match against product name, SKU, or brand, case-insensitive"),
+      category: z.string().optional().describe("Exact category name to filter to"),
+      limit: z
+        .number()
+        .int()
+        .min(1)
+        .max(20)
+        .optional()
+        .describe("Max results, default 10"),
+    }),
+    run: async ({ search, category, limit }) => {
+      const [products, salesTotals] = await Promise.all([
+        fetchProductsServer(supabase),
+        fetchProductSalesTotalsServer(supabase),
+      ]);
+
+      const query = search?.trim().toLowerCase();
+      const matched = products.filter((p) => {
+        const matchesQuery =
+          !query ||
+          p.name.toLowerCase().includes(query) ||
+          p.sku.toLowerCase().includes(query) ||
+          p.brand.toLowerCase().includes(query);
+        const matchesCategory = !category || p.category === category;
+        return matchesQuery && matchesCategory;
+      });
+
+      const sorted = [...matched].sort(
+        (a, b) => (salesTotals[b.id]?.unitsSold ?? 0) - (salesTotals[a.id]?.unitsSold ?? 0)
+      );
+      const results = sorted.slice(0, limit ?? 10);
+
+      return JSON.stringify({
+        matchCount: matched.length,
+        products: results.map((p) => ({
+          name: p.name,
+          sku: p.sku,
+          brand: p.brand,
+          category: p.category,
+          status: p.status,
+          price: p.price,
+          priceFormatted: formatUSD(p.price),
+          unitsSold: salesTotals[p.id]?.unitsSold ?? 0,
+          revenue: salesTotals[p.id]?.revenue ?? 0,
+          revenueFormatted: formatUSD(salesTotals[p.id]?.revenue ?? 0),
+        })),
+      });
+    },
+  });
+
   const showMetric = betaZodTool({
     name: "show_metric",
     description:
@@ -352,6 +470,8 @@ export function buildAssistantTools(ctx: AssistantToolContext) {
       getTargetProgress,
       getKnowledgeBase,
       getLeaveStatus,
+      getCustomers,
+      getProducts,
       showMetric,
       showRankedList,
       showPipeline,
