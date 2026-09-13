@@ -49,6 +49,7 @@ const rows: PrefRow[] = [
     key: "weeklySummary",
     label: "Weekly performance summary",
     description: "A recap of team performance every Monday.",
+    adminOnly: true,
   },
 ];
 
