@@ -50,17 +50,30 @@ export function QuotationRejectionChart({
     });
   }, [quotations, month, year]);
 
-  const rejected = scoped.filter((q) => q.status === "rejected");
+  // Recomputing these inline (rather than memoizing) rebuilds a fresh array
+  // on every render — including re-renders triggered by unrelated page
+  // state like the search box — so Recharts sees a "new" data prop and
+  // restarts its bar/label animation on each keystroke. Memoizing on
+  // `scoped` keeps the reference stable when the underlying data hasn't
+  // actually changed.
+  const rejected = useMemo(
+    () => scoped.filter((q) => q.status === "rejected"),
+    [scoped]
+  );
   const rate = scoped.length > 0 ? (rejected.length / scoped.length) * 100 : 0;
 
-  const bars = (
-    Object.keys(quotationRejectionReasonLabels) as QuotationRejectionReason[]
-  ).map((reason) => ({
-    key: reason,
-    label: quotationRejectionReasonLabels[reason],
-    value: rejected.filter((q) => q.rejectionReason === reason).length,
-    colorVar: reasonColorVar[reason],
-  }));
+  const bars = useMemo(
+    () =>
+      (Object.keys(quotationRejectionReasonLabels) as QuotationRejectionReason[]).map(
+        (reason) => ({
+          key: reason,
+          label: quotationRejectionReasonLabels[reason],
+          value: rejected.filter((q) => q.rejectionReason === reason).length,
+          colorVar: reasonColorVar[reason],
+        })
+      ),
+    [rejected]
+  );
 
   return (
     <ChartCard
