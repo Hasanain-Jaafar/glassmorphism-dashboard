@@ -96,9 +96,13 @@ export default function TeamPage() {
   const searchParams = useSearchParams();
   const highlightedId = searchParams.get("person");
   const requestedTab = searchParams.get("tab");
-  const [flashId, setFlashId] = useState<string | null>(null);
+  // Seed flashId from highlightedId directly (not null) — otherwise a fresh
+  // page load with ?person= already in the URL never highlights anything,
+  // since prevHighlightedId below also starts equal to highlightedId and
+  // the change-detection check never fires.
+  const [flashId, setFlashId] = useState<string | null>(highlightedId);
   const [activeTab, setActiveTab] = useState(
-    resolveTeamTab(requestedTab, admin) ?? "kpi"
+    highlightedId ? "all" : (resolveTeamTab(requestedTab, admin) ?? "kpi")
   );
 
   // Sync activeTab when a new ?tab= deep link arrives (React's documented

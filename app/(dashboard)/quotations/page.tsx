@@ -133,7 +133,11 @@ function QuotationsPageContent() {
   // scrolls to and briefly flashes that row. Any active status filter could
   // otherwise hide it, so drop it the moment a new id link arrives.
   const highlightedId = searchParams.get("id");
-  const [flashId, setFlashId] = useState<string | null>(null);
+  // Seed flashId from highlightedId directly (not null) — otherwise a fresh
+  // page load with ?id= already in the URL never highlights anything, since
+  // prevHighlightedId below also starts equal to highlightedId and the
+  // change-detection check never fires.
+  const [flashId, setFlashId] = useState<string | null>(highlightedId);
   const [prevHighlightedId, setPrevHighlightedId] = useState(highlightedId);
   if (highlightedId !== prevHighlightedId) {
     setPrevHighlightedId(highlightedId);
