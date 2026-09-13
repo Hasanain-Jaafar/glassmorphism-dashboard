@@ -162,11 +162,14 @@ export function CustomerDetailSheet({
     });
   }, [customer, appointments, quotations, deals, invoices]);
 
-  // The sheet's own popup panel is the scroll container (overflow-y-auto
-  // below) and it stays mounted across opens — Base UI doesn't tear it down
-  // just because a different customer was clicked. Without this, opening a
-  // new customer while a previous one was scrolled down leaves that same
-  // scroll offset in place, landing mid-timeline instead of at the top.
+  // This inner div (not Base UI's own Popup element) is the scroll
+  // container — owning it directly means we don't depend on a ref reaching
+  // through Base UI's Popup to whatever the real scrollable node turns out
+  // to be. The sheet stays mounted across opens (Base UI doesn't tear it
+  // down just because a different customer was clicked), so without this
+  // reset, opening a new customer while a previous one was scrolled down
+  // leaves that same scroll offset in place, landing mid-timeline instead
+  // of at the top.
   const scrollRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (open) scrollRef.current?.scrollTo({ top: 0 });
@@ -185,198 +188,197 @@ export function CustomerDetailSheet({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent
-        ref={scrollRef}
-        className="w-full gap-0 overflow-y-auto p-0 sm:max-w-lg"
-      >
-        <SheetHeader className="border-b border-glass-border p-5 sm:p-6">
-          <div className="flex items-start justify-between gap-3 pr-8">
-            <div className="min-w-0">
-              <SheetTitle className="truncate text-base">
-                {customer.company}
-              </SheetTitle>
-              <SheetDescription className="truncate">
-                {customer.contactPerson}
-              </SheetDescription>
-            </div>
-            <span
-              className={cn(
-                "shrink-0 rounded-full px-2 py-0.5 text-xs font-medium whitespace-nowrap",
-                customerStatusStyles[customer.status]
-              )}
-            >
-              {customerStatusLabels[customer.status]}
-            </span>
-          </div>
-        </SheetHeader>
-
-        <div className="space-y-6 p-5 sm:p-6">
-          <div className="space-y-2">
-            <p className="text-xs font-medium tracking-wide text-text-tertiary uppercase">
-              Contact Information
-            </p>
-            <div className="space-y-1.5 text-sm text-text-secondary">
-              <div className="flex items-center gap-2">
-                <Mail className="size-3.5 shrink-0 text-text-tertiary" />
-                <span className="truncate">{customer.email}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Phone className="size-3.5 shrink-0 text-text-tertiary" />
-                <span>{customer.phone}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <MapPin className="size-3.5 shrink-0 text-text-tertiary" />
-                <span className="truncate">{customer.address}</span>
-              </div>
-            </div>
-          </div>
-
-          {salesperson && (
-            <div className="flex items-center gap-3 rounded-xl border border-glass-border/60 bg-foreground/[0.02] p-3">
-              <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-accent text-xs font-semibold text-accent-foreground">
-                {salesperson.initials}
-              </div>
+      <SheetContent className="w-full gap-0 p-0 sm:max-w-lg">
+        <div ref={scrollRef} className="h-full overflow-y-auto">
+          <SheetHeader className="border-b border-glass-border p-5 sm:p-6">
+            <div className="flex items-start justify-between gap-3 pr-8">
               <div className="min-w-0">
-                <p className="truncate text-sm font-medium text-foreground">
-                  {salesperson.name}
-                </p>
-                <p className="text-xs text-text-tertiary">
-                  Assigned Salesperson
-                </p>
+                <SheetTitle className="truncate text-base">
+                  {customer.company}
+                </SheetTitle>
+                <SheetDescription className="truncate">
+                  {customer.contactPerson}
+                </SheetDescription>
+              </div>
+              <span
+                className={cn(
+                  "shrink-0 rounded-full px-2 py-0.5 text-xs font-medium whitespace-nowrap",
+                  customerStatusStyles[customer.status]
+                )}
+              >
+                {customerStatusLabels[customer.status]}
+              </span>
+            </div>
+          </SheetHeader>
+
+          <div className="space-y-6 p-5 sm:p-6">
+            <div className="space-y-2">
+              <p className="text-xs font-medium tracking-wide text-text-tertiary uppercase">
+                Contact Information
+              </p>
+              <div className="space-y-1.5 text-sm text-text-secondary">
+                <div className="flex items-center gap-2">
+                  <Mail className="size-3.5 shrink-0 text-text-tertiary" />
+                  <span className="truncate">{customer.email}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Phone className="size-3.5 shrink-0 text-text-tertiary" />
+                  <span>{customer.phone}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <MapPin className="size-3.5 shrink-0 text-text-tertiary" />
+                  <span className="truncate">{customer.address}</span>
+                </div>
               </div>
             </div>
-          )}
 
-          <div className="grid grid-cols-2 gap-3">
-            <Stat label="Total Sales" value={formatUSD(derived.totalSales)} />
-            <Stat label="Total Deals" value={String(derived.totalDeals)} />
-            <Stat label="Avg. Deal Value" value={formatUSD(avgDeal)} />
-            <Stat
-              label="Outstanding"
-              value={formatUSD(derived.outstandingAmount)}
-              tone={derived.outstandingAmount > 0 ? "warning" : undefined}
-            />
-            <Stat
-              label="Last Activity"
-              value={lastActivity ? format(new Date(lastActivity), "MMM d, yyyy") : "—"}
-              className="col-span-2"
-            />
-          </div>
+            {salesperson && (
+              <div className="flex items-center gap-3 rounded-xl border border-glass-border/60 bg-foreground/[0.02] p-3">
+                <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-accent text-xs font-semibold text-accent-foreground">
+                  {salesperson.initials}
+                </div>
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-medium text-foreground">
+                    {salesperson.name}
+                  </p>
+                  <p className="text-xs text-text-tertiary">
+                    Assigned Salesperson
+                  </p>
+                </div>
+              </div>
+            )}
 
-          <div className="space-y-2">
-            <p className="text-xs font-medium tracking-wide text-text-tertiary uppercase">
-              Sales History
-            </p>
-            <div className="divide-y divide-glass-border/60 overflow-hidden rounded-xl border border-glass-border/60">
-              {historyTypes.map((type) => {
-                const entries = derived.activity.filter((a) => a.type === type);
-                const Icon = activityTypeIcons[type];
-                const amount = entries.reduce((sum, e) => sum + (e.amount ?? 0), 0);
-                return (
-                  <div
-                    key={type}
-                    className="flex items-center justify-between gap-3 bg-foreground/[0.02] px-3 py-2.5"
-                  >
-                    <div className="flex items-center gap-2.5">
-                      <span
-                        className={cn(
-                          "flex size-7 shrink-0 items-center justify-center rounded-lg",
-                          activityTypeStyles[type]
-                        )}
-                      >
-                        <Icon className="size-3.5" />
-                      </span>
-                      <span className="text-sm text-text-secondary">
-                        {activityTypeLabels[type]}
-                      </span>
-                    </div>
-                    <div className="text-right text-sm">
-                      <span className="font-medium text-foreground">
-                        {entries.length}
-                      </span>
-                      {amount > 0 && (
-                        <span className="ml-1.5 text-xs text-text-tertiary">
-                          {formatUSD(amount)}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
+            <div className="grid grid-cols-2 gap-3">
+              <Stat label="Total Sales" value={formatUSD(derived.totalSales)} />
+              <Stat label="Total Deals" value={String(derived.totalDeals)} />
+              <Stat label="Avg. Deal Value" value={formatUSD(avgDeal)} />
+              <Stat
+                label="Outstanding"
+                value={formatUSD(derived.outstandingAmount)}
+                tone={derived.outstandingAmount > 0 ? "warning" : undefined}
+              />
+              <Stat
+                label="Last Activity"
+                value={lastActivity ? format(new Date(lastActivity), "MMM d, yyyy") : "—"}
+                className="col-span-2"
+              />
             </div>
-          </div>
 
-          <div className="space-y-2">
-            <p className="text-xs font-medium tracking-wide text-text-tertiary uppercase">
-              Activity Timeline
-            </p>
-            {sortedActivity.length === 0 ? (
-              <p className="py-4 text-center text-sm text-text-tertiary">
-                No activity logged yet.
+            <div className="space-y-2">
+              <p className="text-xs font-medium tracking-wide text-text-tertiary uppercase">
+                Sales History
               </p>
-            ) : (
-              <ul className="space-y-3">
-                {sortedActivity.map((entry) => {
-                  const Icon = activityTypeIcons[entry.type];
+              <div className="divide-y divide-glass-border/60 overflow-hidden rounded-xl border border-glass-border/60">
+                {historyTypes.map((type) => {
+                  const entries = derived.activity.filter((a) => a.type === type);
+                  const Icon = activityTypeIcons[type];
+                  const amount = entries.reduce((sum, e) => sum + (e.amount ?? 0), 0);
                   return (
-                    <li key={entry.id} className="flex items-start gap-3">
-                      <span
-                        className={cn(
-                          "mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full",
-                          activityTypeStyles[entry.type]
-                        )}
-                      >
-                        <Icon className="size-3.5" />
-                      </span>
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm text-text-secondary">
-                          {entry.label}
-                        </p>
-                        <p className="mt-0.5 text-xs text-text-tertiary">
-                          {format(new Date(entry.date), "MMM d, yyyy")}
-                          {entry.amount ? ` · ${formatUSD(entry.amount)}` : ""}
-                        </p>
+                    <div
+                      key={type}
+                      className="flex items-center justify-between gap-3 bg-foreground/[0.02] px-3 py-2.5"
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <span
+                          className={cn(
+                            "flex size-7 shrink-0 items-center justify-center rounded-lg",
+                            activityTypeStyles[type]
+                          )}
+                        >
+                          <Icon className="size-3.5" />
+                        </span>
+                        <span className="text-sm text-text-secondary">
+                          {activityTypeLabels[type]}
+                        </span>
                       </div>
-                    </li>
+                      <div className="text-right text-sm">
+                        <span className="font-medium text-foreground">
+                          {entries.length}
+                        </span>
+                        {amount > 0 && (
+                          <span className="ml-1.5 text-xs text-text-tertiary">
+                            {formatUSD(amount)}
+                          </span>
+                        )}
+                      </div>
+                    </div>
                   );
                 })}
-              </ul>
-            )}
-          </div>
+              </div>
+            </div>
 
-          <div className="space-y-2 border-t border-glass-border pt-5">
-            <p className="text-xs font-medium tracking-wide text-text-tertiary uppercase">
-              Quick Actions
-            </p>
-            <div className="grid grid-cols-2 gap-2">
-              <Button variant="outline" size="sm" onClick={onEdit}>
-                <FilePenLine className="size-3.5" />
-                Edit Customer
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => onQuickAction("appointment")}
-              >
-                <CalendarClock className="size-3.5" />
-                Create Appointment
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => onQuickAction("quotation")}
-              >
-                <FileText className="size-3.5" />
-                Create Quotation
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => onQuickAction("invoices")}
-              >
-                <Receipt className="size-3.5" />
-                View Invoices
-              </Button>
+            <div className="space-y-2">
+              <p className="text-xs font-medium tracking-wide text-text-tertiary uppercase">
+                Activity Timeline
+              </p>
+              {sortedActivity.length === 0 ? (
+                <p className="py-4 text-center text-sm text-text-tertiary">
+                  No activity logged yet.
+                </p>
+              ) : (
+                <ul className="space-y-3">
+                  {sortedActivity.map((entry) => {
+                    const Icon = activityTypeIcons[entry.type];
+                    return (
+                      <li key={entry.id} className="flex items-start gap-3">
+                        <span
+                          className={cn(
+                            "mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full",
+                            activityTypeStyles[entry.type]
+                          )}
+                        >
+                          <Icon className="size-3.5" />
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm text-text-secondary">
+                            {entry.label}
+                          </p>
+                          <p className="mt-0.5 text-xs text-text-tertiary">
+                            {format(new Date(entry.date), "MMM d, yyyy")}
+                            {entry.amount ? ` · ${formatUSD(entry.amount)}` : ""}
+                          </p>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </div>
+
+            <div className="space-y-2 border-t border-glass-border pt-5">
+              <p className="text-xs font-medium tracking-wide text-text-tertiary uppercase">
+                Quick Actions
+              </p>
+              <div className="grid grid-cols-2 gap-2">
+                <Button variant="outline" size="sm" onClick={onEdit}>
+                  <FilePenLine className="size-3.5" />
+                  Edit Customer
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onQuickAction("appointment")}
+                >
+                  <CalendarClock className="size-3.5" />
+                  Create Appointment
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onQuickAction("quotation")}
+                >
+                  <FileText className="size-3.5" />
+                  Create Quotation
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onQuickAction("invoices")}
+                >
+                  <Receipt className="size-3.5" />
+                  View Invoices
+                </Button>
+              </div>
             </div>
           </div>
         </div>
