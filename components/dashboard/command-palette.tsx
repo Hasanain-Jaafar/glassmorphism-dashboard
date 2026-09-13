@@ -19,6 +19,7 @@ import {
   Bell,
   Package,
   Tag,
+  Brain,
 } from "lucide-react";
 import { getVisibleNavGroups } from "@/lib/nav";
 import type { Customer } from "@/lib/customers-data";
@@ -43,6 +44,26 @@ const roleLabels: Record<TeamMember["role"], string> = {
   admin: "Administrator",
   sales_rep: "Sales Representative",
 };
+
+/**
+ * cmdk's default filter is a loose character-subsequence fuzzy match, which
+ * can surface unrelated items on scattered letters — e.g. "ai brain" would
+ * match a product like "Rain Shower Panel System" (the letters a-i-b-r-a-i-n
+ * all appear somewhere in "rain shower panel system quarterbath", just not
+ * as the word "brain"). Require every whitespace-separated word in the
+ * query to appear as an actual substring instead, then rank exact/prefix
+ * matches highest — precise like Spotlight/Raycast rather than fuzzy.
+ */
+function preciseFilter(value: string, search: string): number {
+  const query = search.trim().toLowerCase();
+  if (!query) return 1;
+  const haystack = value.toLowerCase();
+  const words = query.split(/\s+/).filter(Boolean);
+  if (!words.every((word) => haystack.includes(word))) return 0;
+  if (haystack === query) return 1;
+  if (haystack.startsWith(query)) return 0.9;
+  return 0.5;
+}
 
 export function CommandPalette({ compact = false }: { compact?: boolean }) {
   const [open, setOpen] = useState(false);
@@ -123,10 +144,24 @@ export function CommandPalette({ compact = false }: { compact?: boolean }) {
         onOpenChange={setOpen}
         className="border-glass-border bg-popover/95 backdrop-blur-2xl"
       >
-        <Command>
+        <Command filter={preciseFilter}>
           <CommandInput placeholder="Type a command or search..." />
           <CommandList>
             <CommandEmpty>No results found.</CommandEmpty>
+            {admin && (
+              <>
+                <CommandGroup heading="Assistant">
+                  <CommandItem
+                    value="AI Brain Assistant chat"
+                    onSelect={() => runCommand(() => router.push("/assistant"))}
+                  >
+                    <Brain className="size-4" />
+                    AI Brain
+                  </CommandItem>
+                </CommandGroup>
+                <CommandSeparator />
+              </>
+            )}
             {navGroups.map((group) => (
               <CommandGroup key={group.label} heading={group.label}>
                 {group.items.map((item) => (
