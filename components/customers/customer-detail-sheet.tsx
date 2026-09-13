@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { format } from "date-fns";
 import {
   CalendarClock,
@@ -162,6 +162,16 @@ export function CustomerDetailSheet({
     });
   }, [customer, appointments, quotations, deals, invoices]);
 
+  // The sheet's own popup panel is the scroll container (overflow-y-auto
+  // below) and it stays mounted across opens — Base UI doesn't tear it down
+  // just because a different customer was clicked. Without this, opening a
+  // new customer while a previous one was scrolled down leaves that same
+  // scroll offset in place, landing mid-timeline instead of at the top.
+  const scrollRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (open) scrollRef.current?.scrollTo({ top: 0 });
+  }, [open, customer?.id]);
+
   if (!customer || !derived) return null;
 
   const salesperson = salespeople.find(
@@ -175,7 +185,10 @@ export function CustomerDetailSheet({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="w-full gap-0 overflow-y-auto p-0 sm:max-w-lg">
+      <SheetContent
+        ref={scrollRef}
+        className="w-full gap-0 overflow-y-auto p-0 sm:max-w-lg"
+      >
         <SheetHeader className="border-b border-glass-border p-5 sm:p-6">
           <div className="flex items-start justify-between gap-3 pr-8">
             <div className="min-w-0">
