@@ -1,6 +1,7 @@
-import { Package } from "lucide-react";
+import { Package, TrendingUp } from "lucide-react";
 import { formatUSD } from "@/lib/format";
 import type { Product } from "@/lib/mock-data";
+import type { ProductSalesStats } from "@/lib/supabase/product-sales";
 import { cn } from "@/lib/utils";
 import {
   categoryStyles,
@@ -9,7 +10,14 @@ import {
   statusStyles,
 } from "@/components/products/product-styles";
 
-export function ProductCard({ product }: { product: Product }) {
+export function ProductCard({
+  product,
+  sales,
+}: {
+  product: Product;
+  /** Units/revenue sold to date (paid invoices only) — omitted while loading. */
+  sales?: ProductSalesStats;
+}) {
   const categoryStyle = categoryStyles[product.category] ?? fallbackCategoryStyle;
   const metaLine = [
     product.madeIn && `Made in ${product.madeIn}`,
@@ -47,6 +55,12 @@ export function ProductCard({ product }: { product: Product }) {
         {metaLine && (
           <p className="mt-0.5 truncate text-[11px] text-text-tertiary">
             {metaLine}
+          </p>
+        )}
+        {!!sales?.unitsSold && (
+          <p className="mt-1 flex items-center gap-1 text-[11px] font-medium text-success">
+            <TrendingUp className="size-3" />
+            {sales.unitsSold} sold
           </p>
         )}
       </div>

@@ -12,6 +12,7 @@ import {
   Search,
   Table2,
   Tags,
+  Trophy,
 } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/dashboard/page-header";
@@ -56,6 +57,10 @@ import {
   type Product,
 } from "@/lib/mock-data";
 import { fetchProducts, insertProduct, updateProduct } from "@/lib/supabase/products";
+import {
+  fetchProductSalesTotals,
+  type ProductSalesTotals,
+} from "@/lib/supabase/product-sales";
 import { formatUSD } from "@/lib/format";
 import { useAuth } from "@/components/providers/auth-provider";
 
@@ -76,8 +81,15 @@ function isProductTab(value: string | null): value is ProductTab {
   return (productTabs as readonly string[]).includes(value ?? "");
 }
 
+// Best Seller's value sits at KPI-number size (28-32px) — long product
+// names need clipping so they don't overflow the card.
+function truncateLabel(value: string, max = 18): string {
+  return value.length > max ? `${value.slice(0, max - 1)}…` : value;
+}
+
 export default function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
+  const [salesByProduct, setSalesByProduct] = useState<ProductSalesTotals>({});
   const [loading, setLoading] = useState(true);
   const { isAdmin: admin } = useAuth();
 
@@ -131,9 +143,23 @@ export default function ProductsPage() {
       .then(setProducts)
       .catch((error: Error) => toast.error(error.message))
       .finally(() => setLoading(false));
+    fetchProductSalesTotals()
+      .then(setSalesByProduct)
+      .catch((error: Error) => toast.error(error.message));
   }, []);
 
   const stats = useMemo(() => computeProductStats(products), [products]);
+
+  const bestSeller = useMemo(() => {
+    let best: { product: Product; unitsSold: number } | null = null;
+    for (const product of products) {
+      const unitsSold = salesByProduct[product.id]?.unitsSold ?? 0;
+      if (unitsSold > 0 && (!best || unitsSold > best.unitsSold)) {
+        best = { product, unitsSold };
+      }
+    }
+    return best;
+  }, [products, salesByProduct]);
 
   const kpiWaves = useMemo(() => {
     const countByCategory = productCategories.map(
@@ -218,7 +244,12 @@ export default function ProductsPage() {
     }
   }
 
-  const productTable = useProductTable({ data: filtered, admin, onEdit: openEditForm });
+  const productTable = useProductTable({
+    data: filtered,
+    admin,
+    onEdit: openEditForm,
+    salesByProduct,
+  });
 
   return (
     <div className="space-y-6">
@@ -238,7 +269,7 @@ export default function ProductsPage() {
       </Reveal>
 
       <Reveal delay={0.05}>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 lg:gap-6">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5 lg:gap-6">
           <MetricCard
             label="Total Products"
             value={String(stats.total)}
@@ -270,6 +301,21 @@ export default function ProductsPage() {
             wave={kpiWaves.sortedPrices}
             icon={CircleDollarSign}
             tone="primary"
+          />
+          <MetricCard
+            label="Best Seller"
+            value={
+              bestSeller
+                ? truncateLabel(bestSeller.product.name)
+                : "—"
+            }
+            footnote={
+              bestSeller
+                ? `${bestSeller.unitsSold.toLocaleString("en-US")} units sold`
+                : "No paid sales yet"
+            }
+            icon={Trophy}
+            tone="warning"
           />
         </div>
       </Reveal>
@@ -386,7 +432,11 @@ export default function ProductsPage() {
             ) : filtered.length ? (
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:gap-6 xl:grid-cols-3">
                 {filtered.map((product) => (
-                  <ProductCard key={product.id} product={product} />
+                  <ProductCard
+                    key={product.id}
+                    product={product}
+                    sales={salesByProduct[product.id]}
+                  />
                 ))}
               </div>
             ) : (

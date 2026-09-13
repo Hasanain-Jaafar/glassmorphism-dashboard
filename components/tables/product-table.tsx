@@ -10,6 +10,7 @@ import { sortableTableFeatures as features } from "@/components/tables/table-fea
 import { usePersistedColumnVisibility } from "@/components/tables/use-persisted-column-visibility";
 import type { Product } from "@/lib/mock-data";
 import { formatUSD } from "@/lib/format";
+import type { ProductSalesTotals } from "@/lib/supabase/product-sales";
 import {
   categoryStyles,
   fallbackCategoryStyle,
@@ -19,7 +20,11 @@ import {
 
 const columnHelper = createColumnHelper<typeof features, Product>();
 
-function buildColumns(admin: boolean, onEdit: (product: Product) => void) {
+function buildColumns(
+  admin: boolean,
+  onEdit: (product: Product) => void,
+  salesByProduct: ProductSalesTotals
+) {
   return columnHelper.columns([
     columnHelper.accessor("name", {
       header: "Product",
@@ -90,6 +95,27 @@ function buildColumns(admin: boolean, onEdit: (product: Product) => void) {
         <span className="tabular-nums">{formatUSD(info.getValue())}</span>
       ),
     }),
+    columnHelper.accessor((row) => salesByProduct[row.id]?.unitsSold ?? 0, {
+      id: "unitsSold",
+      header: "Units Sold",
+      cell: (info) => (
+        <span className="tabular-nums text-text-secondary">
+          {info.getValue().toLocaleString("en-US")}
+        </span>
+      ),
+    }),
+    columnHelper.accessor((row) => salesByProduct[row.id]?.revenue ?? 0, {
+      id: "revenue",
+      header: "Revenue",
+      cell: (info) => {
+        const value = info.getValue();
+        return (
+          <span className="tabular-nums text-text-secondary">
+            {value ? formatUSD(value) : "—"}
+          </span>
+        );
+      },
+    }),
     columnHelper.accessor("status", {
       header: "Status",
       cell: (info) => {
@@ -153,10 +179,12 @@ export function useProductTable({
   data,
   admin,
   onEdit,
+  salesByProduct = {},
 }: {
   data: Product[];
   admin: boolean;
   onEdit: (product: Product) => void;
+  salesByProduct?: ProductSalesTotals;
 }) {
   const [sorting, setSorting] = useState<SortingState>([
     { id: "name", desc: false },
@@ -164,7 +192,10 @@ export function useProductTable({
   const [columnVisibility, setColumnVisibility] = usePersistedColumnVisibility(
     "products-table-columns"
   );
-  const columns = useMemo(() => buildColumns(admin, onEdit), [admin, onEdit]);
+  const columns = useMemo(
+    () => buildColumns(admin, onEdit, salesByProduct),
+    [admin, onEdit, salesByProduct]
+  );
 
   return useTable({
     features,
