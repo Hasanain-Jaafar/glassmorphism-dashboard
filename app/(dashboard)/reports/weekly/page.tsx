@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { Lock } from "lucide-react";
@@ -47,6 +47,14 @@ type RawData = {
 };
 
 export default function WeeklyReportPage() {
+  return (
+    <Suspense>
+      <WeeklyReportPageContent />
+    </Suspense>
+  );
+}
+
+function WeeklyReportPageContent() {
   const { isAdmin } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
