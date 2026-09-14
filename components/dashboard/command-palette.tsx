@@ -20,6 +20,7 @@ import {
   Package,
   Tag,
   Brain,
+  BarChart3,
 } from "lucide-react";
 import { getVisibleNavGroups } from "@/lib/nav";
 import type { Customer } from "@/lib/customers-data";
@@ -157,6 +158,16 @@ export function CommandPalette({ compact = false }: { compact?: boolean }) {
                   >
                     <Brain className="size-4" />
                     AI Brain
+                  </CommandItem>
+                </CommandGroup>
+                <CommandSeparator />
+                <CommandGroup heading="Reports">
+                  <CommandItem
+                    value="Weekly Performance Summary report"
+                    onSelect={() => runCommand(() => router.push("/reports/weekly"))}
+                  >
+                    <BarChart3 className="size-4" />
+                    Weekly Performance Summary
                   </CommandItem>
                 </CommandGroup>
                 <CommandSeparator />
