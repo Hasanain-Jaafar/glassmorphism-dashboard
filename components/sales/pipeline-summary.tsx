@@ -5,12 +5,14 @@ import type { PipelineStage } from "@/lib/mock-data";
 export function PipelineSummary({
   stages,
   conversions,
+  description = "This month's funnel",
 }: {
   stages: PipelineStage[];
   conversions: number[];
+  description?: string;
 }) {
   return (
-    <ChartCard title="Sales Pipeline" description="This month's funnel">
+    <ChartCard title="Sales Pipeline" description={description}>
       <PipelineBarChart stages={stages} />
       <div className="mt-4 flex items-center justify-center gap-2 text-xs text-text-tertiary">
         {conversions.map((pct, index) => (
