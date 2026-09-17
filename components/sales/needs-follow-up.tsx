@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { FileClock, HandCoins } from "lucide-react";
 import { ChartCard } from "@/components/dashboard/chart-card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -123,37 +124,43 @@ export function NeedsFollowUp() {
       ) : (
         <ul className="space-y-2">
           {shown.map((item) => (
-            <li
-              key={`${item.kind}-${item.id}`}
-              className="flex items-center gap-2.5 rounded-xl border border-glass-border/60 bg-foreground/[0.02] p-2.5"
-            >
-              <span
-                className={cn(
-                  "flex size-7 shrink-0 items-center justify-center rounded-full",
+            <li key={`${item.kind}-${item.id}`}>
+              <Link
+                href={
                   item.kind === "deal"
-                    ? "bg-danger/10 text-danger"
-                    : "bg-warning/10 text-warning"
-                )}
+                    ? `/deals?id=${item.id}`
+                    : `/quotations?id=${item.id}`
+                }
+                className="flex items-center gap-2.5 rounded-xl border border-glass-border/60 bg-foreground/[0.02] p-2.5 transition-colors hover:border-glass-border hover:bg-foreground/[0.04]"
               >
-                {item.kind === "deal" ? (
-                  <HandCoins className="size-3.5" />
-                ) : (
-                  <FileClock className="size-3.5" />
-                )}
-              </span>
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium text-foreground">
-                  {item.customerName}
-                </p>
-                <p className="truncate text-xs text-text-tertiary">
-                  {isAdmin ? `${item.repName} · ` : ""}
-                  {item.kind === "deal" ? "Open deal" : "Sent quotation"} ·{" "}
-                  {item.workingDays}d
-                </p>
-              </div>
-              <span className="shrink-0 text-sm font-semibold text-foreground">
-                {formatUSD(item.amount)}
-              </span>
+                <span
+                  className={cn(
+                    "flex size-7 shrink-0 items-center justify-center rounded-full",
+                    item.kind === "deal"
+                      ? "bg-danger/10 text-danger"
+                      : "bg-warning/10 text-warning"
+                  )}
+                >
+                  {item.kind === "deal" ? (
+                    <HandCoins className="size-3.5" />
+                  ) : (
+                    <FileClock className="size-3.5" />
+                  )}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-medium text-foreground">
+                    {item.customerName}
+                  </p>
+                  <p className="truncate text-xs text-text-tertiary">
+                    {isAdmin ? `${item.repName} · ` : ""}
+                    {item.kind === "deal" ? "Open deal" : "Sent quotation"} ·{" "}
+                    {item.workingDays}d
+                  </p>
+                </div>
+                <span className="shrink-0 text-sm font-semibold text-foreground">
+                  {formatUSD(item.amount)}
+                </span>
+              </Link>
             </li>
           ))}
         </ul>
