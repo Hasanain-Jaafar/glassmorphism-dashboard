@@ -2,6 +2,7 @@
 
 import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import { startOfDay, endOfDay, startOfWeek, endOfWeek } from "date-fns";
 import { toast } from "sonner";
 import {
   CalendarClock,
@@ -53,8 +54,11 @@ import {
 import { fetchQuotations, type Quotation } from "@/lib/supabase/quotations";
 import type { Customer } from "@/lib/customers-data";
 import { monthlyCountWave, weeklyCountWave } from "@/lib/kpi-wave";
+import { useWeekStart } from "@/lib/use-week-start";
 
 const ALL = "all";
+const TODAY = "today";
+const THIS_WEEK = "this_week";
 
 export default function AppointmentsPage() {
   return (
@@ -104,6 +108,20 @@ function AppointmentsPageContent() {
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>(ALL);
+  const [periodFilter, setPeriodFilter] = useState<string>(ALL);
+  const [weekStartsOn] = useWeekStart();
+
+  // Every year that has at least one appointment, plus the current year even
+  // if it has none yet — so a future year appears here the moment the first
+  // appointment is scheduled into it.
+  const periodYearOptions = useMemo(() => {
+    const currentYear = new Date().getFullYear();
+    const years = new Set<number>([currentYear]);
+    for (const a of appointments ?? []) {
+      years.add(new Date(a.scheduledAt).getFullYear());
+    }
+    return [...years].sort((a, b) => a - b);
+  }, [appointments]);
 
   const [formOpen, setFormOpen] = useState(false);
   const [editingAppointment, setEditingAppointment] = useState<Appointment | undefined>();
@@ -135,6 +153,7 @@ function AppointmentsPageContent() {
     setPrevHighlightedId(highlightedId);
     if (highlightedId) {
       setStatusFilter(ALL);
+      setPeriodFilter(ALL);
       setSearch("");
       setFlashId(highlightedId);
     }
@@ -176,6 +195,12 @@ function AppointmentsPageContent() {
 
   const filtered = useMemo(() => {
     const query = search.trim().toLowerCase();
+    const now = new Date();
+    const todayStart = startOfDay(now);
+    const todayEnd = endOfDay(now);
+    const weekStart = startOfWeek(now, { weekStartsOn });
+    const weekEnd = endOfWeek(now, { weekStartsOn });
+
     return (appointments ?? []).filter((a) => {
       const customer = customersById.get(a.customerId ?? "");
       const matchesSearch =
@@ -183,15 +208,30 @@ function AppointmentsPageContent() {
         a.title.toLowerCase().includes(query) ||
         customer?.company.toLowerCase().includes(query);
       const matchesStatus = statusFilter === ALL || a.status === statusFilter;
-      return matchesSearch && matchesStatus;
-    });
-  }, [appointments, search, statusFilter, customersById]);
 
-  const hasActiveFilters = search.trim() !== "" || statusFilter !== ALL;
+      let matchesPeriod = true;
+      if (periodFilter !== ALL) {
+        const scheduled = new Date(a.scheduledAt);
+        if (periodFilter === TODAY) {
+          matchesPeriod = scheduled >= todayStart && scheduled <= todayEnd;
+        } else if (periodFilter === THIS_WEEK) {
+          matchesPeriod = scheduled >= weekStart && scheduled <= weekEnd;
+        } else {
+          matchesPeriod = scheduled.getFullYear() === Number(periodFilter);
+        }
+      }
+
+      return matchesSearch && matchesStatus && matchesPeriod;
+    });
+  }, [appointments, search, statusFilter, periodFilter, weekStartsOn, customersById]);
+
+  const hasActiveFilters =
+    search.trim() !== "" || statusFilter !== ALL || periodFilter !== ALL;
 
   function clearFilters() {
     setSearch("");
     setStatusFilter(ALL);
+    setPeriodFilter(ALL);
   }
 
   function openAddForm() {
@@ -304,30 +344,61 @@ function AppointmentsPageContent() {
             onChange={setSearch}
           />
 
-          <Select
-            value={statusFilter}
-            onValueChange={(value) => value && setStatusFilter(value)}
-          >
-            <SelectTrigger className="glass-panel filter-control h-8 gap-1.5 px-2.5 text-xs">
-              <SelectValue>
-                {(value: string) =>
-                  value === ALL
-                    ? "All Statuses"
-                    : (appointmentStatusLabels[value as AppointmentStatus] ?? value)
-                }
-              </SelectValue>
-            </SelectTrigger>
-            <SelectContent align="end">
-              <SelectItem value={ALL}>All Statuses</SelectItem>
-              {(Object.keys(appointmentStatusLabels) as AppointmentStatus[]).map(
-                (status) => (
-                  <SelectItem key={status} value={status}>
-                    {appointmentStatusLabels[status]}
+          <div className="flex flex-wrap items-center gap-2">
+            <Select
+              value={periodFilter}
+              onValueChange={(value) => value && setPeriodFilter(value)}
+            >
+              <SelectTrigger className="glass-panel filter-control h-8 gap-1.5 px-2.5 text-xs">
+                <SelectValue>
+                  {(value: string) =>
+                    value === ALL
+                      ? "All Time"
+                      : value === TODAY
+                        ? "Today"
+                        : value === THIS_WEEK
+                          ? "This Week"
+                          : value
+                  }
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent align="end">
+                <SelectItem value={ALL}>All Time</SelectItem>
+                <SelectItem value={TODAY}>Today</SelectItem>
+                <SelectItem value={THIS_WEEK}>This Week</SelectItem>
+                {periodYearOptions.map((year) => (
+                  <SelectItem key={year} value={String(year)}>
+                    {year}
                   </SelectItem>
-                )
-              )}
-            </SelectContent>
-          </Select>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select
+              value={statusFilter}
+              onValueChange={(value) => value && setStatusFilter(value)}
+            >
+              <SelectTrigger className="glass-panel filter-control h-8 gap-1.5 px-2.5 text-xs">
+                <SelectValue>
+                  {(value: string) =>
+                    value === ALL
+                      ? "All Statuses"
+                      : (appointmentStatusLabels[value as AppointmentStatus] ?? value)
+                  }
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent align="end">
+                <SelectItem value={ALL}>All Statuses</SelectItem>
+                {(Object.keys(appointmentStatusLabels) as AppointmentStatus[]).map(
+                  (status) => (
+                    <SelectItem key={status} value={status}>
+                      {appointmentStatusLabels[status]}
+                    </SelectItem>
+                  )
+                )}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
       </Reveal>
 
