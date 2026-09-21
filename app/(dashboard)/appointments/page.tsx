@@ -2,7 +2,14 @@
 
 import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { startOfDay, endOfDay, startOfWeek, endOfWeek } from "date-fns";
+import {
+  startOfDay,
+  endOfDay,
+  startOfWeek,
+  endOfWeek,
+  startOfMonth,
+  endOfMonth,
+} from "date-fns";
 import { toast } from "sonner";
 import {
   CalendarClock,
@@ -59,6 +66,7 @@ import { useWeekStart } from "@/lib/use-week-start";
 const ALL = "all";
 const TODAY = "today";
 const THIS_WEEK = "this_week";
+const THIS_MONTH = "this_month";
 
 export default function AppointmentsPage() {
   return (
@@ -200,6 +208,8 @@ function AppointmentsPageContent() {
     const todayEnd = endOfDay(now);
     const weekStart = startOfWeek(now, { weekStartsOn });
     const weekEnd = endOfWeek(now, { weekStartsOn });
+    const monthStart = startOfMonth(now);
+    const monthEnd = endOfMonth(now);
 
     return (appointments ?? []).filter((a) => {
       const customer = customersById.get(a.customerId ?? "");
@@ -216,6 +226,8 @@ function AppointmentsPageContent() {
           matchesPeriod = scheduled >= todayStart && scheduled <= todayEnd;
         } else if (periodFilter === THIS_WEEK) {
           matchesPeriod = scheduled >= weekStart && scheduled <= weekEnd;
+        } else if (periodFilter === THIS_MONTH) {
+          matchesPeriod = scheduled >= monthStart && scheduled <= monthEnd;
         } else {
           matchesPeriod = scheduled.getFullYear() === Number(periodFilter);
         }
@@ -358,7 +370,9 @@ function AppointmentsPageContent() {
                         ? "Today"
                         : value === THIS_WEEK
                           ? "This Week"
-                          : value
+                          : value === THIS_MONTH
+                            ? "This Month"
+                            : value
                   }
                 </SelectValue>
               </SelectTrigger>
@@ -366,6 +380,7 @@ function AppointmentsPageContent() {
                 <SelectItem value={ALL}>All Time</SelectItem>
                 <SelectItem value={TODAY}>Today</SelectItem>
                 <SelectItem value={THIS_WEEK}>This Week</SelectItem>
+                <SelectItem value={THIS_MONTH}>This Month</SelectItem>
                 {periodYearOptions.map((year) => (
                   <SelectItem key={year} value={String(year)}>
                     {year}
