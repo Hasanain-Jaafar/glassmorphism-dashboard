@@ -15,6 +15,11 @@ import {
 import { PageHeader } from "@/components/dashboard/page-header";
 import { MetricCard } from "@/components/dashboard/metric-card";
 import { SearchInput } from "@/components/dashboard/search-input";
+import {
+  PeriodFilter,
+  createPeriodMatcher,
+  usePeriodYearOptions,
+} from "@/components/dashboard/period-filter";
 import { Reveal } from "@/components/motion/reveal";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -40,6 +45,7 @@ import { dealStatusLabels } from "@/components/deals/deal-styles";
 import { fetchTeamMembers, type TeamMember } from "@/lib/supabase/team";
 import { fetchCustomers } from "@/lib/supabase/customers";
 import { fetchQuotations, type Quotation } from "@/lib/supabase/quotations";
+import { fetchAppointments, type Appointment } from "@/lib/supabase/appointments";
 import { createInvoice, fetchInvoices, type Invoice } from "@/lib/supabase/invoices";
 import {
   fetchDeals,
@@ -52,6 +58,7 @@ import {
 } from "@/lib/supabase/deals";
 import type { Customer } from "@/lib/customers-data";
 import { formatUSD } from "@/lib/format";
+import { useWeekStart } from "@/lib/use-week-start";
 import { monthlyCountWave, monthlySumWave } from "@/lib/kpi-wave";
 import { exportRowsAsCsv } from "@/lib/csv-export";
 
@@ -74,6 +81,7 @@ function DealsPageContent() {
   const [salespeople, setSalespeople] = useState<TeamMember[]>([]);
   const [quotations, setQuotations] = useState<Quotation[]>([]);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
 
   useEffect(() => {
     fetchDeals()
@@ -91,6 +99,10 @@ function DealsPageContent() {
     fetchQuotations()
       .then(setQuotations)
       .catch(() => {});
+    // Only needed for the deal title (deal → quotation → appointment).
+    fetchAppointments()
+      .then(setAppointments)
+      .catch(() => {});
     // Only needed to detect whether a deal already has an invoice, to lock
     // its status field in the edit form.
     fetchInvoices()
@@ -100,6 +112,8 @@ function DealsPageContent() {
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>(ALL);
+  const [periodFilter, setPeriodFilter] = useState<string>(ALL);
+  const [weekStartsOn] = useWeekStart();
 
   const [formOpen, setFormOpen] = useState(false);
   const [editingDeal, setEditingDeal] = useState<Deal | undefined>();
@@ -118,6 +132,7 @@ function DealsPageContent() {
     setPrevHighlightedId(highlightedId);
     if (highlightedId) {
       setStatusFilter(ALL);
+      setPeriodFilter(ALL);
       setSearch("");
       setFlashId(highlightedId);
     }
@@ -161,6 +176,18 @@ function DealsPageContent() {
       ),
     [quotations, editingDeal, dealtQuotationIds]
   );
+
+  const appointmentTitleByDealId = useMemo(() => {
+    const titleByAppointmentId = new Map(appointments.map((a) => [a.id, a.title]));
+    const quotationsById = new Map(quotations.map((q) => [q.id, q]));
+    const titles = new Map<string, string>();
+    for (const d of deals ?? []) {
+      const quotation = quotationsById.get(d.quotationId);
+      const title = quotation && titleByAppointmentId.get(quotation.appointmentId);
+      if (title) titles.set(d.id, title);
+    }
+    return titles;
+  }, [deals, quotations, appointments]);
 
   const invoiceDealIds = useMemo(
     () => new Set(invoices.map((i) => i.dealId)),
@@ -208,21 +235,34 @@ function DealsPageContent() {
     };
   }, [deals]);
 
+  const periodDates = useMemo(
+    () => (deals ?? []).map((d) => d.closedAt ?? d.createdAt),
+    [deals]
+  );
+  const periodYearOptions = usePeriodYearOptions(periodDates);
+
   const filtered = useMemo(() => {
     const query = search.trim().toLowerCase();
+    const matchesPeriod = createPeriodMatcher(periodFilter, weekStartsOn);
     return (deals ?? []).filter((d) => {
       const customer = customersById.get(d.customerId ?? "");
-      const matchesSearch = !query || customer?.company.toLowerCase().includes(query);
+      const title = appointmentTitleByDealId.get(d.id);
+      const matchesSearch =
+        !query ||
+        customer?.company.toLowerCase().includes(query) ||
+        title?.toLowerCase().includes(query);
       const matchesStatus = statusFilter === ALL || d.status === statusFilter;
-      return matchesSearch && matchesStatus;
+      return matchesSearch && matchesStatus && matchesPeriod(d.closedAt ?? d.createdAt);
     });
-  }, [deals, search, statusFilter, customersById]);
+  }, [deals, search, statusFilter, periodFilter, weekStartsOn, customersById, appointmentTitleByDealId]);
 
-  const hasActiveFilters = search.trim() !== "" || statusFilter !== ALL;
+  const hasActiveFilters =
+    search.trim() !== "" || statusFilter !== ALL || periodFilter !== ALL;
 
   function clearFilters() {
     setSearch("");
     setStatusFilter(ALL);
+    setPeriodFilter(ALL);
   }
 
   function handleExportCsv() {
@@ -232,6 +272,7 @@ function DealsPageContent() {
         header: "Customer",
         value: (d) => customersById.get(d.customerId ?? "")?.company ?? "Unassigned",
       },
+      { header: "Title", value: (d) => appointmentTitleByDealId.get(d.id) ?? "" },
       {
         header: "Sales Rep",
         value: (d) => salespeopleById.get(d.salesRepId)?.name ?? "Unassigned",
@@ -383,33 +424,41 @@ function DealsPageContent() {
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <SearchInput
             icon={HandshakeIcon}
-            placeholder="Search by customer..."
+            placeholder="Search by customer or title..."
             value={search}
             onChange={setSearch}
           />
 
-          <Select
-            value={statusFilter}
-            onValueChange={(value) => value && setStatusFilter(value)}
-          >
-            <SelectTrigger className="glass-panel filter-control h-8 gap-1.5 px-2.5 text-xs">
-              <SelectValue>
-                {(value: string) =>
-                  value === ALL
-                    ? "All Statuses"
-                    : (dealStatusLabels[value as DealStatus] ?? value)
-                }
-              </SelectValue>
-            </SelectTrigger>
-            <SelectContent align="end">
-              <SelectItem value={ALL}>All Statuses</SelectItem>
-              {(Object.keys(dealStatusLabels) as DealStatus[]).map((status) => (
-                <SelectItem key={status} value={status}>
-                  {dealStatusLabels[status]}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <div className="flex flex-wrap items-center gap-2">
+            <PeriodFilter
+              value={periodFilter}
+              onChange={setPeriodFilter}
+              years={periodYearOptions}
+            />
+
+            <Select
+              value={statusFilter}
+              onValueChange={(value) => value && setStatusFilter(value)}
+            >
+              <SelectTrigger className="glass-panel filter-control h-8 gap-1.5 px-2.5 text-xs">
+                <SelectValue>
+                  {(value: string) =>
+                    value === ALL
+                      ? "All Statuses"
+                      : (dealStatusLabels[value as DealStatus] ?? value)
+                  }
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent align="end">
+                <SelectItem value={ALL}>All Statuses</SelectItem>
+                {(Object.keys(dealStatusLabels) as DealStatus[]).map((status) => (
+                  <SelectItem key={status} value={status}>
+                    {dealStatusLabels[status]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
       </Reveal>
 
@@ -446,6 +495,7 @@ function DealsPageContent() {
             customers={customers}
             salespeople={salespeople}
             quotations={quotations}
+            appointmentTitleByDealId={appointmentTitleByDealId}
             invoiceDealIds={invoiceDealIds}
             onEdit={openEditForm}
             onStatusChange={handleStatusChange}

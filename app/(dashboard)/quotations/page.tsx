@@ -15,6 +15,11 @@ import {
 import { PageHeader } from "@/components/dashboard/page-header";
 import { MetricCard } from "@/components/dashboard/metric-card";
 import { SearchInput } from "@/components/dashboard/search-input";
+import {
+  PeriodFilter,
+  createPeriodMatcher,
+  usePeriodYearOptions,
+} from "@/components/dashboard/period-filter";
 import { Reveal } from "@/components/motion/reveal";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -58,6 +63,7 @@ import {
 import type { Customer } from "@/lib/customers-data";
 import type { Product } from "@/lib/mock-data";
 import { formatUSD } from "@/lib/format";
+import { useWeekStart } from "@/lib/use-week-start";
 import { monthlyCountWave, monthlySumWave } from "@/lib/kpi-wave";
 import { exportRowsAsCsv } from "@/lib/csv-export";
 
@@ -110,6 +116,8 @@ function QuotationsPageContent() {
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>(ALL);
+  const [periodFilter, setPeriodFilter] = useState<string>(ALL);
+  const [weekStartsOn] = useWeekStart();
 
   const [formOpen, setFormOpen] = useState(false);
   const [editingQuotation, setEditingQuotation] = useState<Quotation | undefined>();
@@ -139,6 +147,7 @@ function QuotationsPageContent() {
     setPrevHighlightedId(highlightedId);
     if (highlightedId) {
       setStatusFilter(ALL);
+      setPeriodFilter(ALL);
       setSearch("");
       setFlashId(highlightedId);
     }
@@ -217,21 +226,30 @@ function QuotationsPageContent() {
     };
   }, [quotations]);
 
+  const periodDates = useMemo(
+    () => (quotations ?? []).map((q) => q.createdAt),
+    [quotations]
+  );
+  const periodYearOptions = usePeriodYearOptions(periodDates);
+
   const filtered = useMemo(() => {
     const query = search.trim().toLowerCase();
+    const matchesPeriod = createPeriodMatcher(periodFilter, weekStartsOn);
     return (quotations ?? []).filter((q) => {
       const customer = customersById.get(q.customerId ?? "");
       const matchesSearch = !query || customer?.company.toLowerCase().includes(query);
       const matchesStatus = statusFilter === ALL || q.status === statusFilter;
-      return matchesSearch && matchesStatus;
+      return matchesSearch && matchesStatus && matchesPeriod(q.createdAt);
     });
-  }, [quotations, search, statusFilter, customersById]);
+  }, [quotations, search, statusFilter, periodFilter, weekStartsOn, customersById]);
 
-  const hasActiveFilters = search.trim() !== "" || statusFilter !== ALL;
+  const hasActiveFilters =
+    search.trim() !== "" || statusFilter !== ALL || periodFilter !== ALL;
 
   function clearFilters() {
     setSearch("");
     setStatusFilter(ALL);
+    setPeriodFilter(ALL);
   }
 
   function handleExportCsv() {
@@ -416,30 +434,38 @@ function QuotationsPageContent() {
             onChange={setSearch}
           />
 
-          <Select
-            value={statusFilter}
-            onValueChange={(value) => value && setStatusFilter(value)}
-          >
-            <SelectTrigger className="glass-panel filter-control h-8 gap-1.5 px-2.5 text-xs">
-              <SelectValue>
-                {(value: string) =>
-                  value === ALL
-                    ? "All Statuses"
-                    : (quotationStatusLabels[value as QuotationStatus] ?? value)
-                }
-              </SelectValue>
-            </SelectTrigger>
-            <SelectContent align="end">
-              <SelectItem value={ALL}>All Statuses</SelectItem>
-              {(Object.keys(quotationStatusLabels) as QuotationStatus[]).map(
-                (status) => (
-                  <SelectItem key={status} value={status}>
-                    {quotationStatusLabels[status]}
-                  </SelectItem>
-                )
-              )}
-            </SelectContent>
-          </Select>
+          <div className="flex flex-wrap items-center gap-2">
+            <PeriodFilter
+              value={periodFilter}
+              onChange={setPeriodFilter}
+              years={periodYearOptions}
+            />
+
+            <Select
+              value={statusFilter}
+              onValueChange={(value) => value && setStatusFilter(value)}
+            >
+              <SelectTrigger className="glass-panel filter-control h-8 gap-1.5 px-2.5 text-xs">
+                <SelectValue>
+                  {(value: string) =>
+                    value === ALL
+                      ? "All Statuses"
+                      : (quotationStatusLabels[value as QuotationStatus] ?? value)
+                  }
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent align="end">
+                <SelectItem value={ALL}>All Statuses</SelectItem>
+                {(Object.keys(quotationStatusLabels) as QuotationStatus[]).map(
+                  (status) => (
+                    <SelectItem key={status} value={status}>
+                      {quotationStatusLabels[status]}
+                    </SelectItem>
+                  )
+                )}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
       </Reveal>
 

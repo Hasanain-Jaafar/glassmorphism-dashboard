@@ -52,6 +52,7 @@ function buildColumns(
   customersById: Map<string, Customer>,
   salespeopleById: Map<string, TeamMember>,
   quotationsById: Map<string, Quotation>,
+  appointmentTitleByDealId: Map<string, string>,
   invoiceDealIds: Set<string>,
   actions: {
     onEdit: (deal: Deal) => void;
@@ -78,22 +79,28 @@ function buildColumns(
         );
       },
     }),
-    columnHelper.accessor("quotationId", {
-      header: "Quotation",
+    columnHelper.accessor((deal) => appointmentTitleByDealId.get(deal.id) ?? "", {
+      id: "title",
+      header: "Title",
       cell: (info) => {
-        const quotation = quotationsById.get(info.getValue());
-        if (!quotation) {
+        const title = info.getValue();
+        const quotation = quotationsById.get(info.row.original.quotationId);
+        if (!title) {
           return <span className="text-text-tertiary">—</span>;
         }
+        if (!quotation) {
+          return <span className="block max-w-[260px] truncate text-text-secondary">{title}</span>;
+        }
+        // The title comes from the source appointment, but the deal's direct
+        // parent is its quotation — link there.
         return (
           <Link
             href={`/quotations?id=${quotation.id}`}
-            className="inline-flex min-w-0 items-center gap-1.5 text-text-secondary transition-colors hover:text-primary hover:underline"
+            title="Open source quotation"
+            className="inline-flex max-w-[260px] min-w-0 items-center gap-1.5 text-text-secondary transition-colors hover:text-primary hover:underline"
           >
             <FileText className="size-3.5 shrink-0" />
-            <span className="tabular-nums whitespace-nowrap">
-              {formatUSD(quotation.total)}
-            </span>
+            <span className="truncate">{title}</span>
           </Link>
         );
       },
@@ -212,6 +219,7 @@ export function DealsTable({
   customers,
   salespeople,
   quotations,
+  appointmentTitleByDealId,
   invoiceDealIds,
   onEdit,
   onStatusChange,
@@ -223,6 +231,8 @@ export function DealsTable({
   customers: Customer[];
   salespeople: TeamMember[];
   quotations: Quotation[];
+  /** Deal id → title of the appointment its quotation came from. */
+  appointmentTitleByDealId: Map<string, string>;
   /** Deal ids that already have an invoice — those can't be deleted. */
   invoiceDealIds: Set<string>;
   onEdit: (deal: Deal) => void;
@@ -251,16 +261,19 @@ export function DealsTable({
 
   const columns = useMemo(
     () =>
-      buildColumns(customersById, salespeopleById, quotationsById, invoiceDealIds, {
-        onEdit,
-        onStatusChange,
-        onCreateInvoice,
-        onDelete,
-      }),
+      buildColumns(
+        customersById,
+        salespeopleById,
+        quotationsById,
+        appointmentTitleByDealId,
+        invoiceDealIds,
+        { onEdit, onStatusChange, onCreateInvoice, onDelete }
+      ),
     [
       customersById,
       salespeopleById,
       quotationsById,
+      appointmentTitleByDealId,
       invoiceDealIds,
       onEdit,
       onStatusChange,

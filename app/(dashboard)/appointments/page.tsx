@@ -2,14 +2,6 @@
 
 import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import {
-  startOfDay,
-  endOfDay,
-  startOfWeek,
-  endOfWeek,
-  startOfMonth,
-  endOfMonth,
-} from "date-fns";
 import { toast } from "sonner";
 import {
   CalendarClock,
@@ -21,6 +13,11 @@ import {
 import { PageHeader } from "@/components/dashboard/page-header";
 import { MetricCard } from "@/components/dashboard/metric-card";
 import { SearchInput } from "@/components/dashboard/search-input";
+import {
+  PeriodFilter,
+  createPeriodMatcher,
+  usePeriodYearOptions,
+} from "@/components/dashboard/period-filter";
 import { Reveal } from "@/components/motion/reveal";
 import { useAuth } from "@/components/providers/auth-provider";
 import { Button } from "@/components/ui/button";
@@ -64,9 +61,6 @@ import { monthlyCountWave, weeklyCountWave } from "@/lib/kpi-wave";
 import { useWeekStart } from "@/lib/use-week-start";
 
 const ALL = "all";
-const TODAY = "today";
-const THIS_WEEK = "this_week";
-const THIS_MONTH = "this_month";
 
 export default function AppointmentsPage() {
   return (
@@ -119,17 +113,11 @@ function AppointmentsPageContent() {
   const [periodFilter, setPeriodFilter] = useState<string>(ALL);
   const [weekStartsOn] = useWeekStart();
 
-  // Every year that has at least one appointment, plus the current year even
-  // if it has none yet — so a future year appears here the moment the first
-  // appointment is scheduled into it.
-  const periodYearOptions = useMemo(() => {
-    const currentYear = new Date().getFullYear();
-    const years = new Set<number>([currentYear]);
-    for (const a of appointments ?? []) {
-      years.add(new Date(a.scheduledAt).getFullYear());
-    }
-    return [...years].sort((a, b) => a - b);
-  }, [appointments]);
+  const appointmentDates = useMemo(
+    () => (appointments ?? []).map((a) => a.scheduledAt),
+    [appointments]
+  );
+  const periodYearOptions = usePeriodYearOptions(appointmentDates);
 
   const [formOpen, setFormOpen] = useState(false);
   const [editingAppointment, setEditingAppointment] = useState<Appointment | undefined>();
@@ -203,13 +191,7 @@ function AppointmentsPageContent() {
 
   const filtered = useMemo(() => {
     const query = search.trim().toLowerCase();
-    const now = new Date();
-    const todayStart = startOfDay(now);
-    const todayEnd = endOfDay(now);
-    const weekStart = startOfWeek(now, { weekStartsOn });
-    const weekEnd = endOfWeek(now, { weekStartsOn });
-    const monthStart = startOfMonth(now);
-    const monthEnd = endOfMonth(now);
+    const matchesPeriod = createPeriodMatcher(periodFilter, weekStartsOn);
 
     return (appointments ?? []).filter((a) => {
       const customer = customersById.get(a.customerId ?? "");
@@ -219,21 +201,7 @@ function AppointmentsPageContent() {
         customer?.company.toLowerCase().includes(query);
       const matchesStatus = statusFilter === ALL || a.status === statusFilter;
 
-      let matchesPeriod = true;
-      if (periodFilter !== ALL) {
-        const scheduled = new Date(a.scheduledAt);
-        if (periodFilter === TODAY) {
-          matchesPeriod = scheduled >= todayStart && scheduled <= todayEnd;
-        } else if (periodFilter === THIS_WEEK) {
-          matchesPeriod = scheduled >= weekStart && scheduled <= weekEnd;
-        } else if (periodFilter === THIS_MONTH) {
-          matchesPeriod = scheduled >= monthStart && scheduled <= monthEnd;
-        } else {
-          matchesPeriod = scheduled.getFullYear() === Number(periodFilter);
-        }
-      }
-
-      return matchesSearch && matchesStatus && matchesPeriod;
+      return matchesSearch && matchesStatus && matchesPeriod(a.scheduledAt);
     });
   }, [appointments, search, statusFilter, periodFilter, weekStartsOn, customersById]);
 
@@ -357,37 +325,11 @@ function AppointmentsPageContent() {
           />
 
           <div className="flex flex-wrap items-center gap-2">
-            <Select
+            <PeriodFilter
               value={periodFilter}
-              onValueChange={(value) => value && setPeriodFilter(value)}
-            >
-              <SelectTrigger className="glass-panel filter-control h-8 gap-1.5 px-2.5 text-xs">
-                <SelectValue>
-                  {(value: string) =>
-                    value === ALL
-                      ? "All Time"
-                      : value === TODAY
-                        ? "Today"
-                        : value === THIS_WEEK
-                          ? "This Week"
-                          : value === THIS_MONTH
-                            ? "This Month"
-                            : value
-                  }
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent align="end">
-                <SelectItem value={ALL}>All Time</SelectItem>
-                <SelectItem value={TODAY}>Today</SelectItem>
-                <SelectItem value={THIS_WEEK}>This Week</SelectItem>
-                <SelectItem value={THIS_MONTH}>This Month</SelectItem>
-                {periodYearOptions.map((year) => (
-                  <SelectItem key={year} value={String(year)}>
-                    {year}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              onChange={setPeriodFilter}
+              years={periodYearOptions}
+            />
 
             <Select
               value={statusFilter}
